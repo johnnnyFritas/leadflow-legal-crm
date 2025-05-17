@@ -6,20 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from '@/components/ui/sonner';
-import { User } from 'lucide-react';
-
-const colors = [
-  { value: 'default', label: 'Padrão (Roxo)' },
-  { value: 'blue', label: 'Azul' },
-  { value: 'green', label: 'Verde' },
-  { value: 'orange', label: 'Laranja' },
-  { value: 'red', label: 'Vermelho' },
-  { value: 'pink', label: 'Rosa' },
-];
+import { User, Eye, EyeOff } from 'lucide-react';
 
 const Settings = () => {
   const { user } = useAuth();
@@ -30,7 +20,8 @@ const Settings = () => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [themeColor, setThemeColor] = useState('default');
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState(user?.avatarUrl || '');
   const [isLoading, setIsLoading] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -67,14 +58,28 @@ const Settings = () => {
     }, 1000);
   };
 
-  const handleThemeChange = (color: string) => {
-    setThemeColor(color);
-    // Here you would apply the theme changes
-    toast.success(`Tema alterado para ${colors.find(c => c.value === color)?.label}`);
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
     
-    // Apply color scheme to the document
-    document.documentElement.setAttribute('data-color-scheme', color);
+    if (files && files.length > 0) {
+      const selectedFile = files[0];
+      setAvatarFile(selectedFile);
+      
+      // Create a preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setAvatarPreview(reader.result);
+        }
+      };
+      reader.readAsDataURL(selectedFile);
+      
+      toast.success('Foto de perfil alterada com sucesso!');
+    }
   };
+
+  // Hidden file input reference for avatar upload
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
     <div className="space-y-6">
@@ -89,7 +94,6 @@ const Settings = () => {
         <TabsList>
           <TabsTrigger value="profile">Meu Perfil</TabsTrigger>
           <TabsTrigger value="password">Senha</TabsTrigger>
-          <TabsTrigger value="appearance">Aparência</TabsTrigger>
         </TabsList>
         
         <TabsContent value="profile" className="space-y-4">
@@ -103,13 +107,25 @@ const Settings = () => {
             <CardContent>
               <form onSubmit={handleProfileUpdate} className="space-y-4">
                 <div className="flex flex-col items-center justify-center space-y-2 mb-4">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={user?.avatarUrl} />
+                  <Avatar className="h-24 w-24 cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <AvatarImage src={avatarPreview} />
                     <AvatarFallback className="text-2xl">
                       {user?.name?.charAt(0) || <User size={36} />}
                     </AvatarFallback>
                   </Avatar>
-                  <Button variant="outline" size="sm">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarChange}
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     Alterar foto
                   </Button>
                 </div>
@@ -200,9 +216,9 @@ const Settings = () => {
                       onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                     >
                       {showCurrentPassword ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>
+                        <EyeOff size={18} />
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <Eye size={18} />
                       )}
                     </Button>
                   </div>
@@ -227,9 +243,9 @@ const Settings = () => {
                       onClick={() => setShowNewPassword(!showNewPassword)}
                     >
                       {showNewPassword ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>
+                        <EyeOff size={18} />
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <Eye size={18} />
                       )}
                     </Button>
                   </div>
@@ -252,9 +268,9 @@ const Settings = () => {
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
                       {showConfirmPassword ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" x2="22" y1="2" y2="22"></line></svg>
+                        <EyeOff size={18} />
                       ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <Eye size={18} />
                       )}
                     </Button>
                   </div>
@@ -273,50 +289,6 @@ const Settings = () => {
                   </Button>
                 </div>
               </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="appearance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Aparência</CardTitle>
-              <CardDescription>
-                Personalize a aparência do CRM Quero Direito.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Cor Principal</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {colors.map((color) => (
-                      <div 
-                        key={color.value}
-                        className={`
-                          p-4 rounded-md cursor-pointer border-2 transition-all
-                          ${themeColor === color.value ? 'border-primary' : 'border-transparent hover:border-border'}
-                        `}
-                        onClick={() => handleThemeChange(color.value)}
-                      >
-                        <div 
-                          className={`w-full h-8 rounded-md mb-2 theme-${color.value}`}
-                          style={{
-                            backgroundColor: 
-                              color.value === 'default' ? 'hsl(var(--primary))' :
-                              color.value === 'blue' ? '#0ea5e9' :
-                              color.value === 'green' ? '#22c55e' :
-                              color.value === 'orange' ? '#f97316' :
-                              color.value === 'red' ? '#ef4444' :
-                              color.value === 'pink' ? '#ec4899' : ''
-                          }}
-                        ></div>
-                        <p className="text-sm text-center">{color.label}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>

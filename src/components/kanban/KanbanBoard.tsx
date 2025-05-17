@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, DropResult } from 'react-beautiful-dnd';
 import { toast } from '@/components/ui/sonner';
 import { Lead, FaseKanban, defaultFases, FaseKanbanConfig } from '@/types/lead';
@@ -8,11 +8,35 @@ import { mockLeads } from '@/data/mockLeads';
 
 interface KanbanBoardProps {
   onViewLead: (lead: Lead) => void;
+  searchQuery: string;
+  selectedArea: string;
 }
 
-const KanbanBoard = ({ onViewLead }: KanbanBoardProps) => {
+const KanbanBoard = ({ onViewLead, searchQuery, selectedArea }: KanbanBoardProps) => {
   const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  const [filteredLeads, setFilteredLeads] = useState<Lead[]>(mockLeads);
   const [fases] = useState<FaseKanbanConfig[]>(defaultFases);
+
+  useEffect(() => {
+    let filtered = [...mockLeads];
+    
+    // Apply area filter
+    if (selectedArea && selectedArea !== 'all') {
+      filtered = filtered.filter(lead => lead.area_direito === selectedArea);
+    }
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(lead => 
+        lead.nome.toLowerCase().includes(query) ||
+        lead.email.toLowerCase().includes(query) ||
+        lead.telefone.includes(query)
+      );
+    }
+    
+    setFilteredLeads(filtered);
+  }, [searchQuery, selectedArea, mockLeads]);
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -45,6 +69,21 @@ const KanbanBoard = ({ onViewLead }: KanbanBoardProps) => {
     
     setLeads(updatedLeads);
     
+    // Also update filtered leads
+    const updatedFilteredLeads = filteredLeads.map(l => {
+      if (l.id === leadId) {
+        return {
+          ...l,
+          fase_atual: destination.droppableId as FaseKanban,
+          tempo_na_fase: 0,
+          updated_at: new Date().toISOString()
+        };
+      }
+      return l;
+    });
+    
+    setFilteredLeads(updatedFilteredLeads);
+    
     const sourcePhase = fases.find(f => f.id === source.droppableId);
     const destPhase = fases.find(f => f.id === destination.droppableId);
     
@@ -55,7 +94,7 @@ const KanbanBoard = ({ onViewLead }: KanbanBoardProps) => {
 
   // Group leads by phase
   const leadsByPhase = fases.reduce((acc, fase) => {
-    acc[fase.id] = leads.filter((lead) => lead.fase_atual === fase.id);
+    acc[fase.id] = filteredLeads.filter((lead) => lead.fase_atual === fase.id);
     return acc;
   }, {} as Record<FaseKanban, Lead[]>);
 

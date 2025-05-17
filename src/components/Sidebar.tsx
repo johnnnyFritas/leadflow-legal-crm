@@ -21,24 +21,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   BarChart, 
   Kanban,
-  User,
   Users,
   Settings,
   LogOut,
-  PanelLeft
+  PanelLeft,
+  Palette,
+  UserCog
 } from "lucide-react";
 
 const Sidebar = () => {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
-  const { toggleSidebar, state } = useSidebar();
+  const { state } = useSidebar();
   
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
   return (
-    <SidebarComponent>
+    <SidebarComponent collapsible="icon">
       <SidebarHeader className="flex items-center justify-between px-4 py-2">
         <div className="flex items-center space-x-2">
           <div className="rounded-md bg-primary p-1">
@@ -52,15 +53,7 @@ const Sidebar = () => {
             <span className="text-xs text-muted-foreground">Versão 1.0</span>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleSidebar}
-          className="ml-auto hidden md:flex"
-        >
-          <PanelLeft size={18} className="rotate-180" />
-        </Button>
-        <SidebarTrigger className="ml-auto md:hidden" />
+        <SidebarTrigger className="ml-auto" />
       </SidebarHeader>
       
       <SidebarContent className="px-3 py-2">
@@ -78,7 +71,7 @@ const Sidebar = () => {
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className={isActive("/app") && !isActive("/app/kanban") ? "bg-accent" : ""}>
+              <SidebarMenuButton asChild tooltip="Dashboard" className={isActive("/app") && !isActive("/app/kanban") ? "bg-accent" : ""}>
                 <Link to="/app">
                   <BarChart size={18} />
                   <span>Dashboard</span>
@@ -87,7 +80,7 @@ const Sidebar = () => {
             </SidebarMenuItem>
             
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className={isActive("/app/kanban") ? "bg-accent" : ""}>
+              <SidebarMenuButton asChild tooltip="Kanban de Leads" className={isActive("/app/kanban") ? "bg-accent" : ""}>
                 <Link to="/app/kanban">
                   <Kanban size={18} />
                   <span>Kanban de Leads</span>
@@ -96,10 +89,28 @@ const Sidebar = () => {
             </SidebarMenuItem>
             
             <SidebarMenuItem>
-              <SidebarMenuButton asChild className={isActive("/app/settings") ? "bg-accent" : ""}>
+              <SidebarMenuButton asChild tooltip="Configurações" className={isActive("/app/settings") ? "bg-accent" : ""}>
                 <Link to="/app/settings">
                   <Settings size={18} />
                   <span>Configurações</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Preferências" className={isActive("/app/preferences") ? "bg-accent" : ""}>
+                <Link to="/app/preferences">
+                  <Palette size={18} />
+                  <span>Preferências</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Equipe" className={isActive("/app/team") ? "bg-accent" : ""}>
+                <Link to="/app/team">
+                  <Users size={18} />
+                  <span>Equipe</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -111,9 +122,9 @@ const Sidebar = () => {
             <span className="text-xs font-medium text-muted-foreground px-4 mb-2">Administração</span>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                <SidebarMenuButton asChild tooltip="Usuários">
                   <Link to="/app/users">
-                    <Users size={18} />
+                    <UserCog size={18} />
                     <span>Usuários</span>
                   </Link>
                 </SidebarMenuButton>
@@ -130,7 +141,7 @@ const Sidebar = () => {
           onClick={logout}
         >
           <LogOut size={18} className="mr-2" />
-          Sair
+          <span>Sair</span>
         </Button>
       </SidebarFooter>
       <SidebarRail />

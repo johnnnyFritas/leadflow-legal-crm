@@ -20,17 +20,6 @@ const areasDireito = [
   { value: 'empresarial', label: 'Empresarial' }
 ];
 
-const fases = [
-  'Em análise',
-  'Notificação recebida',
-  'Envio para reunião',
-  'Reunião marcada',
-  'Não compareceu',
-  'Reunião feita (sem contrato)',
-  'Reunião feita (com contrato)',
-  'Descartado'
-];
-
 // Sample data for charts
 const leadsPorFase = [
   { name: 'Em análise', value: 42, percent: '22%' },
@@ -79,6 +68,21 @@ const Dashboard = () => {
   const formattedDateFrom = dateFrom ? format(dateFrom, 'dd/MM/yyyy', { locale: ptBR }) : '';
   const formattedDateTo = dateTo ? format(dateTo, 'dd/MM/yyyy', { locale: ptBR }) : '';
 
+  // Set today or yesterday
+  const setToday = () => {
+    setDateFrom(new Date());
+    setDateTo(new Date());
+    setPeriod('custom');
+  };
+
+  const setYesterday = () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    setDateFrom(yesterday);
+    setDateTo(yesterday);
+    setPeriod('custom');
+  };
+
   // Custom tooltip formatter for charts
   const tooltipFormatter = (value: number, name: string, props: any) => {
     const item = props.payload;
@@ -89,7 +93,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-wrap">
           <div className="flex items-center space-x-2">
             <Select value={period} onValueChange={setPeriod}>
               <SelectTrigger className="w-[180px]">
@@ -102,6 +106,11 @@ const Dashboard = () => {
                 <SelectItem value="custom">Período personalizado</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={setToday}>Hoje</Button>
+            <Button variant="outline" onClick={setYesterday}>Ontem</Button>
           </div>
           
           {period === 'custom' && (
@@ -280,7 +289,7 @@ const Dashboard = () => {
               Quantidade de leads em cada fase do pipeline no período selecionado
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[400px]">
+          <CardContent className="h-[300px]">
             <BarChartHorizontal 
               data={leadsPorFase} 
               xAxisKey="value" 
@@ -300,7 +309,7 @@ const Dashboard = () => {
               Distribuição dos leads por área de especialização jurídica
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[400px]">
+          <CardContent className="h-[300px]">
             <BarChart 
               data={leadsPorArea} 
               xAxisKey="name" 
@@ -320,7 +329,7 @@ const Dashboard = () => {
               Evolução diária de novos leads no período selecionado
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[400px]">
+          <CardContent className="h-[300px]">
             <BarChart 
               data={leadsPorDia} 
               xAxisKey="name" 
