@@ -1,0 +1,127 @@
+
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  Sidebar as SidebarComponent,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  SidebarTrigger
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+// Import Lucide icons
+import { 
+  BarChart, 
+  Kanban,
+  User,
+  Users,
+  Settings,
+  LogOut
+} from "lucide-react";
+
+const Sidebar = () => {
+  const { user, logout, isAdmin } = useAuth();
+  const location = useLocation();
+  
+  const isActive = (path: string) => {
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
+  return (
+    <SidebarComponent>
+      <SidebarHeader className="flex items-center px-4 py-2">
+        <div className="flex items-center space-x-2">
+          <div className="rounded-md bg-primary p-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+              <path d="m8 12 2 2 6-6"></path>
+            </svg>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-lg font-bold">CRM Jurídico</span>
+            <span className="text-xs text-muted-foreground">Versão 1.0</span>
+          </div>
+        </div>
+        <SidebarTrigger className="ml-auto md:hidden" />
+      </SidebarHeader>
+      
+      <SidebarContent className="px-3 py-2">
+        <div className="mb-4 flex items-center gap-3 px-4 py-2">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={user?.avatarUrl} />
+            <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium text-sm">{user?.name}</p>
+            <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+          </div>
+        </div>
+        
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className={isActive("/app") && !isActive("/app/kanban") ? "bg-accent" : ""}>
+                <Link to="/app">
+                  <BarChart size={18} />
+                  <span>Dashboard</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className={isActive("/app/kanban") ? "bg-accent" : ""}>
+                <Link to="/app/kanban">
+                  <Kanban size={18} />
+                  <span>Kanban de Leads</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+        
+        {isAdmin && (
+          <SidebarGroup className="mt-6">
+            <span className="text-xs font-medium text-muted-foreground px-4 mb-2">Administração</span>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/app/users">
+                    <Users size={18} />
+                    <span>Usuários</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/app/settings">
+                    <Settings size={18} />
+                    <span>Configurações</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        )}
+      </SidebarContent>
+      
+      <SidebarFooter className="p-3">
+        <Button 
+          variant="outline" 
+          className="w-full justify-start" 
+          onClick={logout}
+        >
+          <LogOut size={18} className="mr-2" />
+          Sair
+        </Button>
+      </SidebarFooter>
+    </SidebarComponent>
+  );
+};
+
+export default Sidebar;
