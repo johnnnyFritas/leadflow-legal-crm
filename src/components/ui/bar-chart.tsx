@@ -22,7 +22,7 @@ interface BarChartProps {
   showGrid?: boolean;
   showLegend?: boolean;
   showTooltip?: boolean;
-  tooltipProps?: Partial<TooltipProps<any, any>>;
+  tooltipProps?: any;
   className?: string;
 }
 
@@ -63,7 +63,7 @@ export const BarChart = ({
         {showGrid && <CartesianGrid vertical={false} strokeDasharray="3 3" />}
         {showTooltip && (
           <Tooltip
-            content={(props) => {
+            content={(props: any) => {
               if (!props.active || !props.payload) {
                 return null;
               }
@@ -135,7 +135,7 @@ export const BarChartHorizontal = ({
         {showGrid && <CartesianGrid horizontal={false} strokeDasharray="3 3" />}
         {showTooltip && (
           <Tooltip
-            content={(props) => {
+            content={(props: any) => {
               if (!props.active || !props.payload) {
                 return null;
               }

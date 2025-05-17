@@ -12,11 +12,20 @@ import {
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   Lead,
   getScoreLabel, 
   formatTimeElapsed, 
-  getAreaLabel
+  getAreaLabel,
+  defaultFases
 } from '@/types/lead';
 import { toast } from '@/components/ui/sonner';
 
@@ -35,7 +44,14 @@ interface LeadDetailProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const CopyButton = ({ text }: { text: string }) => {
+interface Comment {
+  id: string;
+  text: string;
+  date: string;
+  author: string;
+}
+
+const CopyButton = ({ text, className }: { text: string, className?: string }) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     toast.success('Conteúdo copiado para a área de transferência');
@@ -45,7 +61,7 @@ const CopyButton = ({ text }: { text: string }) => {
     <Button 
       variant="ghost"
       size="icon"
-      className="h-5 w-5 copy-button"
+      className={`h-5 w-5 copy-button ${className || ''}`}
       onClick={handleCopy}
     >
       <Copy size={14} />
@@ -53,14 +69,14 @@ const CopyButton = ({ text }: { text: string }) => {
   );
 };
 
-const DetailItem = ({ label, value }: { label: string; value: string | React.ReactNode }) => (
+const DetailItem = ({ label, value, copyable = true }: { label: string; value: string | React.ReactNode; copyable?: boolean }) => (
   <div className="mb-3">
     <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
       {label}
     </div>
     <div className="flex items-center gap-1">
       <div className="text-sm">{value}</div>
-      {typeof value === 'string' && <CopyButton text={value} />}
+      {copyable && typeof value === 'string' && <CopyButton text={value} />}
     </div>
   </div>
 );
@@ -82,6 +98,9 @@ const YesNoItem = ({ label, value }: { label: string; value: boolean }) => (
 const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
   const [isCallLoading, setIsCallLoading] = useState(false);
   const [isWhatsappLoading, setIsWhatsappLoading] = useState(false);
+  const [comment, setComment] = useState('');
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [selectedPhase, setSelectedPhase] = useState('');
   
   if (!lead) return null;
   
@@ -119,9 +138,32 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
     toast.success(`Agendar reunião com ${lead.nome}`);
   };
 
-  const handleMoveNext = () => {
-    toast.success(`Lead ${lead.nome} movido para a próxima fase`);
-    onOpenChange(false);
+  const handleMovePhase = () => {
+    if (!selectedPhase) {
+      toast.error('Selecione uma fase para mover o lead');
+      return;
+    }
+    
+    const targetPhase = defaultFases.find(f => f.id === selectedPhase);
+    if (targetPhase) {
+      toast.success(`Lead ${lead.nome} movido para ${targetPhase.title}`);
+      onOpenChange(false);
+    }
+  };
+  
+  const handleAddComment = () => {
+    if (!comment.trim()) return;
+    
+    const newComment = {
+      id: Date.now().toString(),
+      text: comment,
+      date: new Date().toISOString(),
+      author: 'Você',
+    };
+    
+    setComments([newComment, ...comments]);
+    setComment('');
+    toast.success('Comentário adicionado');
   };
   
   return (
@@ -161,10 +203,10 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DetailItem label="Área do Direito" value={getAreaLabel(lead.area_direito)} />
-            <DetailItem label="Tempo total desde entrada" value={timeElapsed} />
+            <DetailItem label="Tempo total desde entrada" value={timeElapsed} copyable={false} />
           </div>
           
-          <DetailItem label="Tempo na fase atual" value={timeInPhase} />
+          <DetailItem label="Tempo na fase atual" value={timeInPhase} copyable={false} />
           
           <Separator />
           
@@ -198,6 +240,43 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
               <div className="mt-2 flex justify-end">
                 <CopyButton text={lead.mensagem_inicial} />
               </div>
+            </div>
+          </div>
+          
+          <Separator />
+          
+          <div className="space-y-3">
+            <h4 className="font-medium">Comentários</h4>
+            <div className="space-y-2">
+              <Textarea 
+                placeholder="Adicione um comentário sobre este lead..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                className="min-h-[100px]"
+              />
+              <Button onClick={handleAddComment} size="sm" className="w-full">
+                Adicionar comentário
+              </Button>
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              {comments.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhum comentário ainda
+                </p>
+              ) : (
+                comments.map((item) => (
+                  <div key={item.id} className="bg-secondary/20 p-3 rounded-md">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium">{item.author}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {format(parseISO(item.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                    </div>
+                    <p className="text-sm">{item.text}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
           
@@ -240,14 +319,29 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
               Marcar reunião
             </Button>
             
-            <Button 
-              variant="secondary" 
-              className="w-full"
-              onClick={handleMoveNext}
-            >
-              <Check size={18} className="mr-2" />
-              Mover para próxima fase
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Select value={selectedPhase} onValueChange={setSelectedPhase}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione uma fase" />
+                </SelectTrigger>
+                <SelectContent>
+                  {defaultFases.map((fase) => (
+                    <SelectItem key={fase.id} value={fase.id}>
+                      {fase.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Button 
+                variant="secondary" 
+                className="w-full"
+                onClick={handleMovePhase}
+              >
+                <Check size={18} className="mr-2" />
+                Mover lead
+              </Button>
+            </div>
           </div>
         </div>
       </SheetContent>

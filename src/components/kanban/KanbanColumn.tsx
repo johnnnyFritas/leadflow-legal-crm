@@ -12,7 +12,7 @@ interface KanbanColumnProps {
 
 const KanbanColumn = ({ title, leads, provided, onViewLead }: KanbanColumnProps) => {
   return (
-    <div className="kanban-column">
+    <div className="kanban-column w-64 min-w-64 max-w-64 flex-shrink-0 bg-secondary/20 rounded-md p-2">
       <h3 className="text-sm font-medium mb-2 flex items-center justify-between">
         <span>{title}</span>
         <span className="bg-secondary text-secondary-foreground text-xs px-2 py-0.5 rounded-full">
@@ -23,7 +23,7 @@ const KanbanColumn = ({ title, leads, provided, onViewLead }: KanbanColumnProps)
       <div
         {...provided.droppableProps}
         ref={provided.innerRef}
-        className="h-full overflow-y-auto"
+        className="overflow-y-auto"
       >
         {leads.map((lead, index) => (
           <KanbanCard

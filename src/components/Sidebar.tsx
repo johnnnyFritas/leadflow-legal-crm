@@ -10,7 +10,9 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarGroup,
-  SidebarTrigger
+  SidebarTrigger,
+  SidebarRail,
+  useSidebar
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,12 +24,14 @@ import {
   User,
   Users,
   Settings,
-  LogOut
+  LogOut,
+  PanelLeft
 } from "lucide-react";
 
 const Sidebar = () => {
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
+  const { toggleSidebar, state } = useSidebar();
   
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -35,7 +39,7 @@ const Sidebar = () => {
 
   return (
     <SidebarComponent>
-      <SidebarHeader className="flex items-center px-4 py-2">
+      <SidebarHeader className="flex items-center justify-between px-4 py-2">
         <div className="flex items-center space-x-2">
           <div className="rounded-md bg-primary p-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
@@ -44,10 +48,18 @@ const Sidebar = () => {
             </svg>
           </div>
           <div className="flex flex-col">
-            <span className="text-lg font-bold">CRM Jurídico</span>
+            <span className="text-lg font-bold">CRM Quero Direito</span>
             <span className="text-xs text-muted-foreground">Versão 1.0</span>
           </div>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleSidebar}
+          className="ml-auto hidden md:flex"
+        >
+          <PanelLeft size={18} className="rotate-180" />
+        </Button>
         <SidebarTrigger className="ml-auto md:hidden" />
       </SidebarHeader>
       
@@ -55,7 +67,7 @@ const Sidebar = () => {
         <div className="mb-4 flex items-center gap-3 px-4 py-2">
           <Avatar className="h-10 w-10">
             <AvatarImage src={user?.avatarUrl} />
-            <AvatarFallback>{user?.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
           <div>
             <p className="font-medium text-sm">{user?.name}</p>
@@ -82,6 +94,15 @@ const Sidebar = () => {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className={isActive("/app/settings") ? "bg-accent" : ""}>
+                <Link to="/app/settings">
+                  <Settings size={18} />
+                  <span>Configurações</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
         
@@ -94,14 +115,6 @@ const Sidebar = () => {
                   <Link to="/app/users">
                     <Users size={18} />
                     <span>Usuários</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/app/settings">
-                    <Settings size={18} />
-                    <span>Configurações</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -120,6 +133,7 @@ const Sidebar = () => {
           Sair
         </Button>
       </SidebarFooter>
+      <SidebarRail />
     </SidebarComponent>
   );
 };

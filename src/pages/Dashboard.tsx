@@ -1,14 +1,13 @@
 
 import { useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, BarChartHorizontal } from '@/components/ui/bar-chart';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { pt } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
 
 const areasDireito = [
@@ -34,41 +33,42 @@ const fases = [
 
 // Sample data for charts
 const leadsPorFase = [
-  { name: 'Em análise', value: 42 },
-  { name: 'Notificação recebida', value: 35 },
-  { name: 'Envio para reunião', value: 27 },
-  { name: 'Reunião marcada', value: 16 },
-  { name: 'Não compareceu', value: 8 },
-  { name: 'Reunião feita (sem contrato)', value: 12 },
-  { name: 'Reunião feita (com contrato)', value: 23 },
-  { name: 'Descartado', value: 18 }
+  { name: 'Em análise', value: 42, percent: '22%' },
+  { name: 'Notificação recebida', value: 35, percent: '18%' },
+  { name: 'Envio para reunião', value: 27, percent: '14%' },
+  { name: 'Reunião marcada', value: 16, percent: '8%' },
+  { name: 'Não compareceu', value: 8, percent: '4%' },
+  { name: 'Reunião feita (sem contrato)', value: 12, percent: '6%' },
+  { name: 'Reunião feita (com contrato)', value: 23, percent: '12%' },
+  { name: 'Descartado', value: 18, percent: '9%' }
 ];
 
 const leadsPorArea = [
-  { name: 'Trabalhista', value: 65 },
-  { name: 'Previdenciário', value: 42 },
-  { name: 'Civil', value: 37 },
-  { name: 'Tributário', value: 28 },
-  { name: 'Penal', value: 19 },
-  { name: 'Empresarial', value: 12 }
+  { name: 'Trabalhista', value: 65, percent: '32%' },
+  { name: 'Previdenciário', value: 42, percent: '21%' },
+  { name: 'Civil', value: 37, percent: '18%' },
+  { name: 'Tributário', value: 28, percent: '14%' },
+  { name: 'Penal', value: 19, percent: '9%' },
+  { name: 'Empresarial', value: 12, percent: '6%' }
 ];
 
 const leadsPorDia = [
-  { name: '10/05', value: 23 },
-  { name: '11/05', value: 18 },
-  { name: '12/05', value: 25 },
-  { name: '13/05', value: 31 },
-  { name: '14/05', value: 27 },
-  { name: '15/05', value: 29 },
-  { name: '16/05', value: 34 },
-  { name: '17/05', value: 42 }
+  { name: '10/05', value: 23, percent: '13%' },
+  { name: '11/05', value: 18, percent: '10%' },
+  { name: '12/05', value: 25, percent: '14%' },
+  { name: '13/05', value: 31, percent: '17%' },
+  { name: '14/05', value: 27, percent: '15%' },
+  { name: '15/05', value: 29, percent: '16%' },
+  { name: '16/05', value: 34, percent: '19%' },
+  { name: '17/05', value: 42, percent: '23%' }
 ];
 
 const Dashboard = () => {
   const [period, setPeriod] = useState('30');
   const [area, setArea] = useState('all');
-  const [date, setDate] = useState<Date | undefined>(new Date());
-
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(new Date(new Date().setDate(new Date().getDate() - 30)));
+  const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  
   // Calculate total leads
   const totalLeads = leadsPorFase.reduce((acc, curr) => acc + curr.value, 0);
   
@@ -76,42 +76,70 @@ const Dashboard = () => {
   const leadsContratados = leadsPorFase.find(fase => fase.name === 'Reunião feita (com contrato)')?.value || 0;
   const conversionRate = ((leadsContratados / totalLeads) * 100).toFixed(1);
   
-  const formattedDate = date ? format(date, 'dd/MM/yyyy', { locale: pt }) : '';
+  const formattedDateFrom = dateFrom ? format(dateFrom, 'dd/MM/yyyy', { locale: ptBR }) : '';
+  const formattedDateTo = dateTo ? format(dateTo, 'dd/MM/yyyy', { locale: ptBR }) : '';
+
+  // Custom tooltip formatter for charts
+  const tooltipFormatter = (value: number, name: string, props: any) => {
+    const item = props.payload;
+    return [`${value} (${item.percent})`, name];
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <div className="flex items-center space-x-2">
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Selecione o período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Últimos 7 dias</SelectItem>
-              <SelectItem value="15">Últimos 15 dias</SelectItem>
-              <SelectItem value="30">Últimos 30 dias</SelectItem>
-              <SelectItem value="custom">Período personalizado</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-2">
+          <div className="flex items-center space-x-2">
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Selecione o período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Últimos 7 dias</SelectItem>
+                <SelectItem value="15">Últimos 15 dias</SelectItem>
+                <SelectItem value="30">Últimos 30 dias</SelectItem>
+                <SelectItem value="custom">Período personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
           {period === 'custom' && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[180px] justify-start text-left">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formattedDate}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="flex space-x-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[180px] justify-start text-left">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formattedDateFrom || "Data inicial"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={dateFrom}
+                    onSelect={setDateFrom}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-[180px] justify-start text-left">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formattedDateTo || "Data final"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={dateTo}
+                    onSelect={setDateTo}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           )}
           
           <Select value={area} onValueChange={setArea}>
@@ -244,67 +272,67 @@ const Dashboard = () => {
         </Card>
       </div>
       
-      <Tabs defaultValue="leads-por-fase" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="leads-por-fase">Leads por Fase</TabsTrigger>
-          <TabsTrigger value="leads-por-area">Leads por Área</TabsTrigger>
-          <TabsTrigger value="leads-por-dia">Leads por Dia</TabsTrigger>
-        </TabsList>
-        <TabsContent value="leads-por-fase" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Distribuição de Leads por Fase</CardTitle>
-              <CardDescription>
-                Quantidade de leads em cada fase do pipeline no período selecionado
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[400px]">
-              <BarChartHorizontal 
-                data={leadsPorFase} 
-                xAxisKey="value" 
-                yAxisKey="name" 
-                colors={["hsl(var(--primary))"]} 
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="leads-por-area" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Leads por Área do Direito</CardTitle>
-              <CardDescription>
-                Distribuição dos leads por área de especialização jurídica
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[400px]">
-              <BarChart 
-                data={leadsPorArea} 
-                xAxisKey="name" 
-                yAxisKey="value" 
-                colors={["hsl(var(--primary))"]} 
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="leads-por-dia" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Leads por Dia</CardTitle>
-              <CardDescription>
-                Evolução diária de novos leads no período selecionado
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[400px]">
-              <BarChart 
-                data={leadsPorDia} 
-                xAxisKey="name" 
-                yAxisKey="value" 
-                colors={["hsl(var(--primary))"]}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <div className="grid grid-cols-1 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Distribuição de Leads por Fase</CardTitle>
+            <CardDescription>
+              Quantidade de leads em cada fase do pipeline no período selecionado
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[400px]">
+            <BarChartHorizontal 
+              data={leadsPorFase} 
+              xAxisKey="value" 
+              yAxisKey="name" 
+              colors={["hsl(var(--primary))"]}
+              tooltipProps={{
+                formatter: tooltipFormatter
+              }}
+            />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Leads por Área do Direito</CardTitle>
+            <CardDescription>
+              Distribuição dos leads por área de especialização jurídica
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[400px]">
+            <BarChart 
+              data={leadsPorArea} 
+              xAxisKey="name" 
+              yAxisKey="value" 
+              colors={["hsl(var(--primary))"]}
+              tooltipProps={{
+                formatter: tooltipFormatter
+              }}
+            />
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Leads por Dia</CardTitle>
+            <CardDescription>
+              Evolução diária de novos leads no período selecionado
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[400px]">
+            <BarChart 
+              data={leadsPorDia} 
+              xAxisKey="name" 
+              yAxisKey="value" 
+              colors={["hsl(var(--primary))"]}
+              tooltipProps={{
+                formatter: tooltipFormatter
+              }}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

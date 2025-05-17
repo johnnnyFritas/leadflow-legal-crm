@@ -53,16 +53,16 @@ const KanbanCard = ({ lead, index, onClick }: KanbanCardProps) => {
     <Draggable draggableId={lead.id} index={index}>
       {(provided) => (
         <div
-          className="kanban-card"
+          className="bg-card mb-2 p-2 rounded-md border border-border text-sm shadow-sm hover:shadow-md transition-shadow"
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
         >
-          <div className="flex items-start justify-between gap-1 mb-2">
+          <div className="flex items-start justify-between gap-1 mb-1">
             <span className="text-xs font-medium text-muted-foreground">
               {lead.id_visual}
             </span>
-            <span className={`score-badge ${getScoreClass(lead.score)}`}>
+            <span className={`score-badge ${getScoreClass(lead.score)} px-1 py-0.5 rounded text-xs font-medium`}>
               {getScoreLabel(lead.score)}
             </span>
           </div>
@@ -73,16 +73,16 @@ const KanbanCard = ({ lead, index, onClick }: KanbanCardProps) => {
             {lead.telefone}
           </div>
           
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground">
               {formattedDate}
             </span>
-            <span className={`area-badge ${getAreaClass(lead.area_direito)}`}>
+            <span className={`area-badge ${getAreaClass(lead.area_direito)} px-1 py-0.5 rounded text-xs`}>
               {getAreaLabel(lead.area_direito)}
             </span>
           </div>
           
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
             <div className="timer">
               <span className="font-medium">Total:</span> {timeElapsed}
             </div>
@@ -93,7 +93,7 @@ const KanbanCard = ({ lead, index, onClick }: KanbanCardProps) => {
           
           <Button 
             size="sm" 
-            className="w-full" 
+            className="w-full text-xs" 
             variant="outline"
             onClick={onClick}
           >

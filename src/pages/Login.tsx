@@ -6,21 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, user } = useAuth();
 
   useEffect(() => {
-    document.title = "CRM Jurídico - Entrar";
+    document.title = "CRM Quero Direito - Entrar";
   }, []);
 
   // If already logged in, redirect to app
   if (user) {
     return <Navigate to="/app" />;
   }
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -50,7 +56,7 @@ const Login = () => {
               <path d="m8 12 2 2 6-6"></path>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold">Entrar no CRM Jurídico</h1>
+          <h1 className="text-2xl font-bold">Entrar no CRM Quero Direito</h1>
           <p className="text-sm text-muted-foreground">
             Entre com seu e-mail e senha para acessar o sistema
           </p>
@@ -74,14 +80,28 @@ const Login = () => {
                 Esqueceu sua senha?
               </Link>
             </div>
-            <Input
-              id="password"
-              placeholder="Sua senha"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                placeholder="Sua senha"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                onClick={togglePasswordVisibility}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                <span className="sr-only">
+                  {showPassword ? "Esconder senha" : "Mostrar senha"}
+                </span>
+              </Button>
+            </div>
           </div>
           <Button 
             type="submit" 
