@@ -63,14 +63,19 @@ export const BarChart = ({
         {showGrid && <CartesianGrid vertical={false} strokeDasharray="3 3" />}
         {showTooltip && (
           <Tooltip
-            content={({ active, payload, label }) => (
-              <ChartTooltipContent
-                active={active}
-                payload={payload}
-                label={label}
-                {...tooltipProps}
-              />
-            )}
+            content={(props) => {
+              if (!props.active || !props.payload) {
+                return null;
+              }
+              return (
+                <ChartTooltipContent
+                  active={props.active}
+                  payload={props.payload}
+                  label={props.label}
+                  {...tooltipProps}
+                />
+              );
+            }}
           />
         )}
         {showLegend && <Legend />}
@@ -130,14 +135,19 @@ export const BarChartHorizontal = ({
         {showGrid && <CartesianGrid horizontal={false} strokeDasharray="3 3" />}
         {showTooltip && (
           <Tooltip
-            content={({ active, payload, label }) => (
-              <ChartTooltipContent
-                active={active}
-                payload={payload}
-                label={label}
-                {...tooltipProps}
-              />
-            )}
+            content={(props) => {
+              if (!props.active || !props.payload) {
+                return null;
+              }
+              return (
+                <ChartTooltipContent
+                  active={props.active}
+                  payload={props.payload}
+                  label={props.label}
+                  {...tooltipProps}
+                />
+              );
+            }}
           />
         )}
         {showLegend && <Legend />}
