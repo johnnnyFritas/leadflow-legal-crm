@@ -15,7 +15,7 @@ import Team from "./pages/Team";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
-import AuthProvider from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 

@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/components/ui/sonner";
 import { Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
@@ -16,7 +15,7 @@ const Login = () => {
   const { login, user } = useAuth();
 
   useEffect(() => {
-    document.title = "CRM Quero Direito - Entrar";
+    document.title = "CRM Quero Direito - Login";
   }, []);
 
   // If already logged in, redirect to app
@@ -24,26 +23,21 @@ const Login = () => {
     return <Navigate to="/app" />;
   }
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
-    if (!email || !password) {
-      toast.error("Por favor, preencha todos os campos");
-      return;
-    }
     
     try {
       setIsSubmitting(true);
       await login(email, password);
     } catch (error) {
-      console.error("Erro ao fazer login:", error);
+      console.error("Login error:", error);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -56,9 +50,9 @@ const Login = () => {
               <path d="m8 12 2 2 6-6"></path>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold">Entrar no CRM Quero Direito</h1>
+          <h1 className="text-2xl font-bold">CRM Quero Direito</h1>
           <p className="text-sm text-muted-foreground">
-            Entre com seu e-mail e senha para acessar o sistema
+            Entre para acessar o sistema
           </p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,15 +65,11 @@ const Login = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="username"
             />
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Senha</Label>
-              <Link to="#" className="text-xs text-primary hover:underline">
-                Esqueceu sua senha?
-              </Link>
-            </div>
+            <Label htmlFor="password">Senha</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -88,6 +78,7 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
               <Button
                 type="button"
@@ -97,9 +88,6 @@ const Login = () => {
                 onClick={togglePasswordVisibility}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                <span className="sr-only">
-                  {showPassword ? "Esconder senha" : "Mostrar senha"}
-                </span>
               </Button>
             </div>
           </div>
@@ -117,18 +105,11 @@ const Login = () => {
               "Entrar"
             )}
           </Button>
-
-          {/* Demo credentials */}
-          <div className="text-center text-xs text-muted-foreground mt-4">
-            <p>Credenciais para demonstração:</p>
-            <p>Email: admin@exemplo.com</p>
-            <p>Senha: senha123</p>
-          </div>
         </form>
         <div className="text-center text-sm">
-          Não tem uma conta?{" "}
+          Ainda não tem uma conta?{" "}
           <Link to="/register" className="text-primary hover:underline">
-            Registre-se
+            Registrar
           </Link>
         </div>
       </div>

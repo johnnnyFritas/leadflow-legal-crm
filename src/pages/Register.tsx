@@ -6,17 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { register, user } = useAuth();
 
   useEffect(() => {
-    document.title = "CRM Jurídico - Registrar";
+    document.title = "CRM Quero Direito - Registrar";
   }, []);
 
   // If already logged in, redirect to app
@@ -47,6 +50,14 @@ const Register = () => {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6 bg-card p-6 rounded-lg shadow-lg animate-scale-in">
@@ -57,7 +68,7 @@ const Register = () => {
               <path d="m8 12 2 2 6-6"></path>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold">Registrar no CRM Jurídico</h1>
+          <h1 className="text-2xl font-bold">Registrar no CRM Quero Direito</h1>
           <p className="text-sm text-muted-foreground">
             Crie sua conta para acessar o sistema
           </p>
@@ -86,25 +97,47 @@ const Register = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              placeholder="Sua senha"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                placeholder="Sua senha"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                onClick={togglePasswordVisibility}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </Button>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Confirme sua senha</Label>
-            <Input
-              id="confirmPassword"
-              placeholder="Confirme sua senha"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                placeholder="Confirme sua senha"
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                onClick={toggleConfirmPasswordVisibility}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </Button>
+            </div>
           </div>
           <Button 
             type="submit" 
