@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,8 +22,8 @@ const areasDireito = [
 
 // Sample data for charts
 const leadsPorFase = [
-  { name: 'Em análise', value: 42, percent: '22%' },
-  { name: 'Notificação recebida', value: 35, percent: '18%' },
+  { name: 'Notificação recebida', value: 42, percent: '22%' },
+  { name: 'Em análise', value: 35, percent: '18%' },
   { name: 'Envio para reunião', value: 27, percent: '14%' },
   { name: 'Reunião marcada', value: 16, percent: '8%' },
   { name: 'Não compareceu', value: 8, percent: '4%' },
@@ -72,7 +72,7 @@ const Dashboard = () => {
   const setToday = () => {
     setDateFrom(new Date());
     setDateTo(new Date());
-    setPeriod('custom');
+    setPeriod('today');
   };
 
   const setYesterday = () => {
@@ -80,8 +80,36 @@ const Dashboard = () => {
     yesterday.setDate(yesterday.getDate() - 1);
     setDateFrom(yesterday);
     setDateTo(yesterday);
-    setPeriod('custom');
+    setPeriod('yesterday');
   };
+
+  useEffect(() => {
+    if (period === 'today') {
+      setToday();
+    } else if (period === 'yesterday') {
+      setYesterday();
+    } else if (period === '7') {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      setDateFrom(sevenDaysAgo);
+      setDateTo(new Date());
+    } else if (period === '14') {
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      setDateFrom(fourteenDaysAgo);
+      setDateTo(new Date());
+    } else if (period === '21') {
+      const twentyOneDaysAgo = new Date();
+      twentyOneDaysAgo.setDate(twentyOneDaysAgo.getDate() - 21);
+      setDateFrom(twentyOneDaysAgo);
+      setDateTo(new Date());
+    } else if (period === '30') {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      setDateFrom(thirtyDaysAgo);
+      setDateTo(new Date());
+    }
+  }, [period]);
 
   // Custom tooltip formatter for charts
   const tooltipFormatter = (value: number, name: string, props: any) => {
@@ -91,33 +119,43 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:items-center md:justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-2 flex-wrap">
-          <div className="flex items-center space-x-2">
-            <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Selecione o período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Últimos 7 dias</SelectItem>
-                <SelectItem value="15">Últimos 15 dias</SelectItem>
-                <SelectItem value="30">Últimos 30 dias</SelectItem>
-                <SelectItem value="custom">Período personalizado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        
+        <div className="flex flex-wrap gap-3">
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Selecione o período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="yesterday">Ontem</SelectItem>
+              <SelectItem value="7">Últimos 7 dias</SelectItem>
+              <SelectItem value="14">Últimos 14 dias</SelectItem>
+              <SelectItem value="21">Últimos 21 dias</SelectItem>
+              <SelectItem value="30">Último mês</SelectItem>
+              <SelectItem value="custom">Período personalizado</SelectItem>
+            </SelectContent>
+          </Select>
           
-          <div className="flex space-x-2">
-            <Button variant="outline" onClick={setToday}>Hoje</Button>
-            <Button variant="outline" onClick={setYesterday}>Ontem</Button>
-          </div>
+          <Select value={area} onValueChange={setArea}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Selecione a área" />
+            </SelectTrigger>
+            <SelectContent>
+              {areasDireito.map((area) => (
+                <SelectItem key={area.value} value={area.value}>
+                  {area.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           
           {period === 'custom' && (
             <div className="flex space-x-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[180px] justify-start text-left">
+                  <Button variant="outline" className="w-[150px] justify-start text-left">
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formattedDateFrom || "Data inicial"}
                   </Button>
@@ -134,7 +172,7 @@ const Dashboard = () => {
               
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-[180px] justify-start text-left">
+                  <Button variant="outline" className="w-[150px] justify-start text-left">
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formattedDateTo || "Data final"}
                   </Button>
@@ -150,19 +188,6 @@ const Dashboard = () => {
               </Popover>
             </div>
           )}
-          
-          <Select value={area} onValueChange={setArea}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Selecione a área" />
-            </SelectTrigger>
-            <SelectContent>
-              {areasDireito.map((area) => (
-                <SelectItem key={area.value} value={area.value}>
-                  {area.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       </div>
       
@@ -281,15 +306,15 @@ const Dashboard = () => {
         </Card>
       </div>
       
-      <div className="grid grid-cols-1 gap-6">
-        <Card>
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Distribuição de Leads por Fase</CardTitle>
             <CardDescription>
-              Quantidade de leads em cada fase do pipeline no período selecionado
+              Quantidade de leads em cada fase do pipeline
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[350px]">
             <BarChartHorizontal 
               data={leadsPorFase} 
               xAxisKey="value" 
@@ -298,18 +323,22 @@ const Dashboard = () => {
               tooltipProps={{
                 formatter: tooltipFormatter
               }}
+              chartProps={{
+                layout: "vertical",
+                margin: { top: 5, right: 30, left: 120, bottom: 5 }
+              }}
             />
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Leads por Área do Direito</CardTitle>
             <CardDescription>
-              Distribuição dos leads por área de especialização jurídica
+              Distribuição dos leads por especialização jurídica
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[350px]">
             <BarChart 
               data={leadsPorArea} 
               xAxisKey="name" 
@@ -318,11 +347,14 @@ const Dashboard = () => {
               tooltipProps={{
                 formatter: tooltipFormatter
               }}
+              chartProps={{
+                margin: { top: 20, right: 30, left: 20, bottom: 70 }
+              }}
             />
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="col-span-1 lg:col-span-2">
           <CardHeader>
             <CardTitle>Leads por Dia</CardTitle>
             <CardDescription>
@@ -337,6 +369,9 @@ const Dashboard = () => {
               colors={["hsl(var(--primary))"]}
               tooltipProps={{
                 formatter: tooltipFormatter
+              }}
+              chartProps={{
+                margin: { top: 20, right: 30, left: 30, bottom: 20 }
               }}
             />
           </CardContent>

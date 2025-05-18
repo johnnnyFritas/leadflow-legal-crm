@@ -1,4 +1,3 @@
-
 export type Score = 'low' | 'medium' | 'high';
 
 export type AreaDireito = 
@@ -103,12 +102,12 @@ export const formatTimeElapsed = (minutes: number): string => {
 
 // Default kanban phases configuration
 export const defaultFases: FaseKanbanConfig[] = [
-  { id: 'em_analise', title: 'Em análise', order: 1 },
-  { id: 'notificacao_recebida', title: 'Notificação recebida', order: 2 },
-  { id: 'envio_para_reuniao', title: 'Envio para reunião', order: 3 },
-  { id: 'reuniao_marcada', title: 'Reunião marcada', order: 4 },
-  { id: 'nao_compareceu', title: 'Não compareceu', order: 5 },
-  { id: 'reuniao_sem_contrato', title: 'Reunião feita (sem contrato)', order: 6 },
-  { id: 'reuniao_com_contrato', title: 'Reunião feita (com contrato)', order: 7 },
-  { id: 'descartado', title: 'Descartado', order: 8 }
+  { id: 'notificacao_recebida', title: 'Notificação Recebida', order: 1 },
+  { id: 'em_analise', title: 'Em Análise', order: 2 },
+  { id: 'envio_para_reuniao', title: 'Envio para Reunião', order: 3 },
+  { id: 'reuniao_marcada', title: 'Reunião Marcada', order: 4 },
+  { id: 'nao_compareceu', title: 'Não Compareceu', order: 5 },
+  { id: 'reuniao_feita_sem_contrato', title: 'Reunião Feita (sem contrato)', order: 6 },
+  { id: 'reuniao_feita_com_contrato', title: 'Reunião Feita (com contrato)', order: 7 },
+  { id: 'descartado', title: 'Descartado', order: 8 },
 ];

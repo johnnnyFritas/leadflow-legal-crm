@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Lead } from '@/types/lead';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { mockLeads } from '@/data/mockLeads';
 
 const areasDireito = [
   { value: 'all', label: 'Todas as áreas' },
@@ -30,6 +31,7 @@ const areasDireito = [
 
 const Kanban = () => {
   const { user } = useAuth();
+  const [leads, setLeads] = useState<Lead[]>(mockLeads);
   const [selectedLead, setSelectedLead] = useState<Lead | undefined>(undefined);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +43,28 @@ const Kanban = () => {
   const [newLeadPhone, setNewLeadPhone] = useState('');
   const [newLeadArea, setNewLeadArea] = useState('');
   const [isAddLeadDialogOpen, setIsAddLeadDialogOpen] = useState(false);
+  
+  // Filter leads based on area and search query
+  const filteredLeads = useMemo(() => {
+    let filtered = [...leads];
+    
+    // Apply area filter
+    if (selectedArea && selectedArea !== 'all') {
+      filtered = filtered.filter(lead => lead.area_direito === selectedArea);
+    }
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(lead => 
+        lead.nome.toLowerCase().includes(query) ||
+        lead.email.toLowerCase().includes(query) ||
+        lead.telefone.includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [leads, selectedArea, searchQuery]);
   
   const handleViewLead = (lead: Lead) => {
     setSelectedLead(lead);
@@ -54,7 +78,24 @@ const Kanban = () => {
       return;
     }
     
-    // Would save to database in real app
+    // Create new lead
+    const newLead: Lead = {
+      id: `lead-${Date.now()}`,
+      nome: newLeadName,
+      email: newLeadEmail,
+      telefone: newLeadPhone,
+      area_direito: newLeadArea,
+      pontuacao: 0,
+      fase_atual: 'notificacao_recebida',
+      tempo_na_fase: 0,
+      notas: '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Add to leads array
+    setLeads([...leads, newLead]);
+    
     toast.success(`Lead ${newLeadName} adicionado com sucesso!`);
     
     // Reset form and close dialog
