@@ -35,58 +35,58 @@ const Sidebar = () => {
 
   return (
     <SidebarComponent collapsible="icon">
-      <SidebarHeader className="flex items-center justify-between px-4 py-2">
-        {state !== "collapsed" ? (
-          <div className="flex items-center space-x-2">
-            <div className="rounded-md bg-primary p-1">
+      {/* Header with logo and system title */}
+      <SidebarHeader className="flex flex-col items-center space-y-2 p-4 border-b border-border/20">
+        <div className="flex items-center justify-between w-full">
+          {state !== "collapsed" ? (
+            <div className="flex items-center space-x-2">
+              <div className="rounded-md bg-primary p-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
+                  <path d="m8 12 2 2 6-6"></path>
+                </svg>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-lg font-bold">CRM Quero Direito</span>
+                <span className="text-xs text-muted-foreground">Versão 1.0</span>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-md bg-primary p-1 mx-auto">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
                 <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
                 <path d="m8 12 2 2 6-6"></path>
               </svg>
             </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-bold">CRM Quero Direito</span>
-              <span className="text-xs text-muted-foreground">Versão 1.0</span>
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-md bg-primary p-1">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-              <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
-              <path d="m8 12 2 2 6-6"></path>
-            </svg>
-          </div>
-        )}
-        <SidebarTrigger />
-      </SidebarHeader>
-      
-      <SidebarContent className="px-3 py-2">
-        {state !== "collapsed" && (
-          <div className="mb-4 flex items-center gap-3 px-4 py-2">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.avatarUrl} />
-              <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
-            </Avatar>
+          )}
+          <SidebarTrigger className="ml-auto" />
+        </div>
+
+        {/* User profile section */}
+        <div className={`flex ${state === "collapsed" ? "flex-col" : "items-center"} gap-3 w-full mt-2 py-3 border-t border-border/20`}>
+          <Avatar className={`${state === "collapsed" ? "mx-auto" : ""} h-10 w-10`}>
+            <AvatarImage src={user?.avatarUrl} />
+            <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+          </Avatar>
+          {state !== "collapsed" && (
             <div>
               <p className="font-medium text-sm">{user?.name}</p>
               <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
             </div>
-          </div>
-        )}
-        
-        {state === "collapsed" && (
-          <div className="mb-4 flex justify-center">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.avatarUrl} />
-              <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
-            </Avatar>
-          </div>
-        )}
-        
+          )}
+        </div>
+      </SidebarHeader>
+      
+      {/* Menu items */}
+      <SidebarContent className="px-2 py-4">
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Kanban de Leads" className={isActive("/app/kanban") ? "bg-accent" : ""}>
+              <SidebarMenuButton 
+                asChild 
+                tooltip="Kanban de Leads" 
+                className={`transition-all ${isActive("/app/kanban") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+              >
                 <Link to="/app/kanban" className="w-full">
                   <Kanban size={18} />
                   <span>Kanban de Leads</span>
@@ -95,7 +95,11 @@ const Sidebar = () => {
             </SidebarMenuItem>
             
             <SidebarMenuItem>
-              <SidebarMenuButton asChild tooltip="Configurações" className={isActive("/app/settings") ? "bg-accent" : ""}>
+              <SidebarMenuButton 
+                asChild 
+                tooltip="Configurações" 
+                className={`transition-all ${isActive("/app/settings") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+              >
                 <Link to="/app/settings" className="w-full">
                   <Settings size={18} />
                   <span>Configurações</span>
@@ -106,10 +110,11 @@ const Sidebar = () => {
         </SidebarGroup>
       </SidebarContent>
       
-      <SidebarFooter className="p-3 mt-auto">
+      {/* Footer with logout button */}
+      <SidebarFooter className="p-3 mt-auto border-t border-border/20">
         <Button 
           variant="outline" 
-          className={`${state === "collapsed" ? 'justify-center p-2' : 'w-full justify-start'}`}
+          className={`${state === "collapsed" ? 'justify-center p-2' : 'w-full justify-start'} transition-all hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 hover:shadow-sm`}
           onClick={logout}
         >
           <LogOut size={18} className={state === "collapsed" ? '' : 'mr-2'} />
