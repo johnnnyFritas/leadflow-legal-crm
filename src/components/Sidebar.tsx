@@ -59,7 +59,6 @@ const Sidebar = () => {
               </svg>
             </div>
           )}
-          <SidebarTrigger className="ml-auto" />
         </div>
 
         {/* User profile section */}
@@ -69,11 +68,14 @@ const Sidebar = () => {
             <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
           {state !== "collapsed" && (
-            <div>
+            <div className="flex-1">
               <p className="font-medium text-sm">{user?.name}</p>
               <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
             </div>
           )}
+          
+          {/* Botão de abrir/fechar posicionado após os dados do advogado */}
+          <SidebarTrigger className={`${state === "collapsed" ? "mx-auto mt-2" : ""}`} />
         </div>
       </SidebarHeader>
       
