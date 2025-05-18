@@ -22,6 +22,7 @@ interface BarChartProps {
   showLegend?: boolean;
   showTooltip?: boolean;
   tooltipProps?: any;
+  chartProps?: any; // Add chartProps property
   className?: string;
 }
 
@@ -35,6 +36,7 @@ export const BarChart = ({
   showLegend = false,
   showTooltip = true,
   tooltipProps,
+  chartProps = {}, // Add default empty object
   className,
 }: BarChartProps) => {
   const chartConfig: ChartConfig = {
@@ -43,9 +45,16 @@ export const BarChart = ({
     },
   };
 
+  // Extract margin from chartProps or use default
+  const margin = chartProps.margin || { top: 10, right: 10, left: 10, bottom: 20 };
+
   return (
     <ChartContainer config={chartConfig} className={className}>
-      <RechartsBarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+      <RechartsBarChart 
+        data={data} 
+        margin={margin}
+        {...(chartProps || {})} // Spread other chart props
+      >
         <XAxis
           dataKey={xAxisKey}
           tickLine={false}
@@ -104,6 +113,7 @@ export const BarChartHorizontal = ({
   showTooltip = true,
   tooltipProps,
   margin = { top: 10, right: 10, left: 80, bottom: 20 },
+  chartProps = {}, // Add default empty object
   className,
 }: BarChartHorizontalProps) => {
   const chartConfig: ChartConfig = {
@@ -112,12 +122,16 @@ export const BarChartHorizontal = ({
     },
   };
 
+  // Merge default margin with chartProps margin if provided
+  const finalMargin = chartProps.margin || margin;
+
   return (
     <ChartContainer config={chartConfig} className={className}>
       <RechartsBarChart 
         data={data} 
         layout="vertical"
-        margin={margin}
+        margin={finalMargin}
+        {...(chartProps || {})} // Spread other chart props
       >
         <XAxis 
           type="number" 
