@@ -1,3 +1,4 @@
+
 export type Score = 'low' | 'medium' | 'high';
 
 export type AreaDireito = 
@@ -107,7 +108,7 @@ export const defaultFases: FaseKanbanConfig[] = [
   { id: 'envio_para_reuniao', title: 'Envio para Reunião', order: 3 },
   { id: 'reuniao_marcada', title: 'Reunião Marcada', order: 4 },
   { id: 'nao_compareceu', title: 'Não Compareceu', order: 5 },
-  { id: 'reuniao_feita_sem_contrato', title: 'Reunião Feita (sem contrato)', order: 6 },
-  { id: 'reuniao_feita_com_contrato', title: 'Reunião Feita (com contrato)', order: 7 },
+  { id: 'reuniao_sem_contrato', title: 'Reunião Feita (sem contrato)', order: 6 },
+  { id: 'reuniao_com_contrato', title: 'Reunião Feita (com contrato)', order: 7 },
   { id: 'descartado', title: 'Descartado', order: 8 },
 ];

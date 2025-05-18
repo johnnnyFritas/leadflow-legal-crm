@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Lead } from '@/types/lead';
+import { Lead, AreaDireito } from '@/types/lead';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -41,7 +41,7 @@ const Kanban = () => {
   const [newLeadName, setNewLeadName] = useState('');
   const [newLeadEmail, setNewLeadEmail] = useState('');
   const [newLeadPhone, setNewLeadPhone] = useState('');
-  const [newLeadArea, setNewLeadArea] = useState('');
+  const [newLeadArea, setNewLeadArea] = useState<AreaDireito>('trabalhista');
   const [isAddLeadDialogOpen, setIsAddLeadDialogOpen] = useState(false);
   
   // Filter leads based on area and search query
@@ -58,7 +58,7 @@ const Kanban = () => {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(lead => 
         lead.nome.toLowerCase().includes(query) ||
-        lead.email.toLowerCase().includes(query) ||
+        (lead.email?.toLowerCase().includes(query) || false) ||
         lead.telefone.includes(query)
       );
     }
@@ -81,14 +81,26 @@ const Kanban = () => {
     // Create new lead
     const newLead: Lead = {
       id: `lead-${Date.now()}`,
+      id_visual: `L-${Math.floor(Math.random() * 1000)}`,
       nome: newLeadName,
-      email: newLeadEmail,
       telefone: newLeadPhone,
+      email: newLeadEmail,
+      estado: "SP",
+      profissao: "Não informado",
+      canal_entrada: "Site",
+      campanha_origem: "Organic",
+      data_entrada: new Date().toISOString(),
       area_direito: newLeadArea,
-      pontuacao: 0,
-      fase_atual: 'notificacao_recebida',
+      resumo_caso: "",
+      tese_juridica: "",
+      ainda_trabalha: false,
+      carteira_assinada: false,
+      tem_advogado: false,
+      mensagem_inicial: "",
+      score: "medium",
+      fase_atual: "notificacao_recebida",
       tempo_na_fase: 0,
-      notas: '',
+      responsavel_id: user?.id,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -102,7 +114,7 @@ const Kanban = () => {
     setNewLeadName('');
     setNewLeadEmail('');
     setNewLeadPhone('');
-    setNewLeadArea('');
+    setNewLeadArea('trabalhista');
     setIsAddLeadDialogOpen(false);
   };
 
@@ -185,7 +197,10 @@ const Kanban = () => {
                   <Label htmlFor="area" className="text-right">
                     Área
                   </Label>
-                  <Select value={newLeadArea} onValueChange={setNewLeadArea}>
+                  <Select 
+                    value={newLeadArea} 
+                    onValueChange={(value) => setNewLeadArea(value as AreaDireito)}
+                  >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Selecione a área" />
                     </SelectTrigger>

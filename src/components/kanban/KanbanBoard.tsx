@@ -30,13 +30,13 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea }: KanbanBoardProps
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(lead => 
         lead.nome.toLowerCase().includes(query) ||
-        lead.email.toLowerCase().includes(query) ||
+        (lead.email?.toLowerCase().includes(query) || false) ||
         lead.telefone.includes(query)
       );
     }
     
     setFilteredLeads(filtered);
-  }, [searchQuery, selectedArea, mockLeads]);
+  }, [searchQuery, selectedArea]);
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;

@@ -8,10 +8,8 @@ import { useEffect } from "react";
 
 import AppLayout from "./layouts/AppLayout";
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
 import Kanban from "./pages/Kanban";
 import Settings from "./pages/Settings";
-import Team from "./pages/Team";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
@@ -44,7 +42,7 @@ const App = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/app" element={<AppLayout />}>
-                <Route index element={<Dashboard />} />
+                <Route index element={<Navigate to="/app/kanban" replace />} />
                 <Route path="kanban" element={<Kanban />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="team" element={<Navigate to="/app/settings" replace />} />

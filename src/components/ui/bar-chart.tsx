@@ -7,7 +7,6 @@ import {
   Legend, 
   ResponsiveContainer, 
   Tooltip,
-  TooltipProps, 
   XAxis, 
   YAxis 
 } from "recharts";
@@ -90,7 +89,9 @@ export const BarChart = ({
   );
 };
 
-interface BarChartHorizontalProps extends BarChartProps {}
+interface BarChartHorizontalProps extends BarChartProps {
+  margin?: { top?: number; right?: number; bottom?: number; left?: number };
+}
 
 export const BarChartHorizontal = ({
   data,
@@ -102,6 +103,7 @@ export const BarChartHorizontal = ({
   showLegend = false,
   showTooltip = true,
   tooltipProps,
+  margin = { top: 10, right: 10, left: 80, bottom: 20 },
   className,
 }: BarChartHorizontalProps) => {
   const chartConfig: ChartConfig = {
@@ -115,7 +117,7 @@ export const BarChartHorizontal = ({
       <RechartsBarChart 
         data={data} 
         layout="vertical"
-        margin={{ top: 10, right: 10, left: 80, bottom: 20 }}
+        margin={margin}
       >
         <XAxis 
           type="number" 
