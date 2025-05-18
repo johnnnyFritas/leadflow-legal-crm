@@ -41,7 +41,7 @@ const Index = () => {
       </header>
 
       <main className="flex-1">
-        <section className="py-12 md:py-24 lg:py-32 xl:py-48">
+        <section className="py-12 md:py-16 lg:py-24">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="space-y-2">
@@ -66,7 +66,7 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="container py-12 md:py-24">
+        <section className="container py-8 md:py-12">
           <div className="grid gap-6 lg:grid-cols-3 lg:gap-12">
             <div className="flex flex-col items-center space-y-4 text-center">
               <div className="rounded-full bg-primary/10 p-4">

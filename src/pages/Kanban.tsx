@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { mockLeads } from '@/data/mockLeads';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const areasDireito = [
   { value: 'all', label: 'Todas as áreas' },
@@ -36,6 +37,7 @@ const Kanban = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('all');
+  const isMobile = useIsMobile();
   
   // Form state for new lead
   const [newLeadName, setNewLeadName] = useState('');
@@ -120,113 +122,113 @@ const Kanban = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Kanban de Leads</h2>
-        
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar leads..."
-              className="w-[200px] pl-8"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          
-          <Select value={selectedArea} onValueChange={setSelectedArea}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Selecione a área" />
-            </SelectTrigger>
-            <SelectContent>
-              {areasDireito.map((area) => (
-                <SelectItem key={area.value} value={area.value}>
-                  {area.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Dialog open={isAddLeadDialogOpen} onOpenChange={setIsAddLeadDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>Adicionar Lead</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Adicionar Novo Lead</DialogTitle>
-                <DialogDescription>
-                  Adicione um novo lead ao sistema. Todos os campos são obrigatórios.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Nome
-                  </Label>
-                  <Input
-                    id="name"
-                    value={newLeadName}
-                    onChange={(e) => setNewLeadName(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newLeadEmail}
-                    onChange={(e) => setNewLeadEmail(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="phone" className="text-right">
-                    Telefone
-                  </Label>
-                  <Input
-                    id="phone"
-                    value={newLeadPhone}
-                    onChange={(e) => setNewLeadPhone(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="area" className="text-right">
-                    Área
-                  </Label>
-                  <Select 
-                    value={newLeadArea} 
-                    onValueChange={(value) => setNewLeadArea(value as AreaDireito)}
-                  >
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Selecione a área" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {areasDireito.filter(area => area.value !== 'all').map((area) => (
-                        <SelectItem key={area.value} value={area.value}>
-                          {area.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit" onClick={handleAddLead}>Adicionar Lead</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+      <h2 className="text-3xl font-bold tracking-tight mb-4">Kanban de Leads</h2>
+      
+      <div className="flex flex-col space-y-3 w-full">
+        <div className="relative w-full">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar leads..."
+            className="pl-8 w-full"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
+        
+        <Select value={selectedArea} onValueChange={setSelectedArea}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Selecione a área" />
+          </SelectTrigger>
+          <SelectContent>
+            {areasDireito.map((area) => (
+              <SelectItem key={area.value} value={area.value}>
+                {area.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        <Dialog open={isAddLeadDialogOpen} onOpenChange={setIsAddLeadDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full sm:w-auto">Adicionar Lead</Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Adicionar Novo Lead</DialogTitle>
+              <DialogDescription>
+                Adicione um novo lead ao sistema. Todos os campos são obrigatórios.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Nome
+                </Label>
+                <Input
+                  id="name"
+                  value={newLeadName}
+                  onChange={(e) => setNewLeadName(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newLeadEmail}
+                  onChange={(e) => setNewLeadEmail(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="phone" className="text-right">
+                  Telefone
+                </Label>
+                <Input
+                  id="phone"
+                  value={newLeadPhone}
+                  onChange={(e) => setNewLeadPhone(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="area" className="text-right">
+                  Área
+                </Label>
+                <Select 
+                  value={newLeadArea} 
+                  onValueChange={(value) => setNewLeadArea(value as AreaDireito)}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione a área" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {areasDireito.filter(area => area.value !== 'all').map((area) => (
+                      <SelectItem key={area.value} value={area.value}>
+                        {area.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" onClick={handleAddLead}>Adicionar Lead</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
       
-      <KanbanBoard 
-        onViewLead={handleViewLead} 
-        searchQuery={searchQuery} 
-        selectedArea={selectedArea}
-      />
+      <div className="overflow-x-auto pb-4">
+        <KanbanBoard 
+          onViewLead={handleViewLead} 
+          searchQuery={searchQuery} 
+          selectedArea={selectedArea}
+        />
+      </div>
       
       <LeadDetails 
         lead={selectedLead} 

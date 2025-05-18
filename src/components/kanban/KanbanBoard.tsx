@@ -100,7 +100,7 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea }: KanbanBoardProps
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
-      <div className="flex gap-3 overflow-x-auto p-4 pb-8">
+      <div className="flex gap-3 overflow-x-auto px-1 pb-8 min-w-full">
         {fases.sort((a, b) => a.order - b.order).map((fase) => (
           <Droppable key={fase.id} droppableId={fase.id}>
             {(provided) => (

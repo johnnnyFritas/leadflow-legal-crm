@@ -101,7 +101,7 @@ export const formatTimeElapsed = (minutes: number): string => {
   }
 };
 
-// Default kanban phases configuration
+// Default kanban phases configuration - reordered with notificacao_recebida first
 export const defaultFases: FaseKanbanConfig[] = [
   { id: 'notificacao_recebida', title: 'Notificação Recebida', order: 1 },
   { id: 'em_analise', title: 'Em Análise', order: 2 },
