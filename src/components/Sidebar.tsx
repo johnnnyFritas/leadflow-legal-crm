@@ -34,8 +34,8 @@ const Sidebar = () => {
   };
 
   return (
-    <SidebarComponent collapsible="icon">
-      {/* Header with logo and system title */}
+    <SidebarComponent collapsible="icon" className="h-full overflow-hidden">
+      {/* Header com logo e título do sistema */}
       <SidebarHeader className="flex flex-col items-center space-y-2 p-4 border-b border-border/20">
         <div className="flex items-center justify-between w-full">
           {state !== "collapsed" ? (
@@ -61,7 +61,7 @@ const Sidebar = () => {
           )}
         </div>
 
-        {/* User profile section */}
+        {/* Seção de perfil do usuário */}
         <div className={`flex ${state === "collapsed" ? "flex-col" : "items-center"} gap-3 w-full mt-2 py-3 border-t border-border/20`}>
           <Avatar className={`${state === "collapsed" ? "mx-auto" : ""} h-10 w-10`}>
             <AvatarImage src={user?.avatarUrl} />
@@ -74,12 +74,14 @@ const Sidebar = () => {
             </div>
           )}
           
-          {/* Botão de abrir/fechar posicionado após os dados do advogado */}
-          <SidebarTrigger className={`${state === "collapsed" ? "mx-auto mt-2" : ""}`} />
+          {/* Botão de abrir/fechar abaixo dos dados do advogado (corrigido) */}
+          <div className={`${state === "collapsed" ? "mx-auto mt-2" : "w-full flex justify-center mt-2"}`}>
+            <SidebarTrigger className="hover:bg-accent/80 hover:text-accent-foreground hover:shadow-md transition-all" />
+          </div>
         </div>
       </SidebarHeader>
       
-      {/* Menu items */}
+      {/* Itens do menu */}
       <SidebarContent className="px-2 py-4">
         <SidebarGroup>
           <SidebarMenu>
@@ -112,7 +114,7 @@ const Sidebar = () => {
         </SidebarGroup>
       </SidebarContent>
       
-      {/* Footer with logout button */}
+      {/* Botão de logout no footer */}
       <SidebarFooter className="p-3 mt-auto border-t border-border/20">
         <Button 
           variant="outline" 

@@ -27,6 +27,8 @@ const areasDireito = [
   { value: 'civil', label: 'Civil' },
   { value: 'tributario', label: 'Tributário' },
   { value: 'penal', label: 'Penal' },
+  { value: 'familia', label: 'Família' },
+  { value: 'consumidor', label: 'Consumidor' },
   { value: 'empresarial', label: 'Empresarial' }
 ];
 
@@ -95,12 +97,9 @@ const Kanban = () => {
       area_direito: newLeadArea,
       resumo_caso: "",
       tese_juridica: "",
-      ainda_trabalha: false,
-      carteira_assinada: false,
-      tem_advogado: false,
       mensagem_inicial: "",
       score: "medium",
-      fase_atual: "notificacao_recebida",
+      fase_atual: "notificacao_recebida", // Configurado para iniciar na fase "Notificação Recebida"
       tempo_na_fase: 0,
       responsavel_id: user?.id,
       created_at: new Date().toISOString(),

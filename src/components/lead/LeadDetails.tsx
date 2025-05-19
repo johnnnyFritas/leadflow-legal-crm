@@ -81,16 +81,22 @@ const DetailItem = ({ label, value, copyable = true }: { label: string; value: s
   </div>
 );
 
-const YesNoItem = ({ label, value }: { label: string; value: boolean }) => (
+const YesNoItem = ({ label, value }: { label: string; value: boolean | undefined }) => (
   <div className="mb-3">
     <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
       {label}
     </div>
     <div className="flex items-center gap-2">
-      <div className={`rounded-full p-1 ${value ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-        <Check size={16} className={value ? 'text-green-500' : 'text-red-500'} />
-      </div>
-      <div className="text-sm">{value ? 'Sim' : 'Não'}</div>
+      {value !== undefined ? (
+        <>
+          <div className={`rounded-full p-1 ${value ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+            <Check size={16} className={value ? 'text-green-500' : 'text-red-500'} />
+          </div>
+          <div className="text-sm">{value ? 'Sim' : 'Não'}</div>
+        </>
+      ) : (
+        <div className="text-sm text-muted-foreground">Não informado</div>
+      )}
     </div>
   </div>
 );
@@ -165,6 +171,111 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
     setComment('');
     toast.success('Comentário adicionado');
   };
+
+  // Renderiza os campos específicos com base na área do direito
+  const renderDynamicFields = () => {
+    switch (lead.area_direito) {
+      case 'trabalhista':
+        return (
+          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
+            <h5 className="font-medium text-sm mb-3">Informações Trabalhistas</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <YesNoItem label="Ainda trabalha na empresa?" value={lead.ainda_trabalha} />
+              <DetailItem label="Tipo de vínculo" value={lead.tipo_vinculo || 'Não informado'} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <YesNoItem label="Já tem advogado?" value={lead.tem_advogado} />
+              <DetailItem label="Motivo da demissão" value={lead.motivo_demissao || 'Não informado'} />
+            </div>
+            <DetailItem label="Tempo na empresa" value={lead.tempo_empresa || 'Não informado'} />
+          </div>
+        );
+        
+      case 'previdenciario':
+        return (
+          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
+            <h5 className="font-medium text-sm mb-3">Informações Previdenciárias</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DetailItem label="Tipo de benefício buscado" value={lead.tipo_beneficio || 'Não informado'} />
+              <YesNoItem label="Já recebe algum benefício?" value={lead.ja_recebe_beneficio} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <YesNoItem label="Contribuiu como autônomo?" value={lead.contribuiu_autonomo} />
+              <YesNoItem label="Possui laudos médicos?" value={lead.possui_laudo_medico} />
+            </div>
+          </div>
+        );
+        
+      case 'familia':
+        return (
+          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
+            <h5 className="font-medium text-sm mb-3">Informações de Família</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DetailItem label="Tipo de caso" value={
+                lead.tipo_caso_familia === 'divorcio' ? 'Divórcio' : 
+                lead.tipo_caso_familia === 'pensao' ? 'Pensão' : 
+                lead.tipo_caso_familia === 'guarda' ? 'Guarda' : 
+                lead.tipo_caso_familia === 'outro' ? 'Outro' : 'Não informado'
+              } />
+              <YesNoItem label="Há filhos menores?" value={lead.filhos_menores} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <YesNoItem label="Há acordo entre as partes?" value={lead.acordo_entre_partes} />
+              <DetailItem label="Tempo de união" value={lead.tempo_uniao || 'Não informado'} />
+            </div>
+          </div>
+        );
+        
+      case 'consumidor':
+        return (
+          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
+            <h5 className="font-medium text-sm mb-3">Informações de Consumidor</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DetailItem label="Produto ou serviço envolvido" value={lead.produto_servico || 'Não informado'} />
+              <DetailItem label="Empresa reclamada" value={lead.empresa_reclamada || 'Não informado'} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DetailItem label="Data do problema" value={lead.data_problema || 'Não informado'} />
+              <YesNoItem label="Tentou resolver diretamente?" value={lead.tentou_resolver} />
+            </div>
+          </div>
+        );
+        
+      case 'penal':
+        return (
+          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
+            <h5 className="font-medium text-sm mb-3">Informações Criminais</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <YesNoItem label="Houve prisão em flagrante?" value={lead.prisao_flagrante} />
+              <YesNoItem label="Já existe advogado atuando?" value={lead.advogado_atuando} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <YesNoItem label="Há vítimas ou testemunhas envolvidas?" value={lead.vitimas_testemunhas} />
+              <DetailItem label="O caso está" value={
+                lead.caso_andamento === 'andamento' ? 'Em andamento' : 
+                lead.caso_andamento === 'iniciando' ? 'A ser iniciado' : 'Não informado'
+              } />
+            </div>
+          </div>
+        );
+        
+      default:
+        return (
+          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
+            <h5 className="font-medium text-sm mb-3">Informações Gerais</h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DetailItem label="Área do Direito" value={getAreaLabel(lead.area_direito)} />
+              <DetailItem label="Tipo de problema jurídico" value={lead.tipo_problema || 'Não informado'} />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <YesNoItem label="Já possui advogado?" value={lead.tem_advogado} />
+              <YesNoItem label="Há urgência no caso?" value={lead.possui_urgencia} />
+            </div>
+            <DetailItem label="Documentos disponíveis" value={lead.documentos_disponiveis || 'Não informado'} />
+          </div>
+        );
+    }
+  };
   
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -216,19 +327,8 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
             <DetailItem label="Resumo do Caso" value={lead.resumo_caso} />
             <DetailItem label="Tese Jurídica Identificada" value={lead.tese_juridica} />
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <YesNoItem label="Ainda trabalha na empresa?" value={lead.ainda_trabalha} />
-              <YesNoItem label="Carteira assinada?" value={lead.carteira_assinada} />
-              <YesNoItem label="Já tem advogado?" value={lead.tem_advogado} />
-            </div>
-            
-            {lead.tempo_empresa && (
-              <DetailItem label="Tempo de empresa" value={lead.tempo_empresa} />
-            )}
-            
-            {lead.motivo_demissao && (
-              <DetailItem label="Motivo da demissão" value={lead.motivo_demissao} />
-            )}
+            {/* Campos dinâmicos por área do direito */}
+            {renderDynamicFields()}
           </div>
           
           <Separator />

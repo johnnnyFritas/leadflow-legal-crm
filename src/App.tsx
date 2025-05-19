@@ -45,8 +45,6 @@ const App = () => {
                 <Route index element={<Navigate to="/app/kanban" replace />} />
                 <Route path="kanban" element={<Kanban />} />
                 <Route path="settings" element={<Settings />} />
-                <Route path="team" element={<Navigate to="/app/settings" replace />} />
-                <Route path="preferences" element={<Navigate to="/app/settings" replace />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

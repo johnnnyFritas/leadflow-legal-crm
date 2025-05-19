@@ -15,7 +15,7 @@ const AppLayout = () => {
   
   useEffect(() => {
     // Update title
-    document.title = "CRM Jurídico";
+    document.title = "CRM Quero Direito";
   }, []);
 
   // Show loading state
@@ -53,7 +53,7 @@ const AppLayout = () => {
                   <path d="m8 12 2 2 6-6"></path>
                 </svg>
               </div>
-              <span className="text-sm font-medium">Quero Direito</span>
+              <span className="text-sm font-medium">CRM Quero Direito</span>
             </div>
             
             <Sheet>
@@ -64,9 +64,7 @@ const AppLayout = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-[75vw] max-w-[280px]">
-                <div className="h-full">
-                  <Sidebar />
-                </div>
+                <Sidebar />
               </SheetContent>
             </Sheet>
           </div>

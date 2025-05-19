@@ -8,6 +8,8 @@ export type AreaDireito =
   | 'tributario'
   | 'penal'
   | 'empresarial'
+  | 'consumidor'
+  | 'familia'
   | 'outro';
 
 export type FaseKanban = 
@@ -41,11 +43,42 @@ export interface Lead {
   area_direito: AreaDireito;
   resumo_caso: string;
   tese_juridica: string;
-  ainda_trabalha: boolean;
-  carteira_assinada: boolean;
-  tem_advogado: boolean;
+  ainda_trabalha?: boolean;
+  tipo_vinculo?: 'clt' | 'pj' | 'outro';
+  carteira_assinada?: boolean;
+  tem_advogado?: boolean;
   tempo_empresa?: string;
   motivo_demissao?: string;
+  
+  // Campos específicos para Previdenciário
+  tipo_beneficio?: string;
+  ja_recebe_beneficio?: boolean;
+  contribuiu_autonomo?: boolean;
+  possui_laudo_medico?: boolean;
+  
+  // Campos específicos para Família
+  tipo_caso_familia?: 'divorcio' | 'pensao' | 'guarda' | 'outro';
+  filhos_menores?: boolean;
+  acordo_entre_partes?: boolean;
+  tempo_uniao?: string;
+  
+  // Campos específicos para Consumidor
+  produto_servico?: string;
+  empresa_reclamada?: string;
+  data_problema?: string;
+  tentou_resolver?: boolean;
+  
+  // Campos específicos para Criminal
+  prisao_flagrante?: boolean;
+  advogado_atuando?: boolean;
+  vitimas_testemunhas?: boolean;
+  caso_andamento?: 'andamento' | 'iniciando';
+  
+  // Campos genéricos para outras áreas
+  tipo_problema?: string;
+  possui_urgencia?: boolean;
+  documentos_disponiveis?: string;
+  
   mensagem_inicial: string;
   score: Score;
   fase_atual: FaseKanban;
@@ -80,7 +113,9 @@ export const getAreaLabel = (area: AreaDireito): string => {
     case 'civil': return 'Civil';
     case 'tributario': return 'Tributário';
     case 'penal': return 'Penal';
+    case 'familia': return 'Família';
     case 'empresarial': return 'Empresarial';
+    case 'consumidor': return 'Consumidor';
     case 'outro': return 'Outro';
     default: return 'Desconhecido';
   }
@@ -101,7 +136,7 @@ export const formatTimeElapsed = (minutes: number): string => {
   }
 };
 
-// Default kanban phases configuration - reordered with notificacao_recebida first
+// Default kanban phases configuration - com notificacao_recebida primeiro
 export const defaultFases: FaseKanbanConfig[] = [
   { id: 'notificacao_recebida', title: 'Notificação Recebida', order: 1 },
   { id: 'em_analise', title: 'Em Análise', order: 2 },
