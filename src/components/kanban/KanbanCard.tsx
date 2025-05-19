@@ -61,7 +61,7 @@ const KanbanCard = ({ lead, index, onClick }: KanbanCardProps) => {
               {lead.id_visual}
             </span>
             <span className={`score-badge ${getScoreClass(lead.score)} px-1 py-0.5 rounded text-xs font-medium`}>
-              {lead.score} - {getScoreLabel(lead.score)}
+              {lead.score}
             </span>
           </div>
           
