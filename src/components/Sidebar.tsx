@@ -22,6 +22,7 @@ import {
   Kanban,
   Settings,
   LogOut,
+  ChevronLeft
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -36,7 +37,7 @@ const Sidebar = () => {
   return (
     <SidebarComponent collapsible="icon" className="h-full overflow-hidden">
       {/* Header com logo e título do sistema */}
-      <SidebarHeader className="flex flex-col items-center space-y-2 p-4 border-b border-border/20">
+      <SidebarHeader className="flex flex-col items-center space-y-2 p-4 border-b border-border/20 relative">
         <div className="flex items-center justify-between w-full">
           {state !== "collapsed" ? (
             <div className="flex items-center space-x-2">
@@ -59,6 +60,11 @@ const Sidebar = () => {
               </svg>
             </div>
           )}
+          
+          {/* Botão de abrir/fechar movido para o canto direito superior */}
+          <div className="absolute right-2 top-4">
+            <SidebarTrigger className="hover:bg-accent/80 hover:text-accent-foreground hover:shadow-md transition-all" />
+          </div>
         </div>
 
         {/* Seção de perfil do usuário */}
@@ -73,11 +79,6 @@ const Sidebar = () => {
               <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
             </div>
           )}
-        </div>
-        
-        {/* Botão de abrir/fechar abaixo dos dados do advogado */}
-        <div className={`${state === "collapsed" ? "mx-auto mt-2" : "w-full flex justify-center"}`}>
-          <SidebarTrigger className="hover:bg-accent/80 hover:text-accent-foreground hover:shadow-md transition-all" />
         </div>
       </SidebarHeader>
       
