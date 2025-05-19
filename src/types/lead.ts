@@ -1,6 +1,4 @@
 
-export type Score = 'low' | 'medium' | 'high';
-
 export type AreaDireito = 
   | 'trabalhista'
   | 'previdenciario'
@@ -80,7 +78,7 @@ export interface Lead {
   documentos_disponiveis?: string;
   
   mensagem_inicial: string;
-  score: Score;
+  score: number; // Alterado de Score para number
   fase_atual: FaseKanban;
   tempo_na_fase: number;
   responsavel_id?: string;
@@ -88,20 +86,27 @@ export interface Lead {
   updated_at: string;
 }
 
-// Helper to convert score number to type
-export const getScoreType = (score: number): Score => {
-  if (score <= 30) return 'low';
-  if (score <= 70) return 'medium';
-  return 'high';
+// Helper para obter rótulo do score (para compatibilidade)
+export const getScoreLabel = (score: number): string => {
+  if (score <= 30) return 'Baixo';
+  if (score <= 70) return 'Médio';
+  return 'Alto';
 };
 
-// Helper to get score label
-export const getScoreLabel = (score: Score): string => {
-  switch (score) {
-    case 'low': return 'Baixo';
-    case 'medium': return 'Médio';
-    case 'high': return 'Alto';
-    default: return 'Desconhecido';
+// Helper para obter cor do score
+export const getScoreColor = (score: number): string => {
+  if (score <= 30) return 'text-red-500';
+  if (score <= 70) return 'text-amber-500';
+  return 'text-green-500';
+};
+
+// Helper para converter o antigo score textual para numérico (para compatibilidade)
+export const convertOldScoreToNumber = (oldScore: 'low' | 'medium' | 'high'): number => {
+  switch (oldScore) {
+    case 'low': return 25;
+    case 'medium': return 50;
+    case 'high': return 100;
+    default: return 50;
   }
 };
 

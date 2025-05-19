@@ -68,16 +68,16 @@ const Sidebar = () => {
             <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
           {state !== "collapsed" && (
-            <div className="flex-1">
-              <p className="font-medium text-sm">{user?.name}</p>
+            <div className="flex-1 overflow-hidden">
+              <p className="font-medium text-sm whitespace-nowrap overflow-hidden text-ellipsis">{user?.name}</p>
               <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
             </div>
           )}
-          
-          {/* Botão de abrir/fechar abaixo dos dados do advogado (corrigido) */}
-          <div className={`${state === "collapsed" ? "mx-auto mt-2" : "w-full flex justify-center mt-2"}`}>
-            <SidebarTrigger className="hover:bg-accent/80 hover:text-accent-foreground hover:shadow-md transition-all" />
-          </div>
+        </div>
+        
+        {/* Botão de abrir/fechar abaixo dos dados do advogado */}
+        <div className={`${state === "collapsed" ? "mx-auto mt-2" : "w-full flex justify-center"}`}>
+          <SidebarTrigger className="hover:bg-accent/80 hover:text-accent-foreground hover:shadow-md transition-all" />
         </div>
       </SidebarHeader>
       

@@ -1,130 +1,109 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "@/components/ui/sonner";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+
+export type UserRole = 'admin' | 'lawyer' | 'attendant';
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
   phone?: string;
   avatarUrl?: string;
 }
 
-interface AuthContextProps {
+interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  isAdmin: boolean;
+  updateUserProfile: (userData: Partial<User>) => void;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: React.ReactNode;
-}
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
 
+  // Load user from localStorage on initial render
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
+    const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    // In a real application, you would validate credentials with your backend
+  // Mock login function
+  const login = async (email: string, password: string): Promise<void> => {
     setIsLoading(true);
     
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock user for demo purposes
-      const mockUser: User = {
-        id: "user-123",
-        name: "John Doe",
-        email: email,
-        role: email.includes("admin") ? "admin" : "lawyer",
-        phone: "+55 (99) 99999-9999",
-        avatarUrl: ""
-      };
-
-      setUser(mockUser);
-      localStorage.setItem("user", JSON.stringify(mockUser));
-      navigate("/app");
-      toast.success("Login realizado com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao fazer login. Verifique suas credenciais.");
-      console.error("Login error:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Mock user for demonstration
+    const mockUser: User = {
+      id: '1',
+      name: 'Dr. João Silva',
+      email: email,
+      role: 'lawyer',
+      phone: '(11) 99999-9999',
+      avatarUrl: ''
+    };
+    
+    setUser(mockUser);
+    localStorage.setItem('user', JSON.stringify(mockUser));
+    setIsLoading(false);
   };
 
-  const register = async (email: string, password: string, name: string) => {
-    // In a real application, you would send registration data to your backend
+  // Mock register function
+  const register = async (name: string, email: string, password: string): Promise<void> => {
     setIsLoading(true);
     
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Mock user creation
-      const newUser: User = {
-        id: `user-${Date.now()}`,
-        name: name,
-        email: email,
-        role: "lawyer", // Default role for new users
-        phone: "",
-        avatarUrl: ""
-      };
-
-      setUser(newUser);
-      localStorage.setItem("user", JSON.stringify(newUser));
-      navigate("/app");
-      toast.success("Conta criada com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao criar conta. Tente novamente.");
-      console.error("Registration error:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Mock user creation
+    const newUser: User = {
+      id: Math.random().toString(36).substr(2, 9),
+      name,
+      email,
+      role: 'lawyer'
+    };
+    
+    setUser(newUser);
+    localStorage.setItem('user', JSON.stringify(newUser));
+    setIsLoading(false);
   };
 
+  // Logout function
   const logout = () => {
     setUser(null);
-    localStorage.removeItem("user");
-    navigate("/login");
-    toast.success("Logout realizado com sucesso!");
+    localStorage.removeItem('user');
+  };
+  
+  // Update user profile
+  const updateUserProfile = (userData: Partial<User>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...userData };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
-  const isAdmin = user?.role === "admin";
-
-  const value: AuthContextProps = {
-    user,
-    isLoading,
-    login,
-    register,
-    logout,
-    isAdmin,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  return (
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUserProfile }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

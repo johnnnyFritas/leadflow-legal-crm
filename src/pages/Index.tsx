@@ -13,7 +13,7 @@ const Index = () => {
       navigate('/app');
     }
     
-    document.title = 'CRM Jurídico - Sistema de Gestão para Advogados';
+    document.title = 'CRM Quero Direito - Sistema de Gestão para Advogados';
   }, [user, navigate]);
 
   return (
@@ -27,7 +27,7 @@ const Index = () => {
                 <path d="m8 12 2 2 6-6"></path>
               </svg>
             </div>
-            <span className="text-lg font-bold">CRM Jurídico</span>
+            <span className="text-lg font-bold">CRM Quero Direito</span>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/login">
@@ -46,7 +46,7 @@ const Index = () => {
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
-                  Sistema de CRM Jurídico
+                  Sistema de CRM Quero Direito
                 </h1>
                 <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
                   Gerencie seus leads e clientes com eficiência usando nosso sistema Kanban especializado para advogados.
@@ -148,7 +148,7 @@ const Index = () => {
       <footer className="border-t border-border py-6 md:py-8">
         <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-sm text-muted-foreground">
-            &copy; 2025 CRM Jurídico. Todos os direitos reservados.
+            &copy; 2025 CRM Quero Direito. Todos os direitos reservados.
           </p>
           <div className="flex items-center gap-4">
             <Link to="#" className="text-sm text-muted-foreground hover:text-foreground">

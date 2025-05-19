@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Lead, AreaDireito } from '@/types/lead';
+import { Lead, AreaDireito, convertOldScoreToNumber } from '@/types/lead';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -32,9 +32,17 @@ const areasDireito = [
   { value: 'empresarial', label: 'Empresarial' }
 ];
 
+const scoreOptions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
+
 const Kanban = () => {
   const { user } = useAuth();
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
+  // Converter os scores antigos para numéricos
+  const convertedLeads = mockLeads.map(lead => ({
+    ...lead, 
+    // @ts-ignore - Fazer cast para compatibilidade
+    score: typeof lead.score === 'string' ? convertOldScoreToNumber(lead.score) : lead.score
+  }));
+  const [leads, setLeads] = useState<Lead[]>(convertedLeads);
   const [selectedLead, setSelectedLead] = useState<Lead | undefined>(undefined);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +54,7 @@ const Kanban = () => {
   const [newLeadEmail, setNewLeadEmail] = useState('');
   const [newLeadPhone, setNewLeadPhone] = useState('');
   const [newLeadArea, setNewLeadArea] = useState<AreaDireito>('trabalhista');
+  const [newLeadScore, setNewLeadScore] = useState<number>(50);
   const [isAddLeadDialogOpen, setIsAddLeadDialogOpen] = useState(false);
   
   // Filter leads based on area and search query
@@ -98,7 +107,7 @@ const Kanban = () => {
       resumo_caso: "",
       tese_juridica: "",
       mensagem_inicial: "",
-      score: "medium",
+      score: newLeadScore, // Score numérico
       fase_atual: "notificacao_recebida", // Configurado para iniciar na fase "Notificação Recebida"
       tempo_na_fase: 0,
       responsavel_id: user?.id,
@@ -116,6 +125,7 @@ const Kanban = () => {
     setNewLeadEmail('');
     setNewLeadPhone('');
     setNewLeadArea('trabalhista');
+    setNewLeadScore(50);
     setIsAddLeadDialogOpen(false);
   };
 
@@ -208,6 +218,26 @@ const Kanban = () => {
                     {areasDireito.filter(area => area.value !== 'all').map((area) => (
                       <SelectItem key={area.value} value={area.value}>
                         {area.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="score" className="text-right">
+                  Score
+                </Label>
+                <Select 
+                  value={newLeadScore.toString()} 
+                  onValueChange={(value) => setNewLeadScore(parseInt(value))}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione o score" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scoreOptions.map((score) => (
+                      <SelectItem key={score} value={score.toString()}>
+                        {score}
                       </SelectItem>
                     ))}
                   </SelectContent>

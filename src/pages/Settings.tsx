@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { User, Eye, EyeOff, Moon, Sun, Users, Lock, UserCog, Palette } from 'lucide-react';
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   
   // Profile state
   const [name, setName] = useState(user?.name || '');
@@ -55,7 +56,15 @@ const Settings = () => {
       setTheme(isDark ? 'dark' : 'light');
       document.documentElement.classList.toggle('dark', isDark);
     }
-  }, []);
+    
+    // Update form data when user changes
+    if (user) {
+      setName(user.name || '');
+      setEmail(user.email || '');
+      setPhone(user.phone || '');
+      setAvatarPreview(user.avatarUrl || '');
+    }
+  }, [user]);
 
   const handleThemeChange = (value: 'light' | 'dark') => {
     setTheme(value);
@@ -68,11 +77,22 @@ const Settings = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call
+    // Create updated user data object
+    const updatedUserData = {
+      ...user,
+      name,
+      email,
+      phone,
+      avatarUrl: avatarPreview
+    };
+    
+    // Update user profile in context
+    updateUserProfile(updatedUserData);
+    
     setTimeout(() => {
       toast.success('Perfil atualizado com sucesso!');
       setIsLoading(false);
-    }, 1000);
+    }, 500);
   };
 
   const handlePasswordChange = (e: React.FormEvent) => {
