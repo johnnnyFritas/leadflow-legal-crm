@@ -20,6 +20,9 @@ export type FaseKanban =
   | 'reuniao_com_contrato'
   | 'descartado';
 
+// Definindo Score como um tipo para compatibilidade com código legado
+export type Score = 'low' | 'medium' | 'high';
+
 export interface FaseKanbanConfig {
   id: FaseKanban;
   title: string;
@@ -101,7 +104,7 @@ export const getScoreColor = (score: number): string => {
 };
 
 // Helper para converter o antigo score textual para numérico (para compatibilidade)
-export const convertOldScoreToNumber = (oldScore: 'low' | 'medium' | 'high'): number => {
+export const convertOldScoreToNumber = (oldScore: Score): number => {
   switch (oldScore) {
     case 'low': return 25;
     case 'medium': return 50;

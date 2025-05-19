@@ -28,13 +28,11 @@ const KanbanCard = ({ lead, index, onClick }: KanbanCardProps) => {
   const timeElapsed = formatTimeElapsed(minutesElapsed);
   const timeInPhase = formatTimeElapsed(lead.tempo_na_fase);
   
-  const getScoreClass = (score: string) => {
-    switch (score) {
-      case 'high': return 'score-high';
-      case 'medium': return 'score-medium';
-      case 'low': return 'score-low';
-      default: return 'score-low';
-    }
+  // Função atualizada para utilizar score numérico
+  const getScoreClass = (score: number) => {
+    if (score <= 30) return 'score-low';
+    if (score <= 70) return 'score-medium';
+    return 'score-high';
   };
   
   const getAreaClass = (area: string) => {

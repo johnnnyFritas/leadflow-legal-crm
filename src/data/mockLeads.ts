@@ -73,7 +73,8 @@ const fases: FaseKanban[] = [
   'nao_compareceu', 'reuniao_sem_contrato', 'reuniao_com_contrato', 'descartado'
 ];
 
-const scores: Score[] = ['low', 'medium', 'high'];
+// Valores numéricos de score em vez do tipo String
+const scores = [25, 50, 75, 100];
 
 const resumosCaso = [
   'Cliente foi demitido sem justa causa e não recebeu todas as verbas rescisórias.',
