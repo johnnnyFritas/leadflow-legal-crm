@@ -34,8 +34,8 @@ const Sidebar = () => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  return (
-    <SidebarComponent collapsible="icon" className="h-full overflow-hidden">
+  const SidebarContent = () => (
+    <>
       {/* Header com logo e título do sistema */}
       <SidebarHeader className="flex flex-col items-center space-y-2 p-4 border-b border-border/20 relative">
         <div className="flex items-center justify-between w-full">
@@ -126,6 +126,12 @@ const Sidebar = () => {
           {state !== "collapsed" && <span>Sair</span>}
         </Button>
       </SidebarFooter>
+    </>
+  );
+
+  return (
+    <SidebarComponent collapsible="icon" className="h-full overflow-hidden">
+      <SidebarContent />
       <SidebarRail />
     </SidebarComponent>
   );
