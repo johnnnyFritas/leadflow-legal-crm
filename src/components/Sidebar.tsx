@@ -34,7 +34,8 @@ const Sidebar = () => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  const SidebarContent = () => (
+  // Renomeando para SidebarContentItems para evitar conflito com o componente importado
+  const SidebarContentItems = () => (
     <>
       {/* Header com logo e título do sistema */}
       <SidebarHeader className="flex flex-col items-center space-y-2 p-4 border-b border-border/20 relative">
@@ -131,7 +132,7 @@ const Sidebar = () => {
 
   return (
     <SidebarComponent collapsible="icon" className="h-full overflow-hidden">
-      <SidebarContent />
+      <SidebarContentItems />
       <SidebarRail />
     </SidebarComponent>
   );
