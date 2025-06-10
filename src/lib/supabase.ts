@@ -1,5 +1,5 @@
 
-const SUPABASE_URL = 'https://db.haddx.com.br/project/default';
+const SUPABASE_URL = 'https://db.haddx.com.br';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.ewogICJyb2xlIjogImFub24iLAogICJpc3MiOiAic3VwYWJhc2UiLAogICJpYXQiOiAxNzQyNDQzMjAwLAogICJleHAiOiAxOTAwMjA5NjAwCn0.zMBHwRBaFB9Q3h4Jmi-CL7ffbA-xFrNk0pvXXT8sDKQ';
 
 class SupabaseClient {
