@@ -30,13 +30,18 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
     }
     
     // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(lead => 
-        lead.nome.toLowerCase().includes(query) ||
-        (lead.email?.toLowerCase().includes(query) || false) ||
-        lead.telefone.includes(query)
-      );
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(lead => {
+        // Search in name, email, phone, and ID
+        const nameMatch = lead.nome?.toLowerCase().includes(query) || false;
+        const emailMatch = lead.email?.toLowerCase().includes(query) || false;
+        const phoneMatch = lead.telefone?.includes(query) || false;
+        const idMatch = lead.id_visual?.toLowerCase().includes(query) || false;
+        const caseMatch = lead.resumo_caso?.toLowerCase().includes(query) || false;
+        
+        return nameMatch || emailMatch || phoneMatch || idMatch || caseMatch;
+      });
     }
     
     setFilteredLeads(filtered);
@@ -121,6 +126,8 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
   }, {} as Record<FaseKanban, Lead[]>);
 
   console.log('Leads by phase:', leadsByPhase);
+  console.log('Search query:', searchQuery);
+  console.log('Filtered leads count:', filteredLeads.length);
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
