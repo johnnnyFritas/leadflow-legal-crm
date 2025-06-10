@@ -113,51 +113,57 @@ const Agenda = () => {
   };
 
   return (
-    <div className="space-y-4 p-3 sm:p-4 lg:p-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+    <div className="space-y-3 sm:space-y-4 p-2 sm:p-4 lg:p-6 min-h-screen">
+      {/* Header - Melhor responsividade */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Agenda</h2>
-        <NewEventModal 
-          selectedDate={selectedDate} 
-          onEventCreated={handleEventCreated}
-        />
+        <div className="w-full sm:w-auto">
+          <NewEventModal 
+            selectedDate={selectedDate} 
+            onEventCreated={handleEventCreated}
+          />
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
-        {/* Calendário Lateral - Melhor responsividade */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 lg:gap-6">
+        {/* Calendário Lateral - Otimizado para mobile */}
         <Card className="lg:col-span-1 xl:col-span-1 order-2 lg:order-1">
-          <CardHeader className="pb-2 sm:pb-3">
-            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-              <CalendarDays size={isMobile ? 18 : 20} />
-              <span className="hidden sm:inline">Calendário</span>
-              <span className="sm:hidden">Cal</span>
+          <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base lg:text-lg">
+              <CalendarDays size={isMobile ? 16 : 20} />
+              <span className={isMobile ? "text-sm" : ""}>
+                {isMobile ? 'Cal' : 'Calendário'}
+              </span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
-            {/* Calendário com melhor responsividade */}
+          <CardContent className="space-y-3 px-3 sm:px-6 pb-3 sm:pb-6">
+            {/* Calendário compacto para mobile */}
             <div className="flex justify-center">
-              <div className="w-full max-w-[280px] sm:max-w-none">
+              <div className="w-full max-w-[260px] sm:max-w-none">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={handleDateSelect}
-                  className="rounded-md border w-full"
+                  className={cn(
+                    "rounded-md border w-full",
+                    isMobile && "text-xs [&_.rdp-caption]:text-sm [&_.rdp-head_cell]:text-xs [&_.rdp-button]:h-7 [&_.rdp-button]:w-7 [&_.rdp-button]:text-xs"
+                  )}
                   locale={ptBR}
                 />
               </div>
             </div>
             
-            {/* Botões de Visualização - Layout melhorado para mobile */}
-            <div className="space-y-2 sm:space-y-3">
+            {/* Botões de Visualização - Stack em mobile */}
+            <div className="space-y-2">
               <div className="text-xs sm:text-sm font-medium text-muted-foreground">
-                {isMobile ? 'Ver' : 'Visualização'}
+                Visualização
               </div>
-              <div className="grid grid-cols-3 lg:grid-cols-1 gap-1 sm:gap-2">
+              <div className="flex flex-col sm:flex-row lg:flex-col gap-1 sm:gap-2">
                 <Button 
                   variant={viewMode === 'day' ? 'default' : 'outline'} 
                   size="sm" 
                   onClick={() => setViewMode('day')}
-                  className="w-full justify-center lg:justify-start text-xs sm:text-sm h-8 sm:h-9"
+                  className="w-full justify-center lg:justify-start text-xs sm:text-sm h-7 sm:h-8 lg:h-9"
                 >
                   Dia
                 </Button>
@@ -165,7 +171,7 @@ const Agenda = () => {
                   variant={viewMode === 'week' ? 'default' : 'outline'} 
                   size="sm" 
                   onClick={() => setViewMode('week')}
-                  className="w-full justify-center lg:justify-start text-xs sm:text-sm h-8 sm:h-9"
+                  className="w-full justify-center lg:justify-start text-xs sm:text-sm h-7 sm:h-8 lg:h-9"
                 >
                   Semana
                 </Button>
@@ -173,33 +179,44 @@ const Agenda = () => {
                   variant={viewMode === 'month' ? 'default' : 'outline'} 
                   size="sm" 
                   onClick={() => setViewMode('month')}
-                  className="w-full justify-center lg:justify-start text-xs sm:text-sm h-8 sm:h-9"
+                  className="w-full justify-center lg:justify-start text-xs sm:text-sm h-7 sm:h-8 lg:h-9"
                 >
                   Mês
                 </Button>
               </div>
             </div>
 
-            {/* Debug Info - mais compacto em mobile */}
-            <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-              <div className="grid grid-cols-2 lg:grid-cols-1 gap-1 lg:gap-0">
-                <div>Modo: {viewMode}</div>
-                <div>Data: {format(selectedDate, isMobile ? 'dd/MM' : 'dd/MM/yyyy')}</div>
-                <div className="col-span-2 lg:col-span-1">
-                  Eventos: {
-                    viewMode === 'day' ? dayEvents.length :
-                    viewMode === 'week' ? weekEvents.length :
-                    monthEvents.length
-                  }
+            {/* Debug Info - Mais compacto */}
+            <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span>Modo:</span>
+                  <span className="font-medium">{viewMode}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Data:</span>
+                  <span className="font-medium">
+                    {format(selectedDate, isMobile ? 'dd/MM' : 'dd/MM/yyyy')}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Eventos:</span>
+                  <span className="font-medium">
+                    {viewMode === 'day' ? dayEvents.length :
+                     viewMode === 'week' ? weekEvents.length :
+                     monthEvents.length}
+                  </span>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Área Principal - Responsiva com overflow controlado */}
-        <div className="lg:col-span-3 xl:col-span-4 order-1 lg:order-2 min-w-0 overflow-hidden">
-          {renderViewContent()}
+        {/* Área Principal - Sem overflow issues */}
+        <div className="lg:col-span-3 xl:col-span-4 order-1 lg:order-2 min-w-0">
+          <div className="w-full overflow-hidden">
+            {renderViewContent()}
+          </div>
         </div>
       </div>
     </div>
