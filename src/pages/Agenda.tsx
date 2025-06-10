@@ -12,10 +12,12 @@ import { WeeklyGrid } from '@/components/agenda/WeeklyGrid';
 import { DayView } from '@/components/agenda/DayView';
 import { MonthView } from '@/components/agenda/MonthView';
 import { NewEventModal } from '@/components/agenda/NewEventModal';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Agenda = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
+  const isMobile = useIsMobile();
 
   // Query para eventos do dia selecionado
   const { data: dayEvents = [], isLoading: isDayLoading, refetch: refetchDay } = useQuery({
@@ -111,46 +113,51 @@ const Agenda = () => {
   };
 
   return (
-    <div className="space-y-6 p-4 lg:p-6">
+    <div className="space-y-4 p-3 sm:p-4 lg:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">Agenda</h2>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Agenda</h2>
         <NewEventModal 
           selectedDate={selectedDate} 
           onEventCreated={handleEventCreated}
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        {/* Calendário Lateral - Responsivo */}
-        <Card className="xl:col-span-1 order-2 xl:order-1">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <CalendarDays size={20} />
-              Calendário
+      <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
+        {/* Calendário Lateral - Melhor responsividade */}
+        <Card className="lg:col-span-1 xl:col-span-1 order-2 lg:order-1">
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+              <CalendarDays size={isMobile ? 18 : 20} />
+              <span className="hidden sm:inline">Calendário</span>
+              <span className="sm:hidden">Cal</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Calendário com responsividade melhorada */}
+          <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
+            {/* Calendário com melhor responsividade */}
             <div className="flex justify-center">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                className="rounded-md border w-full max-w-none"
-                locale={ptBR}
-              />
+              <div className="w-full max-w-[280px] sm:max-w-none">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  className="rounded-md border w-full"
+                  locale={ptBR}
+                />
+              </div>
             </div>
             
-            {/* Botões de Visualização */}
-            <div className="space-y-3">
-              <div className="text-sm font-medium text-muted-foreground">Visualização</div>
-              <div className="grid grid-cols-3 xl:grid-cols-1 gap-2">
+            {/* Botões de Visualização - Layout melhorado para mobile */}
+            <div className="space-y-2 sm:space-y-3">
+              <div className="text-xs sm:text-sm font-medium text-muted-foreground">
+                {isMobile ? 'Ver' : 'Visualização'}
+              </div>
+              <div className="grid grid-cols-3 lg:grid-cols-1 gap-1 sm:gap-2">
                 <Button 
                   variant={viewMode === 'day' ? 'default' : 'outline'} 
                   size="sm" 
                   onClick={() => setViewMode('day')}
-                  className="w-full justify-center xl:justify-start text-xs xl:text-sm"
+                  className="w-full justify-center lg:justify-start text-xs sm:text-sm h-8 sm:h-9"
                 >
                   Dia
                 </Button>
@@ -158,7 +165,7 @@ const Agenda = () => {
                   variant={viewMode === 'week' ? 'default' : 'outline'} 
                   size="sm" 
                   onClick={() => setViewMode('week')}
-                  className="w-full justify-center xl:justify-start text-xs xl:text-sm"
+                  className="w-full justify-center lg:justify-start text-xs sm:text-sm h-8 sm:h-9"
                 >
                   Semana
                 </Button>
@@ -166,28 +173,32 @@ const Agenda = () => {
                   variant={viewMode === 'month' ? 'default' : 'outline'} 
                   size="sm" 
                   onClick={() => setViewMode('month')}
-                  className="w-full justify-center xl:justify-start text-xs xl:text-sm"
+                  className="w-full justify-center lg:justify-start text-xs sm:text-sm h-8 sm:h-9"
                 >
                   Mês
                 </Button>
               </div>
             </div>
 
-            {/* Debug Info - remover em produção */}
+            {/* Debug Info - mais compacto em mobile */}
             <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-              <div>Modo: {viewMode}</div>
-              <div>Data: {format(selectedDate, 'dd/MM/yyyy')}</div>
-              <div>Eventos: {
-                viewMode === 'day' ? dayEvents.length :
-                viewMode === 'week' ? weekEvents.length :
-                monthEvents.length
-              }</div>
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-1 lg:gap-0">
+                <div>Modo: {viewMode}</div>
+                <div>Data: {format(selectedDate, isMobile ? 'dd/MM' : 'dd/MM/yyyy')}</div>
+                <div className="col-span-2 lg:col-span-1">
+                  Eventos: {
+                    viewMode === 'day' ? dayEvents.length :
+                    viewMode === 'week' ? weekEvents.length :
+                    monthEvents.length
+                  }
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Área Principal - Responsiva */}
-        <div className="xl:col-span-3 order-1 xl:order-2">
+        {/* Área Principal - Responsiva com overflow controlado */}
+        <div className="lg:col-span-3 xl:col-span-4 order-1 lg:order-2 min-w-0 overflow-hidden">
           {renderViewContent()}
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { ClientInstance, GoogleCalendarEvent } from '@/types/supabase';
 import { authService } from './authService';
@@ -16,11 +15,6 @@ interface CreateEventData {
   attendees?: Array<{ email: string }>;
 }
 
-// ATENÇÃO: Configure suas credenciais Google reais aqui
-// Em produção, use secrets do Supabase ou variáveis de ambiente
-const GOOGLE_CLIENT_ID = 'your-google-client-id.apps.googleusercontent.com';
-const GOOGLE_CLIENT_SECRET = 'your-google-client-secret';
-
 class CalendarService {
   private getInstanceId(): string {
     const instanceId = authService.getInstanceId();
@@ -33,15 +27,51 @@ class CalendarService {
   async getClientInstance(): Promise<ClientInstance | null> {
     try {
       const instanceId = this.getInstanceId();
-      console.log('Buscando instância do cliente:', instanceId);
+      console.log('🔍 Buscando instância do cliente:', instanceId);
       const endpoint = `/clients_instances?id=eq.${instanceId}`;
       const result = await supabase.get<ClientInstance[]>(endpoint);
-      console.log('Instância encontrada:', result[0] ? 'Sim' : 'Não');
+      console.log('📊 Instância encontrada:', result[0] ? 'Sim' : 'Não');
+      if (result[0]) {
+        console.log('🔑 Dados da instância:', {
+          hasCalendarId: !!result[0].google_calendar_id,
+          hasAccessToken: !!result[0].google_access_token,
+          hasRefreshToken: !!result[0].google_refresh_token,
+          calendarId: result[0].google_calendar_id
+        });
+      }
       return result[0] || null;
     } catch (error) {
-      console.error('Erro ao buscar instância do cliente:', error);
+      console.error('❌ Erro ao buscar instância do cliente:', error);
       return null;
     }
+  }
+
+  async getGoogleCredentials(): Promise<{ clientId: string; clientSecret: string } | null> {
+    try {
+      // Primeiro tenta buscar das secrets do Supabase
+      const secrets = await supabase.get<any>('/secrets');
+      if (secrets.GOOGLE_CLIENT_ID && secrets.GOOGLE_CLIENT_SECRET) {
+        console.log('🔐 Usando credenciais Google do Supabase Secrets');
+        return {
+          clientId: secrets.GOOGLE_CLIENT_ID,
+          clientSecret: secrets.GOOGLE_CLIENT_SECRET
+        };
+      }
+    } catch (error) {
+      console.warn('⚠️ Não foi possível acessar secrets do Supabase:', error);
+    }
+
+    // Fallback para variáveis de ambiente (se disponíveis)
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
+    
+    if (clientId && clientSecret) {
+      console.log('🔐 Usando credenciais Google das variáveis de ambiente');
+      return { clientId, clientSecret };
+    }
+
+    console.error('❌ Credenciais Google não encontradas! Configure GOOGLE_CLIENT_ID e GOOGLE_CLIENT_SECRET no Supabase');
+    return null;
   }
 
   async updateGoogleTokens(accessToken: string, refreshToken?: string): Promise<void> {
@@ -55,26 +85,32 @@ class CalendarService {
       updates.google_refresh_token = refreshToken;
     }
     
-    console.log('Atualizando tokens Google para instância:', instanceId);
+    console.log('🔄 Atualizando tokens Google para instância:', instanceId);
     await supabase.patch(endpoint, updates);
   }
 
   async refreshGoogleToken(instance: ClientInstance): Promise<string | null> {
     if (!instance.google_refresh_token) {
-      console.warn('Refresh token não encontrado para a instância');
+      console.warn('⚠️ Refresh token não encontrado para a instância');
+      return null;
+    }
+
+    const credentials = await this.getGoogleCredentials();
+    if (!credentials) {
+      console.error('❌ Não foi possível obter credenciais Google para renovar token');
       return null;
     }
 
     try {
-      console.log('Tentando renovar token Google...');
+      console.log('🔄 Tentando renovar token Google...');
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          client_id: GOOGLE_CLIENT_ID,
-          client_secret: GOOGLE_CLIENT_SECRET,
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
           refresh_token: instance.google_refresh_token,
           grant_type: 'refresh_token',
         }),
@@ -82,7 +118,7 @@ class CalendarService {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Erro ao renovar token Google:', errorData);
+        console.error('❌ Erro ao renovar token Google:', errorData);
         return null;
       }
 
@@ -90,41 +126,39 @@ class CalendarService {
       const newAccessToken = data.access_token;
 
       await this.updateGoogleTokens(newAccessToken);
-      console.log('Token Google renovado com sucesso');
+      console.log('✅ Token Google renovado com sucesso');
       
       return newAccessToken;
     } catch (error) {
-      console.error('Erro ao renovar token Google:', error);
+      console.error('❌ Erro ao renovar token Google:', error);
       return null;
     }
   }
 
   async getCalendarEvents(startDate?: string, endDate?: string): Promise<GoogleCalendarEvent[]> {
     try {
-      console.log('=== BUSCANDO EVENTOS DO GOOGLE CALENDAR ===');
+      console.log('📅 === BUSCANDO EVENTOS DO GOOGLE CALENDAR ===');
       const instance = await this.getClientInstance();
       
       if (!instance) {
-        console.warn('Instância do cliente não encontrada');
+        console.warn('⚠️ Instância do cliente não encontrada');
         return [];
       }
-
-      console.log('Dados da instância:', {
-        hasCalendarId: !!instance.google_calendar_id,
-        hasAccessToken: !!instance.google_access_token,
-        hasRefreshToken: !!instance.google_refresh_token,
-        calendarId: instance.google_calendar_id
-      });
       
       if (!instance?.google_calendar_id || !instance?.google_access_token) {
-        console.warn('Google Calendar não configurado para esta instância - Calendar ID ou Access Token ausente');
+        console.warn('⚠️ Google Calendar não configurado para esta instância - Calendar ID ou Access Token ausente');
+        console.log('📊 Status da configuração:', {
+          hasCalendarId: !!instance?.google_calendar_id,
+          hasAccessToken: !!instance?.google_access_token,
+          hasRefreshToken: !!instance?.google_refresh_token
+        });
         return [];
       }
 
       const timeMin = startDate || new Date().toISOString();
       const timeMax = endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      console.log('Parâmetros da busca:', { 
+      console.log('📅 Parâmetros da busca:', { 
         timeMin, 
         timeMax, 
         calendarId: instance.google_calendar_id 
@@ -133,25 +167,26 @@ class CalendarService {
       let accessToken = instance.google_access_token;
       let response = await this.fetchCalendarEvents(instance.google_calendar_id, accessToken, timeMin, timeMax);
 
-      console.log('Resposta inicial da API Google:', response.status, response.statusText);
+      console.log('📡 Resposta inicial da API Google:', response.status, response.statusText);
 
       if (!response.ok && response.status === 401) {
-        console.log('Token expirado (401), tentando renovar...');
+        console.log('🔄 Token expirado (401), tentando renovar...');
         const newToken = await this.refreshGoogleToken(instance);
         
         if (newToken) {
           accessToken = newToken;
-          console.log('Fazendo nova tentativa com token renovado...');
+          console.log('🔄 Fazendo nova tentativa com token renovado...');
           response = await this.fetchCalendarEvents(instance.google_calendar_id, accessToken, timeMin, timeMax);
-          console.log('Resposta após renovação do token:', response.status, response.statusText);
+          console.log('📡 Resposta após renovação do token:', response.status, response.statusText);
         } else {
-          console.error('Não foi possível renovar o token');
+          console.error('❌ Não foi possível renovar o token');
+          return [];
         }
       }
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Erro da API Google Calendar:', {
+        console.error('❌ Erro da API Google Calendar:', {
           status: response.status,
           statusText: response.statusText,
           error: errorText
@@ -160,9 +195,9 @@ class CalendarService {
       }
 
       const data = await response.json();
-      console.log('Dados recebidos do Google Calendar:', {
+      console.log('✅ Dados recebidos do Google Calendar:', {
         totalItems: data.items?.length || 0,
-        items: data.items?.map((item: any) => ({
+        items: data.items?.slice(0, 3).map((item: any) => ({
           id: item.id,
           summary: item.summary,
           start: item.start,
@@ -172,7 +207,7 @@ class CalendarService {
       
       return data.items || [];
     } catch (error) {
-      console.error('Erro geral ao buscar eventos do Google Calendar:', error);
+      console.error('❌ Erro geral ao buscar eventos do Google Calendar:', error);
       return [];
     }
   }
@@ -226,7 +261,7 @@ class CalendarService {
     });
 
     const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`;
-    console.log('URL da requisição Google Calendar:', url);
+    console.log('🌐 URL da requisição Google Calendar:', url);
 
     return fetch(url, {
       headers: {
