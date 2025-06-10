@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { ClientInstance, GoogleCalendarEvent } from '@/types/supabase';
 import { authService } from './authService';
@@ -289,5 +290,3 @@ class CalendarService {
 }
 
 export const calendarService = new CalendarService();
-
-}
