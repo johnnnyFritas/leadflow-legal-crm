@@ -17,8 +17,19 @@ export interface AuthUser {
 class AuthService {
   async login(email: string, password: string): Promise<AuthUser | null> {
     try {
+      console.log('Tentando fazer login com:', email);
+      
       // Buscar instância pelo email
-      const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
+      const { data: instances, error } = await supabase
+        .from('clients_instances')
+        .select('*')
+        .eq('email', email.toLowerCase().trim())
+        .limit(1);
+
+      if (error) {
+        console.error('Erro ao buscar instância:', error);
+        throw new Error('Erro ao verificar credenciais');
+      }
 
       if (!instances || instances.length === 0) {
         throw new Error('Email não encontrado');
@@ -51,6 +62,70 @@ class AuthService {
       return authUser;
     } catch (error) {
       console.error('Erro no login:', error);
+      throw error;
+    }
+  }
+
+  async register(email: string, password: string, name: string): Promise<AuthUser | null> {
+    try {
+      console.log('Tentando registrar com:', email);
+      
+      // Verificar se email já existe
+      const { data: existingInstances, error: checkError } = await supabase
+        .from('clients_instances')
+        .select('id')
+        .eq('email', email.toLowerCase().trim())
+        .limit(1);
+
+      if (checkError) {
+        console.error('Erro ao verificar email:', checkError);
+        throw new Error('Erro ao verificar email');
+      }
+
+      if (existingInstances && existingInstances.length > 0) {
+        throw new Error('Email já cadastrado');
+      }
+
+      // Criar nova instância
+      const instanceData = {
+        email: email.toLowerCase().trim(),
+        company_name: name,
+        instance_name: name.toLowerCase().replace(/\s+/g, '_'),
+        main_lawyer_name: name,
+        created_at: new Date().toISOString()
+      };
+
+      const { data: newInstance, error: insertError } = await supabase
+        .from('clients_instances')
+        .insert(instanceData)
+        .select()
+        .single();
+
+      if (insertError || !newInstance) {
+        console.error('Erro ao criar instância:', insertError);
+        throw new Error('Erro ao criar conta');
+      }
+
+      // Criar objeto do usuário autenticado
+      const authUser: AuthUser = {
+        id: newInstance.id,
+        email: newInstance.email,
+        company_name: newInstance.company_name,
+        instance_name: newInstance.instance_name,
+        phone: newInstance.phone,
+        main_lawyer_name: newInstance.main_lawyer_name,
+        name: newInstance.main_lawyer_name || newInstance.company_name,
+        role: 'Advogado',
+        avatarUrl: undefined
+      };
+
+      // Salvar no localStorage
+      localStorage.setItem('authUser', JSON.stringify(authUser));
+      localStorage.setItem('instanceId', newInstance.id);
+
+      return authUser;
+    } catch (error) {
+      console.error('Erro no registro:', error);
       throw error;
     }
   }
