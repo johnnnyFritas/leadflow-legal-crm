@@ -63,10 +63,10 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
     console.log(`Movendo lead ${leadId} de ${previousStep} para ${newStep}`);
     
     try {
-      // Atualizar no Supabase primeiro (como no código HTML)
-      await conversationsService.updateConversationStep(leadId, newStep);
+      // Atualizar no Supabase primeiro e enviar webhook
+      await conversationsService.updateConversationStep(leadId, newStep, previousStep);
       
-      console.log('Lead movido com sucesso no Supabase');
+      console.log('Lead movido com sucesso no Supabase e webhook enviado');
       
       // Atualizar localmente apenas após sucesso no Supabase
       const updatedFilteredLeads = filteredLeads.map(l => {

@@ -25,7 +25,39 @@ class ConversationsService {
     return result[0] || null;
   }
 
-  async updateConversationStep(id: string, step: FaseKanban): Promise<Conversation> {
+  // Função para enviar webhook quando etapa mudou
+  private async sendWebhookMudouEtapa(id: string, etapaAnterior: FaseKanban, etapaNova: FaseKanban): Promise<void> {
+    const webhookUrl = 'https://autowebhook.haddx.com.br/webhook/MudouEtapa';
+    
+    const payload = {
+      id: id,
+      etapa_anterior: etapaAnterior,
+      etapa_nova: etapaNova
+    };
+
+    console.log('Enviando webhook MudouEtapa:', payload);
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        console.warn('Webhook retornou erro:', response.status, response.statusText);
+      } else {
+        console.log('Webhook enviado com sucesso');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar webhook:', error);
+      // Não vamos quebrar o fluxo por erro no webhook
+    }
+  }
+
+  async updateConversationStep(id: string, step: FaseKanban, previousStep?: FaseKanban): Promise<Conversation> {
     const instanceId = this.getInstanceId();
     const endpoint = `/conversations?id=eq.${id}&instance_id=eq.${instanceId}`;
     
@@ -37,6 +69,12 @@ class ConversationsService {
     console.log('Dados enviados para Supabase:', data);
     
     const result = await supabase.patch<Conversation[]>(endpoint, data);
+    
+    // Enviar webhook após sucesso na atualização do Supabase
+    if (previousStep && previousStep !== step) {
+      await this.sendWebhookMudouEtapa(id, previousStep, step);
+    }
+    
     return result[0];
   }
 
@@ -82,7 +120,7 @@ class ConversationsService {
       entry_datetime: new Date().toISOString(),
       case_summary: caseData.case_summary || '',
       legal_area: caseData.legal_area || 'Geral',
-      step: 'em_qualificacao',
+      step: 'Introdução',
       channel: caseData.channel || 'Site',
       approved: false,
       on_hold: false,

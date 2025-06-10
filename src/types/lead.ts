@@ -1,32 +1,32 @@
 import { Conversation } from './supabase';
 
-// Mapear steps do Supabase para fases do Kanban
-export const SUPABASE_STEPS = {
-  'em_qualificacao': 'Em Qualificação',
-  'aguardando_documentos': 'Aguardando Documentos', 
-  'documentos_recebidos': 'Documentos Recebidos',
-  'analise_juridica': 'Análise Jurídica',
-  'aguardando_reuniao': 'Aguardando Reunião',
-  'reuniao_agendada': 'Reunião Agendada',
-  'aguardando_aprovacao': 'Aguardando Aprovação',
-  'aprovado': 'Aprovado',
-  'rejeitado': 'Rejeitado',
-  'concluido': 'Concluído'
-} as const;
+// Etapas corretas do Kanban conforme especificado
+export const ETAPAS_KANBAN = [
+  'Introdução',
+  'Atendimento Humano', 
+  'Em Qualificação',
+  'Qualificado',
+  'Em Análise',
+  'Em marcação de reunião',
+  'Reunião marcada',
+  'Não compareceu a reunião',
+  'Link de fechamento',
+  'Reunião cancelada'
+] as const;
 
-export type FaseKanban = keyof typeof SUPABASE_STEPS;
+export type FaseKanban = typeof ETAPAS_KANBAN[number];
 
 export const defaultFases: FaseKanbanConfig[] = [
-  { id: 'em_qualificacao', title: 'Em Qualificação', color: 'bg-blue-100 text-blue-800', order: 1 },
-  { id: 'aguardando_documentos', title: 'Aguardando Documentos', color: 'bg-yellow-100 text-yellow-800', order: 2 },
-  { id: 'documentos_recebidos', title: 'Documentos Recebidos', color: 'bg-orange-100 text-orange-800', order: 3 },
-  { id: 'analise_juridica', title: 'Análise Jurídica', color: 'bg-purple-100 text-purple-800', order: 4 },
-  { id: 'aguardando_reuniao', title: 'Aguardando Reunião', color: 'bg-indigo-100 text-indigo-800', order: 5 },
-  { id: 'reuniao_agendada', title: 'Reunião Agendada', color: 'bg-teal-100 text-teal-800', order: 6 },
-  { id: 'aguardando_aprovacao', title: 'Aguardando Aprovação', color: 'bg-pink-100 text-pink-800', order: 7 },
-  { id: 'aprovado', title: 'Aprovado', color: 'bg-green-100 text-green-800', order: 8 },
-  { id: 'rejeitado', title: 'Rejeitado', color: 'bg-red-100 text-red-800', order: 9 },
-  { id: 'concluido', title: 'Concluído', color: 'bg-gray-100 text-gray-800', order: 10 }
+  { id: 'Introdução', title: 'Introdução', color: 'bg-blue-100 text-blue-800', order: 1 },
+  { id: 'Atendimento Humano', title: 'Atendimento Humano', color: 'bg-yellow-100 text-yellow-800', order: 2 },
+  { id: 'Em Qualificação', title: 'Em Qualificação', color: 'bg-orange-100 text-orange-800', order: 3 },
+  { id: 'Qualificado', title: 'Qualificado', color: 'bg-purple-100 text-purple-800', order: 4 },
+  { id: 'Em Análise', title: 'Em Análise', color: 'bg-indigo-100 text-indigo-800', order: 5 },
+  { id: 'Em marcação de reunião', title: 'Em marcação de reunião', color: 'bg-teal-100 text-teal-800', order: 6 },
+  { id: 'Reunião marcada', title: 'Reunião marcada', color: 'bg-pink-100 text-pink-800', order: 7 },
+  { id: 'Não compareceu a reunião', title: 'Não compareceu a reunião', color: 'bg-red-100 text-red-800', order: 8 },
+  { id: 'Link de fechamento', title: 'Link de fechamento', color: 'bg-green-100 text-green-800', order: 9 },
+  { id: 'Reunião cancelada', title: 'Reunião cancelada', color: 'bg-gray-100 text-gray-800', order: 10 }
 ];
 
 export interface FaseKanbanConfig {
@@ -149,43 +149,19 @@ export function getAreaLabel(area: AreaDireito): string {
   return labels[area] || 'Outro';
 }
 
-// Função para normalizar step do Supabase para FaseKanban
+// Função simplificada para normalizar step do Supabase para FaseKanban
 function normalizeStep(step: string): FaseKanban {
   console.log('Normalizando step:', step);
   
-  // Converter para lowercase e remover espaços/acentos
-  const normalizedStep = step
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '_')
-    .replace(/ã/g, 'a')
-    .replace(/ç/g, 'c')
-    .replace(/í/g, 'i')
-    .replace(/ú/g, 'u');
+  // Se o step já é uma das etapas válidas, retorna ele mesmo
+  if (ETAPAS_KANBAN.includes(step as FaseKanban)) {
+    return step as FaseKanban;
+  }
   
-  // Mapear steps comuns do Supabase
-  const stepMapping: Record<string, FaseKanban> = {
-    'aprovado': 'aprovado',
-    'rejeitado': 'rejeitado',
-    'em_qualificacao': 'em_qualificacao',
-    'aguardando_documentos': 'aguardando_documentos',
-    'documentos_recebidos': 'documentos_recebidos',
-    'analise_juridica': 'analise_juridica',
-    'aguardando_reuniao': 'aguardando_reuniao',
-    'reuniao_agendada': 'reuniao_agendada',
-    'aguardando_aprovacao': 'aguardando_aprovacao',
-    'concluido': 'concluido'
-  };
-  
-  const result = stepMapping[normalizedStep] || 'em_qualificacao';
+  // Caso contrário, usa 'Introdução' como padrão
+  const result = 'Introdução' as FaseKanban;
   console.log(`Step "${step}" normalizado para "${result}"`);
   return result;
-}
-
-// Função para converter FaseKanban para step do Supabase
-export function faseToSupabaseStep(fase: FaseKanban): string {
-  // Manter consistência com os steps do Supabase
-  return fase;
 }
 
 // Função para converter Conversation do Supabase para Lead
@@ -221,15 +197,15 @@ export function conversationToLead(conversation: Conversation): Lead {
   // Extrair nome do telefone ou usar dados disponíveis
   const nome = conversation.profession || `Cliente ${conversation.phone.slice(-4)}`;
 
-  // Normalizar step
-  const faseAtual = normalizeStep(conversation.step || 'em_qualificacao');
+  // Normalizar step para uma das etapas válidas
+  const faseAtual = normalizeStep(conversation.step || 'Introdução');
 
   const lead: Lead = {
     id: conversation.id,
     id_visual: `QD-${entryDate.getFullYear()}-${conversation.id.slice(-6).toUpperCase()}`,
     nome,
     telefone: conversation.phone,
-    email: undefined, // Não mapeado na conversation
+    email: undefined,
     estado: conversation.location || undefined,
     profissao: conversation.profession || undefined,
     canal_entrada: conversation.channel || 'Site',
@@ -240,7 +216,7 @@ export function conversationToLead(conversation: Conversation): Lead {
     tese_juridica: conversation.legal_thesis || undefined,
     ainda_trabalha: conversation.employment_status === 'Empregado',
     carteira_assinada: conversation.employment_status === 'Empregado',
-    tem_advogado: false, // Padrão
+    tem_advogado: false,
     tempo_empresa: conversation.employment_duration_text || undefined,
     motivo_demissao: conversation.employment_status === 'Desempregado' ? 'Não informado' : undefined,
     mensagem_inicial: conversation.case_summary || 'Primeiro contato',
