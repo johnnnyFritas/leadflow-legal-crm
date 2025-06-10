@@ -36,6 +36,9 @@ import {
 } from '@/types/lead';
 import { toast } from '@/components/ui/sonner';
 import { MessageSquare, Copy, FileText, Check } from 'lucide-react';
+import { conversationsService } from '@/services/conversationsService';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 
 interface LeadDetailProps {
   lead?: Lead;
@@ -107,6 +110,23 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
   const [selectedPhase, setSelectedPhase] = useState('');
   const [isConclusionOpen, setIsConclusionOpen] = useState(false);
   const [isPhaseChanged, setIsPhaseChanged] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  
+  // Mutation para mover lead
+  const moveLeadMutation = useMutation({
+    mutationFn: async ({ leadId, newStep, previousStep }: { leadId: string, newStep: string, previousStep: string }) => {
+      return conversationsService.updateConversationStep(leadId, newStep as any, previousStep as any);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(`Lead movido com sucesso!`);
+      onOpenChange(false);
+    },
+    onError: () => {
+      toast.error('Erro ao mover lead');
+    }
+  });
   
   if (!lead) return null;
   
@@ -120,24 +140,22 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
   const timeInPhase = formatTimeElapsed(lead.tempo_na_fase);
 
   const handleOpenConversation = () => {
-    if (onOpenConversation) {
-      onOpenConversation(lead);
-    } else {
-      toast.success(`Redirecionando para conversa com ${lead.nome}`);
-    }
+    // Redirecionar para a página de conversas
+    navigate('/app/conversations');
+    onOpenChange(false);
   };
 
   const handleMovePhase = () => {
-    if (!selectedPhase || !isPhaseChanged) {
+    if (!selectedPhase || !isPhaseChanged || !lead) {
       toast.error('Selecione uma fase diferente para mover o lead');
       return;
     }
     
-    const targetPhase = defaultFases.find(f => f.id === selectedPhase);
-    if (targetPhase) {
-      toast.success(`Lead ${lead.nome} movido para ${targetPhase.title}`);
-      onOpenChange(false);
-    }
+    moveLeadMutation.mutate({
+      leadId: lead.id,
+      newStep: selectedPhase,
+      previousStep: lead.fase_atual
+    });
   };
 
   const handlePhaseChange = (value: string) => {
@@ -254,13 +272,8 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
             <h5 className="font-medium text-sm mb-3">Informações Gerais</h5>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DetailItem label="Área do Direito" value={getAreaLabel(lead.area_direito)} />
-              <DetailItem label="Tipo de problema jurídico" value={lead.tipo_problema || 'Não informado'} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <YesNoItem label="Já possui advogado?" value={lead.tem_advogado} />
-              <YesNoItem label="Há urgência no caso?" value={lead.possui_urgencia} />
             </div>
-            <DetailItem label="Documentos disponíveis" value={lead.documentos_disponiveis || 'Não informado'} />
           </div>
         );
     }
@@ -280,8 +293,8 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-medium">{lead.nome}</h3>
-              <Badge className={`score-${lead.score}`}>
-                Score: {getScoreLabel(lead.score)}
+              <Badge className={`score-${lead.score <= 30 ? 'low' : lead.score <= 70 ? 'medium' : 'high'}`}>
+                {lead.score}
               </Badge>
             </div>
             
@@ -289,8 +302,8 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
             
             <div className="grid grid-cols-1 gap-4">
               <DetailItem label="Telefone" value={lead.telefone} copyable={true} />
-              <DetailItem label="Estado" value={lead.estado} />
-              <DetailItem label="Profissão" value={lead.profissao} />
+              <DetailItem label="Estado" value={lead.estado || 'Não informado'} />
+              <DetailItem label="Profissão" value={lead.profissao || 'Não informado'} />
               <DetailItem label="Canal de Entrada" value={lead.canal_entrada} />
               <DetailItem label="Data/hora de entrada" value={formattedDate} />
               <DetailItem label="Área do Direito" value={getAreaLabel(lead.area_direito)} />
@@ -303,19 +316,9 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
             <div className="space-y-3">
               <h4 className="font-medium">Informações do Caso</h4>
               
-              <DetailItem label="Resumo do Caso" value={lead.resumo_caso} />
-              <DetailItem label="Tese Jurídica Identificada" value={lead.tese_juridica} />
+              <DetailItem label="Mensagem Inicial" value={lead.resumo_caso} />
               
               {renderDynamicFields()}
-            </div>
-            
-            <Separator />
-            
-            <div className="space-y-3">
-              <h4 className="font-medium">Mensagem Inicial</h4>
-              <div className="bg-muted p-3 rounded-md text-sm">
-                {lead.mensagem_inicial}
-              </div>
             </div>
             
             <Separator />
@@ -392,10 +395,10 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
                 variant={isPhaseChanged ? "default" : "secondary"}
                 className="w-full"
                 onClick={handleMovePhase}
-                disabled={!isPhaseChanged}
+                disabled={!isPhaseChanged || moveLeadMutation.isPending}
               >
                 <Check size={18} className="mr-2" />
-                Mover lead
+                {moveLeadMutation.isPending ? 'Movendo...' : 'Mover lead'}
               </Button>
             </div>
           </div>

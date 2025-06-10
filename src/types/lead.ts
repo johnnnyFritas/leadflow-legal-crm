@@ -1,3 +1,4 @@
+
 import { Conversation } from './supabase';
 
 // Etapas corretas do Kanban conforme especificado
@@ -169,12 +170,20 @@ function normalizeStep(step: string): FaseKanban {
 export function conversationToLead(conversation: Conversation): Lead {
   console.log('Convertendo conversation para lead:', conversation);
   
-  // Calcular score baseado nos dados disponíveis
-  let score: Score = 50; // Score padrão
+  // Calcular score baseado nos dados disponíveis de forma mais inteligente
+  let score: Score = 25; // Score padrão baixo
   
-  if (conversation.approved) score = 100;
-  else if (conversation.legal_area && conversation.case_summary) score = 75;
-  else if (conversation.case_summary) score = 50;
+  // Score baseado na completude dos dados
+  let scorePoints = 0;
+  if (conversation.case_summary && conversation.case_summary.trim() !== '') scorePoints += 25;
+  if (conversation.legal_area && conversation.legal_area.trim() !== '') scorePoints += 25;
+  if (conversation.approved) scorePoints += 50;
+  else if (conversation.legal_thesis && conversation.legal_thesis.trim() !== '') scorePoints += 25;
+  
+  // Atribuir score baseado nos pontos
+  if (scorePoints >= 75) score = 100;
+  else if (scorePoints >= 50) score = 75;
+  else if (scorePoints >= 25) score = 50;
   else score = 25;
 
   // Mapear área do direito
@@ -195,15 +204,18 @@ export function conversationToLead(conversation: Conversation): Lead {
   const entryDate = conversation.entry_datetime ? new Date(conversation.entry_datetime) : new Date();
   const tempoNaFase = Math.floor((Date.now() - entryDate.getTime()) / (1000 * 60));
 
-  // Usar o campo 'name' se disponível, senão usar 'Null'
-  const nome = conversation.name || 'Null';
+  // Usar o campo 'name' corretamente - se não tiver valor, usar 'Null'
+  const nome = conversation.name && conversation.name.trim() !== '' ? conversation.name : 'Null';
 
   // Normalizar step para uma das etapas válidas
   const faseAtual = normalizeStep(conversation.step || 'Introdução');
 
+  // Gerar ID visual mais limpo
+  const idVisual = `${conversation.id.slice(-6).toUpperCase()}`;
+
   const lead: Lead = {
     id: conversation.id,
-    id_visual: `QD-${entryDate.getFullYear()}-${conversation.id.slice(-6).toUpperCase()}`,
+    id_visual: idVisual,
     nome,
     telefone: conversation.phone,
     email: undefined,
@@ -256,6 +268,7 @@ export function leadToConversation(lead: Lead, instanceId: string): Partial<Conv
     id: lead.id,
     instance_id: instanceId,
     phone: lead.telefone,
+    name: lead.nome === 'Null' ? null : lead.nome, // Garantir que 'Null' vire null
     thread_id: lead.thread_id || `thread_${Date.now()}`,
     entry_datetime: lead.data_entrada,
     channel: lead.canal_entrada,
