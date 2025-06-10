@@ -1,7 +1,19 @@
-
 import { supabase } from '@/lib/supabase';
 import { ClientInstance, GoogleCalendarEvent } from '@/types/supabase';
 import { authService } from './authService';
+
+interface CreateEventData {
+  summary: string;
+  start: {
+    dateTime: string;
+    timeZone?: string;
+  };
+  end: {
+    dateTime: string;
+    timeZone?: string;
+  };
+  attendees?: Array<{ email: string }>;
+}
 
 class CalendarService {
   private getInstanceId(): string {
@@ -40,7 +52,6 @@ class CalendarService {
     }
 
     try {
-      // Simular refresh do token (em produção, usar googleapis)
       const response = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -61,7 +72,6 @@ class CalendarService {
       const data = await response.json();
       const newAccessToken = data.access_token;
 
-      // Atualizar no Supabase
       await this.updateGoogleTokens(newAccessToken);
       
       return newAccessToken;
@@ -81,14 +91,12 @@ class CalendarService {
       }
 
       const timeMin = startDate || new Date().toISOString();
-      const timeMax = endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 dias
+      const timeMax = endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
       let accessToken = instance.google_access_token;
 
-      // Tentar buscar eventos
       let response = await this.fetchCalendarEvents(instance.google_calendar_id, accessToken, timeMin, timeMax);
 
-      // Se falhar, tentar renovar token
       if (!response.ok && response.status === 401) {
         console.log('Token expirado, tentando renovar...');
         const newToken = await this.refreshGoogleToken(instance);
@@ -111,6 +119,41 @@ class CalendarService {
     }
   }
 
+  async createEvent(eventData: CreateEventData): Promise<GoogleCalendarEvent> {
+    try {
+      const instance = await this.getClientInstance();
+      
+      if (!instance?.google_calendar_id || !instance?.google_access_token) {
+        throw new Error('Google Calendar não configurado para esta instância');
+      }
+
+      let accessToken = instance.google_access_token;
+
+      let response = await this.postCalendarEvent(instance.google_calendar_id, accessToken, eventData);
+
+      if (!response.ok && response.status === 401) {
+        console.log('Token expirado, tentando renovar...');
+        const newToken = await this.refreshGoogleToken(instance);
+        
+        if (newToken) {
+          accessToken = newToken;
+          response = await this.postCalendarEvent(instance.google_calendar_id, accessToken, eventData);
+        }
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Erro ao criar evento: ${errorData.error?.message || 'Erro desconhecido'}`);
+      }
+
+      const createdEvent = await response.json();
+      return createdEvent;
+    } catch (error) {
+      console.error('Erro ao criar evento:', error);
+      throw error;
+    }
+  }
+
   private async fetchCalendarEvents(calendarId: string, accessToken: string, timeMin: string, timeMax: string): Promise<Response> {
     const params = new URLSearchParams({
       timeMin,
@@ -130,6 +173,20 @@ class CalendarService {
     );
   }
 
+  private async postCalendarEvent(calendarId: string, accessToken: string, eventData: CreateEventData): Promise<Response> {
+    return fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      }
+    );
+  }
+
   async getBusySlots(startDate: string, endDate: string): Promise<Array<{start: string, end: string}>> {
     try {
       const instance = await this.getClientInstance();
@@ -141,10 +198,8 @@ class CalendarService {
 
       let accessToken = instance.google_access_token;
 
-      // Usar freebusy API
       let response = await this.fetchFreeBusy(instance.google_calendar_id, accessToken, startDate, endDate);
 
-      // Se falhar, tentar renovar token
       if (!response.ok && response.status === 401) {
         console.log('Token expirado, tentando renovar...');
         const newToken = await this.refreshGoogleToken(instance);
@@ -186,9 +241,9 @@ class CalendarService {
 
   async getAvailableSlots(date: string): Promise<string[]> {
     const startOfDay = new Date(date);
-    startOfDay.setHours(8, 0, 0, 0); // 8:00
+    startOfDay.setHours(8, 0, 0, 0);
     const endOfDay = new Date(date);
-    endOfDay.setHours(18, 0, 0, 0); // 18:00
+    endOfDay.setHours(18, 0, 0, 0);
 
     const busySlots = await this.getBusySlots(
       startOfDay.toISOString(),
@@ -196,7 +251,7 @@ class CalendarService {
     );
 
     const availableSlots: string[] = [];
-    const slotDuration = 60; // 1 hora em minutos
+    const slotDuration = 60;
 
     for (let hour = 8; hour < 18; hour++) {
       const slotStart = new Date(date);
