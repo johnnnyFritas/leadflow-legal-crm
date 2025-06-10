@@ -20,16 +20,7 @@ class AuthService {
       console.log('Tentando fazer login com:', email);
       
       // Buscar instância pelo email
-      const { data: instances, error } = await supabase
-        .from('clients_instances')
-        .select('*')
-        .eq('email', email.toLowerCase().trim())
-        .limit(1);
-
-      if (error) {
-        console.error('Erro ao buscar instância:', error);
-        throw new Error('Erro ao verificar credenciais');
-      }
+      const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
 
       if (!instances || instances.length === 0) {
         throw new Error('Email não encontrado');
@@ -71,16 +62,7 @@ class AuthService {
       console.log('Tentando registrar com:', email);
       
       // Verificar se email já existe
-      const { data: existingInstances, error: checkError } = await supabase
-        .from('clients_instances')
-        .select('id')
-        .eq('email', email.toLowerCase().trim())
-        .limit(1);
-
-      if (checkError) {
-        console.error('Erro ao verificar email:', checkError);
-        throw new Error('Erro ao verificar email');
-      }
+      const existingInstances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
 
       if (existingInstances && existingInstances.length > 0) {
         throw new Error('Email já cadastrado');
@@ -95,16 +77,13 @@ class AuthService {
         created_at: new Date().toISOString()
       };
 
-      const { data: newInstance, error: insertError } = await supabase
-        .from('clients_instances')
-        .insert(instanceData)
-        .select()
-        .single();
+      const newInstances = await supabase.post<ClientInstance[]>('/clients_instances', instanceData);
 
-      if (insertError || !newInstance) {
-        console.error('Erro ao criar instância:', insertError);
+      if (!newInstances || newInstances.length === 0) {
         throw new Error('Erro ao criar conta');
       }
+
+      const newInstance = newInstances[0];
 
       // Criar objeto do usuário autenticado
       const authUser: AuthUser = {
