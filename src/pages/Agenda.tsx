@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar } from '@/components/ui/calendar';
@@ -13,6 +12,7 @@ import { DayView } from '@/components/agenda/DayView';
 import { MonthView } from '@/components/agenda/MonthView';
 import { NewEventModal } from '@/components/agenda/NewEventModal';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 const Agenda = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
