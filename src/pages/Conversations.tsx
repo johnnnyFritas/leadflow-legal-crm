@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, Phone, Eye, Search } from 'lucide-react';
+import { Send, Phone, Eye, Search, MessageSquare } from 'lucide-react';
 import { conversationsService } from '@/services/conversationsService';
 import { Conversation, Message } from '@/types/supabase';
 import { format, parseISO } from 'date-fns';
@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from '@/components/ui/sonner';
 import LeadDetails from '@/components/lead/LeadDetails';
 import { Lead, AreaDireito } from '@/types/lead';
+import { useNavigate } from 'react-router-dom';
 
 const Conversations = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -23,6 +24,7 @@ const Conversations = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isLeadDetailsOpen, setIsLeadDetailsOpen] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
     queryKey: ['conversations'],
@@ -40,6 +42,7 @@ const Conversations = () => {
     const matchesChannel = selectedChannel === 'all' || conversation.channel === selectedChannel;
     const matchesSearch = !searchQuery || 
       conversation.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (conversation.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
       (conversation.case_summary?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
     
     return matchesChannel && matchesSearch;
@@ -80,17 +83,21 @@ const Conversations = () => {
 
   const getStepBadgeColor = (step: string) => {
     const colors: Record<string, string> = {
-      'em_qualificacao': 'bg-blue-100 text-blue-800',
-      'aguardando_documentos': 'bg-yellow-100 text-yellow-800',
-      'analise_juridica': 'bg-purple-100 text-purple-800',
-      'aprovado': 'bg-green-100 text-green-800',
-      'rejeitado': 'bg-red-100 text-red-800',
+      'Introdução': 'bg-blue-100 text-blue-800',
+      'Atendimento Humano': 'bg-yellow-100 text-yellow-800',
+      'Em Qualificação': 'bg-orange-100 text-orange-800',
+      'Qualificado': 'bg-purple-100 text-purple-800',
+      'Em Análise': 'bg-indigo-100 text-indigo-800',
+      'Em marcação de reunião': 'bg-teal-100 text-teal-800',
+      'Reunião marcada': 'bg-pink-100 text-pink-800',
+      'Não compareceu a reunião': 'bg-red-100 text-red-800',
+      'Link de fechamento': 'bg-green-100 text-green-800',
+      'Reunião cancelada': 'bg-gray-100 text-gray-800',
     };
     return colors[step] || 'bg-gray-100 text-gray-800';
   };
 
   const handleViewLead = (conversation: Conversation) => {
-    // Helper function to map legal_area to AreaDireito
     const mapToAreaDireito = (legalArea: string): AreaDireito => {
       const mapping: Record<string, AreaDireito> = {
         'Trabalhista': 'trabalhista',
@@ -105,31 +112,34 @@ const Conversations = () => {
       return mapping[legalArea] || 'outro';
     };
 
-    // Convert conversation to lead format for the details modal
     const lead: Lead = {
       id: conversation.id,
       id_visual: conversation.id.substring(0, 8).toUpperCase(),
-      nome: conversation.phone, // Will be replaced with name field when available
+      nome: conversation.name || 'Null',
       telefone: conversation.phone,
       email: '',
       estado: conversation.location || '',
       profissao: conversation.profession || '',
       canal_entrada: conversation.channel || '',
-      campanha_origem: '',
       data_entrada: conversation.entry_datetime,
       area_direito: mapToAreaDireito(conversation.legal_area || ''),
-      score: 50, // Default score
+      score: 50,
       fase_atual: conversation.step as any,
       tempo_na_fase: 0,
       resumo_caso: conversation.case_summary || '',
       tese_juridica: conversation.legal_thesis || '',
       mensagem_inicial: '',
       created_at: conversation.entry_datetime,
-      updated_at: conversation.entry_datetime
+      updated_at: conversation.entry_datetime,
+      ConclusãoCaso: conversation.ConclusãoCaso
     };
     
     setSelectedLead(lead);
     setIsLeadDetailsOpen(true);
+  };
+
+  const handleOpenConversation = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
   };
 
   if (loadingConversations) {
@@ -147,7 +157,7 @@ const Conversations = () => {
         <div className="p-3 lg:p-4 border-b border-border space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold">Conversas</h2>
-            <Button size="sm" className="rounded-full">
+            <Button size="sm" className="rounded-full" disabled>
               +
             </Button>
           </div>
@@ -183,27 +193,30 @@ const Conversations = () => {
               className={`p-3 lg:p-4 cursor-pointer hover:bg-accent border-b border-border ${
                 selectedConversation?.id === conversation.id ? 'bg-accent' : ''
               }`}
-              onClick={() => setSelectedConversation(conversation)}
+              onClick={() => handleOpenConversation(conversation)}
             >
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 lg:w-10 lg:h-10 bg-primary rounded-full flex items-center justify-center text-white text-sm">
-                  <Phone size={16} />
+                <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white text-sm flex-shrink-0">
+                  <MessageSquare size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm lg:text-base truncate">
-                      {conversation.phone}
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-sm lg:text-base truncate">
+                      {conversation.name || 'Null'}
                     </span>
                     <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
                       {format(parseISO(conversation.entry_datetime), "HH:mm", { locale: ptBR })}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                  <div className="text-sm text-muted-foreground mb-2">
+                    {conversation.phone}
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                     {conversation.case_summary || 'Nova conversa'}
                   </p>
-                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Badge className={`text-xs ${getStepBadgeColor(conversation.step)}`}>
-                      {conversation.step.replace('_', ' ')}
+                      {conversation.step}
                     </Badge>
                     <Badge variant="outline" className="text-xs">
                       {conversation.legal_area}
@@ -224,9 +237,12 @@ const Conversations = () => {
             <div className="p-3 lg:p-4 border-b border-border bg-card">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-medium truncate">{selectedConversation.phone}</h3>
+                  <h3 className="font-bold truncate">{selectedConversation.name || 'Null'}</h3>
                   <p className="text-sm text-muted-foreground truncate">
-                    {selectedConversation.legal_area} • {selectedConversation.step.replace('_', ' ')}
+                    {selectedConversation.phone}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {selectedConversation.legal_area} • {selectedConversation.step}
                   </p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0 ml-2">
@@ -300,7 +316,14 @@ const Conversations = () => {
       <LeadDetails 
         lead={selectedLead} 
         open={isLeadDetailsOpen} 
-        onOpenChange={setIsLeadDetailsOpen} 
+        onOpenChange={setIsLeadDetailsOpen}
+        onOpenConversation={(lead) => {
+          const conversation = conversations.find(c => c.id === lead.id);
+          if (conversation) {
+            setSelectedConversation(conversation);
+            setIsLeadDetailsOpen(false);
+          }
+        }}
       />
     </div>
   );

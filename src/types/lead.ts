@@ -91,6 +91,7 @@ export interface Lead {
   meeting_link?: string;
   event_id?: string;
   attendant_phone?: string;
+  ConclusãoCaso?: string; // Added field for case conclusion
 
   // Campos específicos por área do direito
   tipo_vinculo?: string;
@@ -194,8 +195,8 @@ export function conversationToLead(conversation: Conversation): Lead {
   const entryDate = conversation.entry_datetime ? new Date(conversation.entry_datetime) : new Date();
   const tempoNaFase = Math.floor((Date.now() - entryDate.getTime()) / (1000 * 60));
 
-  // Extrair nome do telefone ou usar dados disponíveis
-  const nome = conversation.profession || `Cliente ${conversation.phone.slice(-4)}`;
+  // Usar o campo 'name' se disponível, senão usar 'Null'
+  const nome = conversation.name || 'Null';
 
   // Normalizar step para uma das etapas válidas
   const faseAtual = normalizeStep(conversation.step || 'Introdução');
@@ -241,7 +242,8 @@ export function conversationToLead(conversation: Conversation): Lead {
     meeting_start_time: conversation.meeting_start_time || undefined,
     meeting_link: conversation.meeting_link,
     event_id: conversation.event_id,
-    attendant_phone: conversation.attendant_phone
+    attendant_phone: conversation.attendant_phone,
+    ConclusãoCaso: conversation.ConclusãoCaso
   };
 
   console.log('Lead convertido:', lead);

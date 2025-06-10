@@ -29,18 +29,15 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
       filtered = filtered.filter(lead => lead.area_direito === selectedArea);
     }
     
-    // Apply search filter
+    // Apply search filter - buscar por nome do lead e área do direito
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(lead => {
-        // Search in name, email, phone, and ID
         const nameMatch = lead.nome?.toLowerCase().includes(query) || false;
-        const emailMatch = lead.email?.toLowerCase().includes(query) || false;
-        const phoneMatch = lead.telefone?.includes(query) || false;
-        const idMatch = lead.id_visual?.toLowerCase().includes(query) || false;
+        const areaMatch = lead.area_direito?.toLowerCase().includes(query) || false;
         const caseMatch = lead.resumo_caso?.toLowerCase().includes(query) || false;
         
-        return nameMatch || emailMatch || phoneMatch || idMatch || caseMatch;
+        return nameMatch || areaMatch || caseMatch;
       });
     }
     

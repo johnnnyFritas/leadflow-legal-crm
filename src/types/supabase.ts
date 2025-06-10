@@ -1,4 +1,3 @@
-
 export interface ClientInstance {
   id: string;
   instance_id: string; // Added missing property
@@ -39,6 +38,7 @@ export interface Conversation {
   id: string;
   instance_id: string;
   phone: string;
+  name?: string; // Added name field
   thread_id: string;
   entry_datetime: string;
   channel: string;
@@ -62,6 +62,7 @@ export interface Conversation {
   meeting_link: string;
   profession: string;
   attendant_phone: string | null;
+  ConclusãoCaso?: string; // Added field for case conclusion
 }
 
 export interface Message {

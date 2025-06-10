@@ -66,7 +66,7 @@ const KanbanCard = ({ lead, index, onClick }: KanbanCardProps) => {
           </div>
           
           <h4 className="font-medium text-sm mb-1 line-clamp-2">
-            {lead.nome || `Cliente ${lead.id_visual}`}
+            {lead.nome}
           </h4>
           
           <div className="text-xs mb-2 text-muted-foreground line-clamp-1">

@@ -21,6 +21,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { 
   Lead,
   getScoreLabel, 
   formatTimeElapsed, 
@@ -28,20 +35,13 @@ import {
   defaultFases
 } from '@/types/lead';
 import { toast } from '@/components/ui/sonner';
-
-// Icons
-import { 
-  Phone, 
-  MessageSquare, 
-  Calendar, 
-  Check, 
-  Copy
-} from 'lucide-react';
+import { MessageSquare, Copy, FileText, Check } from 'lucide-react';
 
 interface LeadDetailProps {
   lead?: Lead;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onOpenConversation?: (lead: Lead) => void;
 }
 
 interface Comment {
@@ -54,7 +54,7 @@ interface Comment {
 const CopyButton = ({ text, className }: { text: string, className?: string }) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
-    toast.success('Conteúdo copiado para a área de transferência');
+    toast.success('Telefone copiado para a área de transferência');
   };
 
   return (
@@ -69,7 +69,7 @@ const CopyButton = ({ text, className }: { text: string, className?: string }) =
   );
 };
 
-const DetailItem = ({ label, value, copyable = true }: { label: string; value: string | React.ReactNode; copyable?: boolean }) => (
+const DetailItem = ({ label, value, copyable = false }: { label: string; value: string | React.ReactNode; copyable?: boolean }) => (
   <div className="mb-3">
     <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
       {label}
@@ -101,12 +101,12 @@ const YesNoItem = ({ label, value }: { label: string; value: boolean | undefined
   </div>
 );
 
-const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
-  const [isCallLoading, setIsCallLoading] = useState(false);
-  const [isWhatsappLoading, setIsWhatsappLoading] = useState(false);
+const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetailProps) => {
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
   const [selectedPhase, setSelectedPhase] = useState('');
+  const [isConclusionOpen, setIsConclusionOpen] = useState(false);
+  const [isPhaseChanged, setIsPhaseChanged] = useState(false);
   
   if (!lead) return null;
   
@@ -119,34 +119,17 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
   const timeElapsed = formatTimeElapsed(minutesElapsed);
   const timeInPhase = formatTimeElapsed(lead.tempo_na_fase);
 
-  const handleCall = () => {
-    setIsCallLoading(true);
-    setTimeout(() => {
-      toast.success(`Ligando para ${lead.nome} (${lead.telefone})`);
-      setIsCallLoading(false);
-    }, 800);
-  };
-
-  const handleWhatsapp = () => {
-    setIsWhatsappLoading(true);
-    setTimeout(() => {
-      toast.success(`Abrindo WhatsApp para ${lead.nome}`);
-      setIsWhatsappLoading(false);
-      
-      // Prepare WhatsApp URL
-      const cleanPhone = lead.telefone.replace(/\D/g, '');
-      const whatsappUrl = `https://wa.me/55${cleanPhone}`;
-      window.open(whatsappUrl, '_blank');
-    }, 800);
-  };
-
-  const handleSchedule = () => {
-    toast.success(`Agendar reunião com ${lead.nome}`);
+  const handleOpenConversation = () => {
+    if (onOpenConversation) {
+      onOpenConversation(lead);
+    } else {
+      toast.success(`Redirecionando para conversa com ${lead.nome}`);
+    }
   };
 
   const handleMovePhase = () => {
-    if (!selectedPhase) {
-      toast.error('Selecione uma fase para mover o lead');
+    if (!selectedPhase || !isPhaseChanged) {
+      toast.error('Selecione uma fase diferente para mover o lead');
       return;
     }
     
@@ -155,6 +138,11 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
       toast.success(`Lead ${lead.nome} movido para ${targetPhase.title}`);
       onOpenChange(false);
     }
+  };
+
+  const handlePhaseChange = (value: string) => {
+    setSelectedPhase(value);
+    setIsPhaseChanged(value !== lead.fase_atual);
   };
   
   const handleAddComment = () => {
@@ -172,7 +160,8 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
     toast.success('Comentário adicionado');
   };
 
-  // Renderiza os campos específicos com base na área do direito
+  const hasCaseConclusion = lead.ConclusãoCaso && lead.ConclusãoCaso.trim().length > 0;
+
   const renderDynamicFields = () => {
     switch (lead.area_direito) {
       case 'trabalhista':
@@ -278,151 +267,117 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
   };
   
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full md:max-w-md overflow-y-auto">
-        <SheetHeader className="mb-5">
-          <SheetTitle>Detalhes do Lead</SheetTitle>
-          <SheetDescription>
-            {lead.id_visual} - {getAreaLabel(lead.area_direito)}
-          </SheetDescription>
-        </SheetHeader>
-        
-        <div className="space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-medium">{lead.nome}</h3>
-            <Badge className={`score-${lead.score}`}>
-              Score: {getScoreLabel(lead.score)}
-            </Badge>
-          </div>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent className="w-full md:max-w-md overflow-y-auto">
+          <SheetHeader className="mb-5">
+            <SheetTitle>Detalhes do Lead</SheetTitle>
+            <SheetDescription>
+              {lead.id_visual} - {getAreaLabel(lead.area_direito)}
+            </SheetDescription>
+          </SheetHeader>
           
-          <Separator />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <DetailItem label="Telefone" value={lead.telefone} />
-            <DetailItem label="Estado" value={lead.estado} />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <DetailItem label="Profissão" value={lead.profissao} />
-            <DetailItem label="Canal de Entrada" value={lead.canal_entrada} />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <DetailItem label="Campanha de Origem" value={lead.campanha_origem} />
-            <DetailItem label="Data/hora de entrada" value={formattedDate} />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <DetailItem label="Área do Direito" value={getAreaLabel(lead.area_direito)} />
-            <DetailItem label="Tempo total desde entrada" value={timeElapsed} copyable={false} />
-          </div>
-          
-          <DetailItem label="Tempo na fase atual" value={timeInPhase} copyable={false} />
-          
-          <Separator />
-          
-          <div className="space-y-3">
-            <h4 className="font-medium">Informações do Caso</h4>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">{lead.nome}</h3>
+              <Badge className={`score-${lead.score}`}>
+                Score: {getScoreLabel(lead.score)}
+              </Badge>
+            </div>
             
-            <DetailItem label="Resumo do Caso" value={lead.resumo_caso} />
-            <DetailItem label="Tese Jurídica Identificada" value={lead.tese_juridica} />
+            <Separator />
             
-            {/* Campos dinâmicos por área do direito */}
-            {renderDynamicFields()}
-          </div>
-          
-          <Separator />
-          
-          <div className="space-y-3">
-            <h4 className="font-medium">Mensagem Inicial</h4>
-            <div className="bg-muted p-3 rounded-md text-sm">
-              {lead.mensagem_inicial}
-              <div className="mt-2 flex justify-end">
-                <CopyButton text={lead.mensagem_inicial} />
+            <div className="grid grid-cols-1 gap-4">
+              <DetailItem label="Telefone" value={lead.telefone} copyable={true} />
+              <DetailItem label="Estado" value={lead.estado} />
+              <DetailItem label="Profissão" value={lead.profissao} />
+              <DetailItem label="Canal de Entrada" value={lead.canal_entrada} />
+              <DetailItem label="Data/hora de entrada" value={formattedDate} />
+              <DetailItem label="Área do Direito" value={getAreaLabel(lead.area_direito)} />
+              <DetailItem label="Tempo total desde entrada" value={timeElapsed} copyable={false} />
+              <DetailItem label="Tempo na fase atual" value={timeInPhase} copyable={false} />
+            </div>
+            
+            <Separator />
+            
+            <div className="space-y-3">
+              <h4 className="font-medium">Informações do Caso</h4>
+              
+              <DetailItem label="Resumo do Caso" value={lead.resumo_caso} />
+              <DetailItem label="Tese Jurídica Identificada" value={lead.tese_juridica} />
+              
+              {renderDynamicFields()}
+            </div>
+            
+            <Separator />
+            
+            <div className="space-y-3">
+              <h4 className="font-medium">Mensagem Inicial</h4>
+              <div className="bg-muted p-3 rounded-md text-sm">
+                {lead.mensagem_inicial}
               </div>
             </div>
-          </div>
-          
-          <Separator />
-          
-          <div className="space-y-3">
-            <h4 className="font-medium">Comentários</h4>
-            <div className="space-y-2">
-              <Textarea 
-                placeholder="Adicione um comentário sobre este lead..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="min-h-[100px]"
-              />
-              <Button onClick={handleAddComment} size="sm" className="w-full">
-                Adicionar comentário
+            
+            <Separator />
+            
+            <div className="space-y-3">
+              <h4 className="font-medium">Comentários</h4>
+              <div className="space-y-2">
+                <Textarea 
+                  placeholder="Adicione um comentário sobre este lead..."
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  className="min-h-[100px]"
+                />
+                <Button onClick={handleAddComment} size="sm" className="w-full">
+                  Adicionar comentário
+                </Button>
+              </div>
+              
+              <div className="space-y-3 mt-4">
+                {comments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum comentário ainda
+                  </p>
+                ) : (
+                  comments.map((item) => (
+                    <div key={item.id} className="bg-secondary/20 p-3 rounded-md">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium">{item.author}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(parseISO(item.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </span>
+                      </div>
+                      <p className="text-sm">{item.text}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-3 pt-4">
+              <Button 
+                className="w-full" 
+                onClick={handleOpenConversation}
+              >
+                <MessageSquare size={18} className="mr-2" />
+                Abrir conversa
+              </Button>
+              
+              <Button 
+                variant={hasCaseConclusion ? "default" : "secondary"}
+                className="w-full"
+                onClick={() => setIsConclusionOpen(true)}
+              >
+                <FileText size={18} className="mr-2" />
+                Conclusão do caso
               </Button>
             </div>
             
-            <div className="space-y-3 mt-4">
-              {comments.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhum comentário ainda
-                </p>
-              ) : (
-                comments.map((item) => (
-                  <div key={item.id} className="bg-secondary/20 p-3 rounded-md">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-medium">{item.author}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {format(parseISO(item.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </span>
-                    </div>
-                    <p className="text-sm">{item.text}</p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3 pt-4">
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={handleCall}
-              disabled={isCallLoading}
-            >
-              {isCallLoading ? (
-                <span className="h-4 w-4 border-2 border-t-transparent border-current border-solid rounded-full animate-spin mr-2"></span>
-              ) : (
-                <Phone size={18} className="mr-2" />
-              )}
-              Ligar
-            </Button>
-            
-            <Button 
-              className="w-full" 
-              onClick={handleWhatsapp}
-              disabled={isWhatsappLoading}
-            >
-              {isWhatsappLoading ? (
-                <span className="h-4 w-4 border-2 border-t-transparent border-white border-solid rounded-full animate-spin mr-2"></span>
-              ) : (
-                <MessageSquare size={18} className="mr-2" />
-              )}
-              Abrir WhatsApp
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={handleSchedule}
-            >
-              <Calendar size={18} className="mr-2" />
-              Marcar reunião
-            </Button>
-            
-            <div className="flex flex-col gap-2">
-              <Select value={selectedPhase} onValueChange={setSelectedPhase}>
+            <div className="space-y-3">
+              <Select value={selectedPhase} onValueChange={handlePhaseChange}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selecione uma fase" />
+                  <SelectValue placeholder={`Atual: ${lead.fase_atual}`} />
                 </SelectTrigger>
                 <SelectContent>
                   {defaultFases.map((fase) => (
@@ -434,18 +389,44 @@ const LeadDetails = ({ lead, open, onOpenChange }: LeadDetailProps) => {
               </Select>
               
               <Button 
-                variant="secondary" 
+                variant={isPhaseChanged ? "default" : "secondary"}
                 className="w-full"
                 onClick={handleMovePhase}
+                disabled={!isPhaseChanged}
               >
                 <Check size={18} className="mr-2" />
                 Mover lead
               </Button>
             </div>
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+
+      {/* Case Conclusion Dialog */}
+      <Dialog open={isConclusionOpen} onOpenChange={setIsConclusionOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Conclusão do Caso</DialogTitle>
+            <DialogDescription>
+              {hasCaseConclusion ? 'Conclusão do caso para este lead' : 'Nenhuma conclusão disponível ainda'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-4">
+            {hasCaseConclusion ? (
+              <div className="bg-muted p-4 rounded-md">
+                <p className="text-sm whitespace-pre-wrap">{lead.ConclusãoCaso}</p>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <FileText size={48} className="mx-auto mb-4 opacity-50" />
+                <p>Nenhuma conclusão de caso disponível ainda.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
