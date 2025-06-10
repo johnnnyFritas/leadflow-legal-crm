@@ -4,17 +4,34 @@ export interface ClientInstance {
   company_name: string;
   instance_name: string;
   phone: string;
-  email: string;
-  assistant_reception_id?: string;
-  assistant_scheduling_id?: string;
-  google_calendar_id?: string;
+  phone_admin?: string;
   google_access_token?: string;
   google_refresh_token?: string;
-  meeting_duration_minutes: number;
+  google_calendar_id?: string;
   min_notice_minutes: number;
+  meeting_duration_minutes: number;
+  email: string;
+  main_lawyer_name?: string;
+  secondary_attendant_name?: string;
+  secondary_attendant_phone?: string;
   needs_approval: boolean;
+  assistant_reception_id?: string;
+  assistant_scheduling_id?: string;
+  toggle_switch: boolean;
+  form_link?: string;
+  gmb_link?: string;
+  instagram?: string;
+  tiktok?: string;
+  official_website?: string;
+  linkedin?: string;
+  billing_percentage?: number;
   lead_notification_phone?: string;
   created_at: string;
+  supabase_table_name?: string;
+  plan?: string;
+  address?: string;
+  cpf?: string;
+  cnpj?: string;
 }
 
 export interface Conversation {
@@ -23,21 +40,33 @@ export interface Conversation {
   phone: string;
   thread_id: string;
   entry_datetime: string;
-  case_summary: string;
-  legal_area: string;
-  step: string;
   channel: string;
-  meeting_link?: string;
-  meeting_start_time?: string;
-  event_id?: string;
+  case_summary: string;
+  employment_status: string;
+  employment_duration_text: string;
+  employment_duration_standardized: number;
+  location: string;
+  legal_area: string;
+  legal_thesis: string;
+  step: string;
+  event_id: string;
   approved: boolean;
-  attendant_phone?: string;
+  on_hold: boolean;
+  user_choice: boolean;
+  message_id_approval: string;
+  message_id_choice: string;
+  thread_id_auxiliary: string;
+  attached_files: any; // JSONB
+  meeting_start_time: string | null;
+  meeting_link: string;
+  profession: string;
+  attendant_phone: string | null;
 }
 
 export interface Message {
   id: string;
   conversation_id: string;
-  sender_role: 'client' | 'agent';
+  sender_role: 'client' | 'agent' | 'system';
   sender_phone: string;
   content: string;
   message_type: 'text' | 'file' | 'image';

@@ -4,6 +4,8 @@ import { DragDropContext, Droppable, DropResult } from 'react-beautiful-dnd';
 import { toast } from '@/components/ui/sonner';
 import { Lead, FaseKanban, defaultFases, FaseKanbanConfig } from '@/types/lead';
 import KanbanColumn from './KanbanColumn';
+import { conversationsService } from '@/services/conversationsService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface KanbanBoardProps {
   onViewLead: (lead: Lead) => void;
@@ -15,6 +17,7 @@ interface KanbanBoardProps {
 const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoardProps) => {
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>(leads);
   const [fases] = useState<FaseKanbanConfig[]>(defaultFases);
+  const { instanceId } = useAuth();
 
   useEffect(() => {
     let filtered = [...leads];
@@ -37,7 +40,7 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
     setFilteredLeads(filtered);
   }, [searchQuery, selectedArea, leads]);
 
-  const onDragEnd = (result: DropResult) => {
+  const onDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
@@ -52,14 +55,16 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
     const leadId = draggableId;
     const lead = filteredLeads.find(l => l.id === leadId);
     
-    if (!lead) return;
+    if (!lead || !instanceId) return;
+    
+    const newStep = destination.droppableId as FaseKanban;
     
     // Update the filtered leads locally for immediate UI feedback
     const updatedFilteredLeads = filteredLeads.map(l => {
       if (l.id === leadId) {
         return {
           ...l,
-          fase_atual: destination.droppableId as FaseKanban,
+          fase_atual: newStep,
           tempo_na_fase: 0,
           updated_at: new Date().toISOString()
         };
@@ -72,9 +77,20 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
     const sourcePhase = fases.find(f => f.id === source.droppableId);
     const destPhase = fases.find(f => f.id === destination.droppableId);
     
-    toast.success(
-      `Lead ${lead.nome} movido de ${sourcePhase?.title || source.droppableId} para ${destPhase?.title || destination.droppableId}`
-    );
+    try {
+      // Update in Supabase
+      await conversationsService.updateConversationStep(leadId, newStep);
+      
+      toast.success(
+        `Lead ${lead.nome} movido de ${sourcePhase?.title || source.droppableId} para ${destPhase?.title || destination.droppableId}`
+      );
+    } catch (error) {
+      console.error('Erro ao atualizar step:', error);
+      toast.error('Erro ao mover lead. Tente novamente.');
+      
+      // Revert local changes on error
+      setFilteredLeads(leads);
+    }
   };
 
   // Group leads by phase
