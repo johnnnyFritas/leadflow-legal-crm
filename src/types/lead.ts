@@ -1,4 +1,3 @@
-
 import { Conversation } from './supabase';
 
 // Mapear steps do Supabase para fases do Kanban
@@ -160,9 +159,11 @@ function normalizeStep(step: string): FaseKanban {
     .trim()
     .replace(/\s+/g, '_')
     .replace(/ã/g, 'a')
-    .replace(/ç/g, 'c');
+    .replace(/ç/g, 'c')
+    .replace(/í/g, 'i')
+    .replace(/ú/g, 'u');
   
-  // Mapear steps comuns
+  // Mapear steps comuns do Supabase
   const stepMapping: Record<string, FaseKanban> = {
     'aprovado': 'aprovado',
     'rejeitado': 'rejeitado',
@@ -179,6 +180,12 @@ function normalizeStep(step: string): FaseKanban {
   const result = stepMapping[normalizedStep] || 'em_qualificacao';
   console.log(`Step "${step}" normalizado para "${result}"`);
   return result;
+}
+
+// Função para converter FaseKanban para step do Supabase
+export function faseToSupabaseStep(fase: FaseKanban): string {
+  // Manter consistência com os steps do Supabase
+  return fase;
 }
 
 // Função para converter Conversation do Supabase para Lead

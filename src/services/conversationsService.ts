@@ -1,6 +1,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { Conversation, Message } from '@/types/supabase';
+import { FaseKanban, faseToSupabaseStep } from '@/types/lead';
 import { authService } from './authService';
 
 class ConversationsService {
@@ -25,10 +26,18 @@ class ConversationsService {
     return result[0] || null;
   }
 
-  async updateConversationStep(id: string, step: string): Promise<Conversation> {
+  async updateConversationStep(id: string, step: FaseKanban): Promise<Conversation> {
     const instanceId = this.getInstanceId();
     const endpoint = `/conversations?id=eq.${id}&instance_id=eq.${instanceId}`;
-    const data = { step };
+    
+    console.log(`Atualizando conversa ${id} para step: ${step}`);
+    
+    // Converter fase para step do Supabase
+    const supabaseStep = faseToSupabaseStep(step);
+    const data = { step: supabaseStep };
+    
+    console.log('Dados enviados para Supabase:', data);
+    
     const result = await supabase.patch<Conversation[]>(endpoint, data);
     return result[0];
   }

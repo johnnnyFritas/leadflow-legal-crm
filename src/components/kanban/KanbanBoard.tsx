@@ -59,6 +59,8 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
     
     const newStep = destination.droppableId as FaseKanban;
     
+    console.log(`Movendo lead ${leadId} de ${source.droppableId} para ${newStep}`);
+    
     // Update the filtered leads locally for immediate UI feedback
     const updatedFilteredLeads = filteredLeads.map(l => {
       if (l.id === leadId) {
@@ -84,6 +86,8 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
       toast.success(
         `Lead ${lead.nome} movido de ${sourcePhase?.title || source.droppableId} para ${destPhase?.title || destination.droppableId}`
       );
+      
+      console.log('Lead movido com sucesso no Supabase');
     } catch (error) {
       console.error('Erro ao atualizar step:', error);
       toast.error('Erro ao mover lead. Tente novamente.');
