@@ -150,8 +150,41 @@ export function getAreaLabel(area: AreaDireito): string {
   return labels[area] || 'Outro';
 }
 
+// Função para normalizar step do Supabase para FaseKanban
+function normalizeStep(step: string): FaseKanban {
+  console.log('Normalizando step:', step);
+  
+  // Converter para lowercase e remover espaços/acentos
+  const normalizedStep = step
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/ã/g, 'a')
+    .replace(/ç/g, 'c');
+  
+  // Mapear steps comuns
+  const stepMapping: Record<string, FaseKanban> = {
+    'aprovado': 'aprovado',
+    'rejeitado': 'rejeitado',
+    'em_qualificacao': 'em_qualificacao',
+    'aguardando_documentos': 'aguardando_documentos',
+    'documentos_recebidos': 'documentos_recebidos',
+    'analise_juridica': 'analise_juridica',
+    'aguardando_reuniao': 'aguardando_reuniao',
+    'reuniao_agendada': 'reuniao_agendada',
+    'aguardando_aprovacao': 'aguardando_aprovacao',
+    'concluido': 'concluido'
+  };
+  
+  const result = stepMapping[normalizedStep] || 'em_qualificacao';
+  console.log(`Step "${step}" normalizado para "${result}"`);
+  return result;
+}
+
 // Função para converter Conversation do Supabase para Lead
 export function conversationToLead(conversation: Conversation): Lead {
+  console.log('Convertendo conversation para lead:', conversation);
+  
   // Calcular score baseado nos dados disponíveis
   let score: Score = 50; // Score padrão
   
@@ -175,16 +208,18 @@ export function conversationToLead(conversation: Conversation): Lead {
   const area_direito = areaMapping[conversation.legal_area || ''] || 'outro';
 
   // Calcular tempo na fase (em minutos desde entry_datetime)
-  const tempoNaFase = conversation.entry_datetime 
-    ? Math.floor((Date.now() - new Date(conversation.entry_datetime).getTime()) / (1000 * 60))
-    : 0;
+  const entryDate = conversation.entry_datetime ? new Date(conversation.entry_datetime) : new Date();
+  const tempoNaFase = Math.floor((Date.now() - entryDate.getTime()) / (1000 * 60));
 
-  // Extrair nome do telefone ou usar número
-  const nome = conversation.profession || conversation.phone || 'Cliente Anônimo';
+  // Extrair nome do telefone ou usar dados disponíveis
+  const nome = conversation.profession || `Cliente ${conversation.phone.slice(-4)}`;
 
-  return {
+  // Normalizar step
+  const faseAtual = normalizeStep(conversation.step || 'em_qualificacao');
+
+  const lead: Lead = {
     id: conversation.id,
-    id_visual: `QD-${new Date(conversation.entry_datetime || Date.now()).getFullYear()}-${conversation.id.slice(-6).toUpperCase()}`,
+    id_visual: `QD-${entryDate.getFullYear()}-${conversation.id.slice(-6).toUpperCase()}`,
     nome,
     telefone: conversation.phone,
     email: undefined, // Não mapeado na conversation
@@ -194,16 +229,16 @@ export function conversationToLead(conversation: Conversation): Lead {
     campanha_origem: undefined,
     data_entrada: conversation.entry_datetime || new Date().toISOString(),
     area_direito,
-    resumo_caso: conversation.case_summary || '',
+    resumo_caso: conversation.case_summary || 'Sem resumo disponível',
     tese_juridica: conversation.legal_thesis || undefined,
     ainda_trabalha: conversation.employment_status === 'Empregado',
     carteira_assinada: conversation.employment_status === 'Empregado',
     tem_advogado: false, // Padrão
     tempo_empresa: conversation.employment_duration_text || undefined,
     motivo_demissao: conversation.employment_status === 'Desempregado' ? 'Não informado' : undefined,
-    mensagem_inicial: conversation.case_summary || '',
+    mensagem_inicial: conversation.case_summary || 'Primeiro contato',
     score,
-    fase_atual: (conversation.step as FaseKanban) || 'em_qualificacao',
+    fase_atual: faseAtual,
     tempo_na_fase: tempoNaFase,
     responsavel_id: conversation.attendant_phone || undefined,
     created_at: conversation.entry_datetime || new Date().toISOString(),
@@ -225,6 +260,9 @@ export function conversationToLead(conversation: Conversation): Lead {
     event_id: conversation.event_id,
     attendant_phone: conversation.attendant_phone
   };
+
+  console.log('Lead convertido:', lead);
+  return lead;
 }
 
 // Função para converter Lead para Conversation (para updates)
