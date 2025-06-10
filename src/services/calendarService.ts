@@ -15,6 +15,10 @@ interface CreateEventData {
   attendees?: Array<{ email: string }>;
 }
 
+// Constantes para credenciais Google (em produção, estas devem vir de variáveis de ambiente)
+const GOOGLE_CLIENT_ID = 'your-google-client-id';
+const GOOGLE_CLIENT_SECRET = 'your-google-client-secret';
+
 class CalendarService {
   private getInstanceId(): string {
     const instanceId = authService.getInstanceId();
@@ -46,8 +50,8 @@ class CalendarService {
   }
 
   async refreshGoogleToken(instance: ClientInstance): Promise<string | null> {
-    if (!instance.google_refresh_token || !instance.google_calendar_id) {
-      console.warn('Tokens Google não configurados');
+    if (!instance.google_refresh_token) {
+      console.warn('Refresh token não encontrado');
       return null;
     }
 
@@ -58,15 +62,17 @@ class CalendarService {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          client_id: process.env.GOOGLE_CLIENT_ID || '',
-          client_secret: process.env.GOOGLE_CLIENT_SECRET || '',
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET,
           refresh_token: instance.google_refresh_token,
           grant_type: 'refresh_token',
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Falha ao renovar token Google');
+        const errorData = await response.json();
+        console.error('Erro ao renovar token:', errorData);
+        return null;
       }
 
       const data = await response.json();
@@ -93,6 +99,8 @@ class CalendarService {
       const timeMin = startDate || new Date().toISOString();
       const timeMax = endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
+      console.log('Buscando eventos:', { timeMin, timeMax, calendarId: instance.google_calendar_id });
+
       let accessToken = instance.google_access_token;
 
       let response = await this.fetchCalendarEvents(instance.google_calendar_id, accessToken, timeMin, timeMax);
@@ -108,10 +116,14 @@ class CalendarService {
       }
 
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Erro da API Google Calendar:', errorData);
         throw new Error(`Google Calendar API error: ${response.status}`);
       }
 
       const data = await response.json();
+      console.log('Eventos recebidos do Google:', data.items?.length || 0);
+      
       return data.items || [];
     } catch (error) {
       console.error('Erro ao buscar eventos do Google Calendar:', error);
@@ -159,18 +171,19 @@ class CalendarService {
       timeMin,
       timeMax,
       singleEvents: 'true',
-      orderBy: 'startTime'
+      orderBy: 'startTime',
+      maxResults: '100'
     });
 
-    return fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
+    const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?${params}`;
+    console.log('Fazendo request para Google Calendar:', url);
+
+    return fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
       }
-    );
+    });
   }
 
   private async postCalendarEvent(calendarId: string, accessToken: string, eventData: CreateEventData): Promise<Response> {
@@ -276,3 +289,5 @@ class CalendarService {
 }
 
 export const calendarService = new CalendarService();
+
+}

@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CalendarDays } from 'lucide-react';
 import { calendarService } from '@/services/calendarService';
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { WeeklyGrid } from '@/components/agenda/WeeklyGrid';
 import { DayView } from '@/components/agenda/DayView';
+import { MonthView } from '@/components/agenda/MonthView';
 import { NewEventModal } from '@/components/agenda/NewEventModal';
 
 const Agenda = () => {
@@ -19,10 +20,13 @@ const Agenda = () => {
   // Query para eventos do dia selecionado
   const { data: dayEvents = [], isLoading: isDayLoading, refetch: refetchDay } = useQuery({
     queryKey: ['calendar-events-day', format(selectedDate, 'yyyy-MM-dd')],
-    queryFn: () => calendarService.getCalendarEvents(
-      startOfDay(selectedDate).toISOString(),
-      endOfDay(selectedDate).toISOString()
-    ),
+    queryFn: () => {
+      console.log('Buscando eventos do dia:', format(selectedDate, 'yyyy-MM-dd'));
+      return calendarService.getCalendarEvents(
+        startOfDay(selectedDate).toISOString(),
+        endOfDay(selectedDate).toISOString()
+      );
+    },
   });
 
   // Query para eventos da semana
@@ -31,6 +35,7 @@ const Agenda = () => {
     queryFn: () => {
       const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+      console.log('Buscando eventos da semana:', format(weekStart, 'yyyy-MM-dd'), 'até', format(weekEnd, 'yyyy-MM-dd'));
       return calendarService.getCalendarEvents(
         weekStart.toISOString(),
         weekEnd.toISOString()
@@ -38,15 +43,32 @@ const Agenda = () => {
     },
   });
 
+  // Query para eventos do mês
+  const { data: monthEvents = [], isLoading: isMonthLoading, refetch: refetchMonth } = useQuery({
+    queryKey: ['calendar-events-month', format(startOfMonth(selectedDate), 'yyyy-MM-dd')],
+    queryFn: () => {
+      const monthStart = startOfMonth(selectedDate);
+      const monthEnd = endOfMonth(selectedDate);
+      console.log('Buscando eventos do mês:', format(monthStart, 'yyyy-MM-dd'), 'até', format(monthEnd, 'yyyy-MM-dd'));
+      return calendarService.getCalendarEvents(
+        monthStart.toISOString(),
+        monthEnd.toISOString()
+      );
+    },
+  });
+
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
+      console.log('Data selecionada:', format(date, 'yyyy-MM-dd'));
       setSelectedDate(date);
     }
   };
 
   const handleEventCreated = () => {
+    console.log('Evento criado, atualizando listas...');
     refetchDay();
     refetchWeek();
+    refetchMonth();
   };
 
   const renderViewContent = () => {
@@ -69,13 +91,12 @@ const Agenda = () => {
         );
       case 'month':
         return (
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center text-muted-foreground">
-                Visualização mensal em desenvolvimento
-              </div>
-            </CardContent>
-          </Card>
+          <MonthView
+            selectedDate={selectedDate}
+            events={monthEvents}
+            onDateChange={setSelectedDate}
+            isLoading={isMonthLoading}
+          />
         );
       default:
         return null;
