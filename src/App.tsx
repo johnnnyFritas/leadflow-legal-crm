@@ -9,6 +9,8 @@ import { useEffect } from "react";
 import AppLayout from "./layouts/AppLayout";
 import Index from "./pages/Index";
 import Kanban from "./pages/Kanban";
+import Conversations from "./pages/Conversations";
+import Agenda from "./pages/Agenda";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -44,6 +46,8 @@ const App = () => {
               <Route path="/app" element={<AppLayout />}>
                 <Route index element={<Navigate to="/app/kanban" replace />} />
                 <Route path="kanban" element={<Kanban />} />
+                <Route path="conversas" element={<Conversations />} />
+                <Route path="agenda" element={<Agenda />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<NotFound />} />

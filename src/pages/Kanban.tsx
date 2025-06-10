@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from 'react';
-import { Lead, AreaDireito, convertOldScoreToNumber } from '@/types/lead';
+import { Lead, AreaDireito, conversationToLead } from '@/types/lead';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -17,8 +17,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockLeads } from '@/data/mockLeads';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { conversationsService } from '@/services/conversationsService';
 
 const areasDireito = [
   { value: 'all', label: 'Todas as áreas' },
@@ -36,13 +37,7 @@ const scoreOptions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75,
 
 const Kanban = () => {
   const { user } = useAuth();
-  // Converter os scores antigos para numéricos
-  const convertedLeads = mockLeads.map(lead => ({
-    ...lead, 
-    // @ts-ignore - Fazer cast para compatibilidade
-    score: typeof lead.score === 'string' ? convertOldScoreToNumber(lead.score) : lead.score
-  }));
-  const [leads, setLeads] = useState<Lead[]>(convertedLeads);
+  const queryClient = useQueryClient();
   const [selectedLead, setSelectedLead] = useState<Lead | undefined>(undefined);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,7 +50,19 @@ const Kanban = () => {
   const [newLeadPhone, setNewLeadPhone] = useState('');
   const [newLeadArea, setNewLeadArea] = useState<AreaDireito>('trabalhista');
   const [newLeadScore, setNewLeadScore] = useState<number>(50);
+  const [newLeadCaseSummary, setNewLeadCaseSummary] = useState('');
   const [isAddLeadDialogOpen, setIsAddLeadDialogOpen] = useState(false);
+  
+  // Buscar conversas do Supabase
+  const { data: conversations = [], isLoading } = useQuery({
+    queryKey: ['conversations'],
+    queryFn: () => conversationsService.getConversations(),
+  });
+
+  // Converter conversas para leads
+  const leads = useMemo(() => {
+    return conversations.map(conversationToLead);
+  }, [conversations]);
   
   // Filter leads based on area and search query
   const filteredLeads = useMemo(() => {
@@ -78,6 +85,26 @@ const Kanban = () => {
     
     return filtered;
   }, [leads, selectedArea, searchQuery]);
+
+  // Mutation para criar novo lead
+  const createLeadMutation = useMutation({
+    mutationFn: (leadData: any) => conversationsService.createConversation(leadData.phone, leadData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success('Lead adicionado com sucesso!');
+      // Reset form and close dialog
+      setNewLeadName('');
+      setNewLeadEmail('');
+      setNewLeadPhone('');
+      setNewLeadArea('trabalhista');
+      setNewLeadScore(50);
+      setNewLeadCaseSummary('');
+      setIsAddLeadDialogOpen(false);
+    },
+    onError: () => {
+      toast.error('Erro ao adicionar lead');
+    }
+  });
   
   const handleViewLead = (lead: Lead) => {
     setSelectedLead(lead);
@@ -86,48 +113,29 @@ const Kanban = () => {
 
   const handleAddLead = () => {
     // Validation
-    if (!newLeadName || !newLeadEmail || !newLeadPhone || !newLeadArea) {
-      toast.error('Por favor, preencha todos os campos');
+    if (!newLeadName || !newLeadPhone || !newLeadArea) {
+      toast.error('Por favor, preencha os campos obrigatórios');
       return;
     }
     
-    // Create new lead
-    const newLead: Lead = {
-      id: `lead-${Date.now()}`,
-      id_visual: `L-${Math.floor(Math.random() * 1000)}`,
-      nome: newLeadName,
-      telefone: newLeadPhone,
-      email: newLeadEmail,
-      estado: "SP",
-      profissao: "Não informado",
-      canal_entrada: "Site",
-      campanha_origem: "Organic",
-      data_entrada: new Date().toISOString(),
-      area_direito: newLeadArea,
-      resumo_caso: "",
-      tese_juridica: "",
-      mensagem_inicial: "",
-      score: newLeadScore, // Score numérico
-      fase_atual: "notificacao_recebida", // Configurado para iniciar na fase "Notificação Recebida"
-      tempo_na_fase: 0,
-      responsavel_id: user?.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+    // Create new lead data
+    const leadData = {
+      phone: newLeadPhone,
+      case_summary: newLeadCaseSummary || `Novo atendimento para ${newLeadName}`,
+      legal_area: areasDireito.find(a => a.value === newLeadArea)?.label || 'Geral',
+      channel: 'Site'
     };
     
-    // Add to leads array
-    setLeads([...leads, newLead]);
-    
-    toast.success(`Lead ${newLeadName} adicionado com sucesso!`);
-    
-    // Reset form and close dialog
-    setNewLeadName('');
-    setNewLeadEmail('');
-    setNewLeadPhone('');
-    setNewLeadArea('trabalhista');
-    setNewLeadScore(50);
-    setIsAddLeadDialogOpen(false);
+    createLeadMutation.mutate(leadData);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-lg">Carregando leads...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -165,19 +173,31 @@ const Kanban = () => {
             <DialogHeader>
               <DialogTitle>Adicionar Novo Lead</DialogTitle>
               <DialogDescription>
-                Adicione um novo lead ao sistema. Todos os campos são obrigatórios.
+                Adicione um novo lead ao sistema.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">
-                  Nome
+                  Nome *
                 </Label>
                 <Input
                   id="name"
                   value={newLeadName}
                   onChange={(e) => setNewLeadName(e.target.value)}
                   className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="phone" className="text-right">
+                  Telefone *
+                </Label>
+                <Input
+                  id="phone"
+                  value={newLeadPhone}
+                  onChange={(e) => setNewLeadPhone(e.target.value)}
+                  className="col-span-3"
+                  placeholder="5571999999999"
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
@@ -193,19 +213,8 @@ const Kanban = () => {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="phone" className="text-right">
-                  Telefone
-                </Label>
-                <Input
-                  id="phone"
-                  value={newLeadPhone}
-                  onChange={(e) => setNewLeadPhone(e.target.value)}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="area" className="text-right">
-                  Área
+                  Área *
                 </Label>
                 <Select 
                   value={newLeadArea} 
@@ -224,28 +233,26 @@ const Kanban = () => {
                 </Select>
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="score" className="text-right">
-                  Score
+                <Label htmlFor="case" className="text-right">
+                  Resumo do Caso
                 </Label>
-                <Select 
-                  value={newLeadScore.toString()} 
-                  onValueChange={(value) => setNewLeadScore(parseInt(value))}
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione o score" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scoreOptions.map((score) => (
-                      <SelectItem key={score} value={score.toString()}>
-                        {score}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="case"
+                  value={newLeadCaseSummary}
+                  onChange={(e) => setNewLeadCaseSummary(e.target.value)}
+                  className="col-span-3"
+                  placeholder="Breve descrição do caso..."
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit" onClick={handleAddLead}>Adicionar Lead</Button>
+              <Button 
+                type="submit" 
+                onClick={handleAddLead}
+                disabled={createLeadMutation.isPending}
+              >
+                {createLeadMutation.isPending ? 'Adicionando...' : 'Adicionar Lead'}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -256,6 +263,7 @@ const Kanban = () => {
           onViewLead={handleViewLead} 
           searchQuery={searchQuery} 
           selectedArea={selectedArea}
+          leads={filteredLeads}
         />
       </div>
       

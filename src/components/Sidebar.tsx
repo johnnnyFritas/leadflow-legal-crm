@@ -20,6 +20,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 // Import Lucide icons
 import { 
   Kanban,
+  MessageSquare,
+  Calendar,
   Settings,
   LogOut,
   ChevronLeft
@@ -95,7 +97,33 @@ const Sidebar = () => {
               >
                 <Link to="/app/kanban" className="w-full">
                   <Kanban size={18} />
-                  <span>Kanban de Leads</span>
+                  <span>Leads</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                asChild 
+                tooltip="Conversas" 
+                className={`transition-all ${isActive("/app/conversas") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+              >
+                <Link to="/app/conversas" className="w-full">
+                  <MessageSquare size={18} />
+                  <span>Conversas</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                asChild 
+                tooltip="Agenda" 
+                className={`transition-all ${isActive("/app/agenda") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+              >
+                <Link to="/app/agenda" className="w-full">
+                  <Calendar size={18} />
+                  <span>Agenda</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

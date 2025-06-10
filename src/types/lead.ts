@@ -11,14 +11,16 @@ export type AreaDireito =
   | 'outro';
 
 export type FaseKanban = 
-  | 'em_analise'
-  | 'notificacao_recebida'
-  | 'envio_para_reuniao'
-  | 'reuniao_marcada'
-  | 'nao_compareceu'
-  | 'reuniao_sem_contrato'
-  | 'reuniao_com_contrato'
-  | 'descartado';
+  | 'em_qualificacao'
+  | 'aguardando_documentos'
+  | 'documentos_recebidos'
+  | 'analise_juridica'
+  | 'aguardando_reuniao'
+  | 'reuniao_agendada'
+  | 'aguardando_aprovacao'
+  | 'aprovado'
+  | 'rejeitado'
+  | 'concluido';
 
 // Definindo Score como um tipo para compatibilidade com código legado
 export type Score = 'low' | 'medium' | 'high';
@@ -144,14 +146,103 @@ export const formatTimeElapsed = (minutes: number): string => {
   }
 };
 
-// Default kanban phases configuration - com notificacao_recebida primeiro
+// Função para converter Conversation para Lead (para compatibilidade)
+export const conversationToLead = (conversation: any): Lead => {
+  return {
+    id: conversation.id,
+    id_visual: conversation.thread_id || `L-${conversation.id.slice(-4)}`,
+    nome: conversation.phone, // Usando telefone como nome temporário
+    telefone: conversation.phone,
+    email: '',
+    estado: 'BA',
+    profissao: 'Não informado',
+    canal_entrada: conversation.channel || 'Site',
+    campanha_origem: 'Organic',
+    data_entrada: conversation.entry_datetime,
+    area_direito: mapLegalAreaToAreaDireito(conversation.legal_area),
+    resumo_caso: conversation.case_summary || '',
+    tese_juridica: '',
+    mensagem_inicial: conversation.case_summary || '',
+    score: calculateScoreFromConversation(conversation),
+    fase_atual: mapStepToFaseKanban(conversation.step),
+    tempo_na_fase: calculateTimeInPhase(conversation.entry_datetime),
+    created_at: conversation.entry_datetime,
+    updated_at: conversation.entry_datetime,
+  };
+};
+
+// Helper para mapear área legal para AreaDireito
+const mapLegalAreaToAreaDireito = (legalArea: string): AreaDireito => {
+  const mapping: Record<string, AreaDireito> = {
+    'Trabalhista': 'trabalhista',
+    'Previdenciário': 'previdenciario',
+    'Civil': 'civil',
+    'Cível': 'civil',
+    'Tributário': 'tributario',
+    'Penal': 'penal',
+    'Empresarial': 'empresarial',
+    'Consumidor': 'consumidor',
+    'Família': 'familia',
+  };
+  return mapping[legalArea] || 'outro';
+};
+
+// Helper para mapear step para FaseKanban
+const mapStepToFaseKanban = (step: string): FaseKanban => {
+  const mapping: Record<string, FaseKanban> = {
+    'em_qualificacao': 'em_qualificacao',
+    'aguardando_documentos': 'aguardando_documentos',
+    'documentos_recebidos': 'documentos_recebidos',
+    'analise_juridica': 'analise_juridica',
+    'aguardando_reuniao': 'aguardando_reuniao',
+    'reuniao_agendada': 'reuniao_agendada',
+    'aguardando_aprovacao': 'aguardando_aprovacao',
+    'aprovado': 'aprovado',
+    'rejeitado': 'rejeitado',
+    'concluido': 'concluido',
+  };
+  return mapping[step] || 'em_qualificacao';
+};
+
+// Helper para calcular score baseado na conversa
+const calculateScoreFromConversation = (conversation: any): number => {
+  let score = 50; // Score base
+  
+  // Aumenta score se tem resumo do caso
+  if (conversation.case_summary && conversation.case_summary.length > 20) {
+    score += 20;
+  }
+  
+  // Aumenta score se já foi aprovado
+  if (conversation.approved) {
+    score += 30;
+  }
+  
+  // Aumenta score se tem reunião agendada
+  if (conversation.meeting_start_time) {
+    score += 15;
+  }
+  
+  return Math.min(100, score);
+};
+
+// Helper para calcular tempo na fase
+const calculateTimeInPhase = (entryDate: string): number => {
+  const now = new Date();
+  const entry = new Date(entryDate);
+  return Math.floor((now.getTime() - entry.getTime()) / (1000 * 60)); // em minutos
+};
+
+// Default kanban phases configuration - atualizado para o novo sistema
 export const defaultFases: FaseKanbanConfig[] = [
-  { id: 'notificacao_recebida', title: 'Notificação Recebida', order: 1 },
-  { id: 'em_analise', title: 'Em Análise', order: 2 },
-  { id: 'envio_para_reuniao', title: 'Envio para Reunião', order: 3 },
-  { id: 'reuniao_marcada', title: 'Reunião Marcada', order: 4 },
-  { id: 'nao_compareceu', title: 'Não Compareceu', order: 5 },
-  { id: 'reuniao_sem_contrato', title: 'Reunião Feita (sem contrato)', order: 6 },
-  { id: 'reuniao_com_contrato', title: 'Reunião Feita (com contrato)', order: 7 },
-  { id: 'descartado', title: 'Descartado', order: 8 },
+  { id: 'em_qualificacao', title: 'Em Qualificação', order: 1 },
+  { id: 'aguardando_documentos', title: 'Aguardando Documentos', order: 2 },
+  { id: 'documentos_recebidos', title: 'Documentos Recebidos', order: 3 },
+  { id: 'analise_juridica', title: 'Análise Jurídica', order: 4 },
+  { id: 'aguardando_reuniao', title: 'Aguardando Reunião', order: 5 },
+  { id: 'reuniao_agendada', title: 'Reunião Agendada', order: 6 },
+  { id: 'aguardando_aprovacao', title: 'Aguardando Aprovação', order: 7 },
+  { id: 'aprovado', title: 'Aprovado', order: 8 },
+  { id: 'rejeitado', title: 'Rejeitado', order: 9 },
+  { id: 'concluido', title: 'Concluído', order: 10 },
 ];
