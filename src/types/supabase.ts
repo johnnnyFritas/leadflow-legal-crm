@@ -1,6 +1,7 @@
 
 export interface ClientInstance {
   id: string;
+  instance_id: string; // Added missing property
   company_name: string;
   instance_name: string;
   phone: string;
