@@ -6,6 +6,7 @@ import { Lead, FaseKanban, defaultFases, FaseKanbanConfig } from '@/types/lead';
 import KanbanColumn from './KanbanColumn';
 import { conversationsService } from '@/services/conversationsService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface KanbanBoardProps {
   onViewLead: (lead: Lead) => void;
@@ -18,6 +19,7 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
   const [filteredLeads, setFilteredLeads] = useState<Lead[]>(leads);
   const [fases] = useState<FaseKanbanConfig[]>(defaultFases);
   const { instanceId } = useAuth();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let filtered = [...leads];
@@ -43,45 +45,57 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
   const onDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
-    if (!destination) return;
+    console.log('Drag result:', result);
+
+    if (!destination) {
+      console.log('No destination, returning');
+      return;
+    }
     
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     ) {
+      console.log('Same position, returning');
       return;
     }
     
     const leadId = draggableId;
     const lead = filteredLeads.find(l => l.id === leadId);
     
-    if (!lead || !instanceId) return;
+    if (!lead || !instanceId) {
+      console.log('Lead not found or no instanceId');
+      return;
+    }
     
     const newStep = destination.droppableId as FaseKanban;
     const previousStep = source.droppableId as FaseKanban;
     
-    console.log(`Movendo lead ${leadId} de ${previousStep} para ${newStep}`);
+    console.log(`Movendo lead ${lead.nome} (${leadId}) de "${previousStep}" para "${newStep}"`);
+    
+    // Optimistic update - atualizar UI imediatamente
+    const updatedFilteredLeads = filteredLeads.map(l => {
+      if (l.id === leadId) {
+        return {
+          ...l,
+          fase_atual: newStep,
+          tempo_na_fase: 0,
+          updated_at: new Date().toISOString()
+        };
+      }
+      return l;
+    });
+    
+    setFilteredLeads(updatedFilteredLeads);
     
     try {
-      // Atualizar no Supabase primeiro e enviar webhook
+      // Atualizar no Supabase e enviar webhook
       await conversationsService.updateConversationStep(leadId, newStep, previousStep);
       
       console.log('Lead movido com sucesso no Supabase e webhook enviado');
       
-      // Atualizar localmente apenas após sucesso no Supabase
-      const updatedFilteredLeads = filteredLeads.map(l => {
-        if (l.id === leadId) {
-          return {
-            ...l,
-            fase_atual: newStep,
-            tempo_na_fase: 0,
-            updated_at: new Date().toISOString()
-          };
-        }
-        return l;
-      });
-      
-      setFilteredLeads(updatedFilteredLeads);
+      // Invalidar queries para refrescar os dados
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
       
       const sourcePhase = fases.find(f => f.id === previousStep);
       const destPhase = fases.find(f => f.id === newStep);
@@ -92,6 +106,10 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
       
     } catch (error) {
       console.error('Erro ao atualizar step:', error);
+      
+      // Reverter a mudança otimista em caso de erro
+      setFilteredLeads(filteredLeads);
+      
       toast.error('Erro ao mover lead. Tente novamente.');
     }
   };
@@ -102,18 +120,43 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
     return acc;
   }, {} as Record<FaseKanban, Lead[]>);
 
+  console.log('Leads by phase:', leadsByPhase);
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="flex gap-3 overflow-x-auto px-1 pb-8 min-w-full">
         {fases.sort((a, b) => a.order - b.order).map((fase) => (
           <Droppable key={fase.id} droppableId={fase.id}>
-            {(provided) => (
-              <KanbanColumn
-                title={fase.title}
-                leads={leadsByPhase[fase.id] || []}
-                provided={provided}
-                onViewLead={onViewLead}
-              />
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={`kanban-column w-56 min-w-56 max-w-56 flex-shrink-0 bg-secondary/20 rounded-md p-2 ${
+                  snapshot.isDraggingOver ? 'bg-secondary/40' : ''
+                }`}
+              >
+                <h3 className="text-sm font-medium mb-2 flex items-center justify-between">
+                  <span>{fase.title}</span>
+                  <span className="bg-secondary text-secondary-foreground text-xs px-2 py-0.5 rounded-full">
+                    {leadsByPhase[fase.id]?.length || 0}
+                  </span>
+                </h3>
+                
+                <div className="space-y-2 min-h-[200px]">
+                  {(leadsByPhase[fase.id] || []).map((lead, index) => (
+                    <KanbanColumn
+                      key={lead.id}
+                      title=""
+                      leads={[lead]}
+                      provided={provided}
+                      onViewLead={onViewLead}
+                      index={index}
+                    />
+                  ))}
+                </div>
+                
+                {provided.placeholder}
+              </div>
             )}
           </Droppable>
         ))}

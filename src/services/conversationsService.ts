@@ -48,8 +48,12 @@ class ConversationsService {
 
       if (!response.ok) {
         console.warn('Webhook retornou erro:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.warn('Resposta do webhook:', errorText);
       } else {
         console.log('Webhook enviado com sucesso');
+        const responseText = await response.text();
+        console.log('Resposta do webhook:', responseText);
       }
     } catch (error) {
       console.error('Erro ao enviar webhook:', error);
@@ -63,19 +67,26 @@ class ConversationsService {
     
     console.log(`Atualizando conversa ${id} para step: ${step}`);
     
-    // Usar o step diretamente (seguindo a lógica do HTML)
+    // Usar o step diretamente
     const data = { step: step };
     
     console.log('Dados enviados para Supabase:', data);
+    console.log('Endpoint:', endpoint);
     
-    const result = await supabase.patch<Conversation[]>(endpoint, data);
-    
-    // Enviar webhook após sucesso na atualização do Supabase
-    if (previousStep && previousStep !== step) {
-      await this.sendWebhookMudouEtapa(id, previousStep, step);
+    try {
+      const result = await supabase.patch<Conversation[]>(endpoint, data);
+      console.log('Resultado da atualização no Supabase:', result);
+      
+      // Enviar webhook após sucesso na atualização do Supabase
+      if (previousStep && previousStep !== step) {
+        await this.sendWebhookMudouEtapa(id, previousStep, step);
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Erro ao atualizar conversation no Supabase:', error);
+      throw error;
     }
-    
-    return result[0];
   }
 
   async getMessages(conversationId: string): Promise<Message[]> {

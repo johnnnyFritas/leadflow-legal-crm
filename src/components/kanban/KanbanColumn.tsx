@@ -8,35 +8,34 @@ interface KanbanColumnProps {
   leads: Lead[];
   provided: DroppableProvided;
   onViewLead: (lead: Lead) => void;
+  index?: number;
 }
 
-const KanbanColumn = ({ title, leads, provided, onViewLead }: KanbanColumnProps) => {
+const KanbanColumn = ({ leads, onViewLead, index = 0 }: KanbanColumnProps) => {
+  // Se há apenas um lead, renderizar o card diretamente
+  if (leads.length === 1) {
+    return (
+      <KanbanCard
+        key={leads[0].id}
+        lead={leads[0]}
+        index={index}
+        onClick={() => onViewLead(leads[0])}
+      />
+    );
+  }
+
+  // Se há múltiplos leads, renderizar todos
   return (
-    <div className="kanban-column w-56 min-w-56 max-w-56 flex-shrink-0 bg-secondary/20 rounded-md p-2">
-      <h3 className="text-sm font-medium mb-2 flex items-center justify-between">
-        <span>{title}</span>
-        <span className="bg-secondary text-secondary-foreground text-xs px-2 py-0.5 rounded-full">
-          {leads.length}
-        </span>
-      </h3>
-      
-      <div
-        {...provided.droppableProps}
-        ref={provided.innerRef}
-        className="overflow-y-auto"
-        style={{ maxHeight: 'none' }}
-      >
-        {leads.map((lead, index) => (
-          <KanbanCard
-            key={lead.id}
-            lead={lead}
-            index={index}
-            onClick={() => onViewLead(lead)}
-          />
-        ))}
-        {provided.placeholder}
-      </div>
-    </div>
+    <>
+      {leads.map((lead, idx) => (
+        <KanbanCard
+          key={lead.id}
+          lead={lead}
+          index={idx}
+          onClick={() => onViewLead(lead)}
+        />
+      ))}
+    </>
   );
 };
 
