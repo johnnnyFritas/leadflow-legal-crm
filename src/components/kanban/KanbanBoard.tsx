@@ -58,42 +58,41 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoa
     if (!lead || !instanceId) return;
     
     const newStep = destination.droppableId as FaseKanban;
+    const previousStep = source.droppableId as FaseKanban;
     
-    console.log(`Movendo lead ${leadId} de ${source.droppableId} para ${newStep}`);
-    
-    // Update the filtered leads locally for immediate UI feedback
-    const updatedFilteredLeads = filteredLeads.map(l => {
-      if (l.id === leadId) {
-        return {
-          ...l,
-          fase_atual: newStep,
-          tempo_na_fase: 0,
-          updated_at: new Date().toISOString()
-        };
-      }
-      return l;
-    });
-    
-    setFilteredLeads(updatedFilteredLeads);
-    
-    const sourcePhase = fases.find(f => f.id === source.droppableId);
-    const destPhase = fases.find(f => f.id === destination.droppableId);
+    console.log(`Movendo lead ${leadId} de ${previousStep} para ${newStep}`);
     
     try {
-      // Update in Supabase
+      // Atualizar no Supabase primeiro (como no código HTML)
       await conversationsService.updateConversationStep(leadId, newStep);
       
+      console.log('Lead movido com sucesso no Supabase');
+      
+      // Atualizar localmente apenas após sucesso no Supabase
+      const updatedFilteredLeads = filteredLeads.map(l => {
+        if (l.id === leadId) {
+          return {
+            ...l,
+            fase_atual: newStep,
+            tempo_na_fase: 0,
+            updated_at: new Date().toISOString()
+          };
+        }
+        return l;
+      });
+      
+      setFilteredLeads(updatedFilteredLeads);
+      
+      const sourcePhase = fases.find(f => f.id === previousStep);
+      const destPhase = fases.find(f => f.id === newStep);
+      
       toast.success(
-        `Lead ${lead.nome} movido de ${sourcePhase?.title || source.droppableId} para ${destPhase?.title || destination.droppableId}`
+        `Lead ${lead.nome} movido de ${sourcePhase?.title || previousStep} para ${destPhase?.title || newStep}`
       );
       
-      console.log('Lead movido com sucesso no Supabase');
     } catch (error) {
       console.error('Erro ao atualizar step:', error);
       toast.error('Erro ao mover lead. Tente novamente.');
-      
-      // Revert local changes on error
-      setFilteredLeads(leads);
     }
   };
 

@@ -1,7 +1,6 @@
-
 import { supabase } from '@/lib/supabase';
 import { Conversation, Message } from '@/types/supabase';
-import { FaseKanban, faseToSupabaseStep } from '@/types/lead';
+import { FaseKanban } from '@/types/lead';
 import { authService } from './authService';
 
 class ConversationsService {
@@ -32,9 +31,8 @@ class ConversationsService {
     
     console.log(`Atualizando conversa ${id} para step: ${step}`);
     
-    // Converter fase para step do Supabase
-    const supabaseStep = faseToSupabaseStep(step);
-    const data = { step: supabaseStep };
+    // Usar o step diretamente (seguindo a lógica do HTML)
+    const data = { step: step };
     
     console.log('Dados enviados para Supabase:', data);
     
