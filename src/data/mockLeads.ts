@@ -1,4 +1,3 @@
-
 import { Lead, AreaDireito, FaseKanban, Score } from '@/types/lead';
 
 // Função para gerar um ID visual no formato QD-2025-XXXXXX
@@ -69,8 +68,7 @@ const areasDireito: AreaDireito[] = [
 ];
 
 const fases: FaseKanban[] = [
-  'em_analise', 'notificacao_recebida', 'envio_para_reuniao', 'reuniao_marcada',
-  'nao_compareceu', 'reuniao_sem_contrato', 'reuniao_com_contrato', 'descartado'
+  'em_qualificacao', 'aguardando_documentos', 'documentos_recebidos', 'analise_juridica', 'aguardando_reuniao', 'reuniao_agendada', 'aguardando_aprovacao', 'aprovado', 'rejeitado', 'concluido'
 ];
 
 // Valores numéricos de score em vez do tipo String

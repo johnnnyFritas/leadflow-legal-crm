@@ -4,21 +4,20 @@ import { DragDropContext, Droppable, DropResult } from 'react-beautiful-dnd';
 import { toast } from '@/components/ui/sonner';
 import { Lead, FaseKanban, defaultFases, FaseKanbanConfig } from '@/types/lead';
 import KanbanColumn from './KanbanColumn';
-import { mockLeads } from '@/data/mockLeads';
 
 interface KanbanBoardProps {
   onViewLead: (lead: Lead) => void;
   searchQuery: string;
   selectedArea: string;
+  leads: Lead[];
 }
 
-const KanbanBoard = ({ onViewLead, searchQuery, selectedArea }: KanbanBoardProps) => {
-  const [leads, setLeads] = useState<Lead[]>(mockLeads);
-  const [filteredLeads, setFilteredLeads] = useState<Lead[]>(mockLeads);
+const KanbanBoard = ({ onViewLead, searchQuery, selectedArea, leads }: KanbanBoardProps) => {
+  const [filteredLeads, setFilteredLeads] = useState<Lead[]>(leads);
   const [fases] = useState<FaseKanbanConfig[]>(defaultFases);
 
   useEffect(() => {
-    let filtered = [...mockLeads];
+    let filtered = [...leads];
     
     // Apply area filter
     if (selectedArea && selectedArea !== 'all') {
@@ -36,7 +35,7 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea }: KanbanBoardProps
     }
     
     setFilteredLeads(filtered);
-  }, [searchQuery, selectedArea]);
+  }, [searchQuery, selectedArea, leads]);
 
   const onDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result;
@@ -51,25 +50,11 @@ const KanbanBoard = ({ onViewLead, searchQuery, selectedArea }: KanbanBoardProps
     }
     
     const leadId = draggableId;
-    const lead = leads.find(l => l.id === leadId);
+    const lead = filteredLeads.find(l => l.id === leadId);
     
     if (!lead) return;
     
-    const updatedLeads = leads.map(l => {
-      if (l.id === leadId) {
-        return {
-          ...l,
-          fase_atual: destination.droppableId as FaseKanban,
-          tempo_na_fase: 0, // Reset time in phase when moved
-          updated_at: new Date().toISOString()
-        };
-      }
-      return l;
-    });
-    
-    setLeads(updatedLeads);
-    
-    // Also update filtered leads
+    // Update the filtered leads locally for immediate UI feedback
     const updatedFilteredLeads = filteredLeads.map(l => {
       if (l.id === leadId) {
         return {
