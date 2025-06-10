@@ -92,6 +92,62 @@ export interface Lead {
   meeting_link?: string;
   event_id?: string;
   attendant_phone?: string;
+
+  // Campos específicos por área do direito
+  tipo_vinculo?: string;
+  tipo_beneficio?: string;
+  ja_recebe_beneficio?: boolean;
+  contribuiu_autonomo?: boolean;
+  possui_laudo_medico?: boolean;
+  tipo_caso_familia?: 'divorcio' | 'pensao' | 'guarda' | 'outro';
+  filhos_menores?: boolean;
+  acordo_entre_partes?: boolean;
+  tempo_uniao?: string;
+  produto_servico?: string;
+  empresa_reclamada?: string;
+  data_problema?: string;
+  tentou_resolver?: boolean;
+  prisao_flagrante?: boolean;
+  advogado_atuando?: boolean;
+  vitimas_testemunhas?: boolean;
+  caso_andamento?: 'andamento' | 'iniciando';
+  tipo_problema?: string;
+  possui_urgencia?: boolean;
+  documentos_disponiveis?: string;
+}
+
+// Utility functions
+export function getScoreLabel(score: number): string {
+  if (score <= 30) return 'Baixo';
+  if (score <= 70) return 'Médio';
+  return 'Alto';
+}
+
+export function formatTimeElapsed(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes}min`;
+  } else if (minutes < 1440) {
+    const hours = Math.floor(minutes / 60);
+    return `${hours}h`;
+  } else {
+    const days = Math.floor(minutes / 1440);
+    return `${days}d`;
+  }
+}
+
+export function getAreaLabel(area: AreaDireito): string {
+  const labels: Record<AreaDireito, string> = {
+    'trabalhista': 'Trabalhista',
+    'previdenciario': 'Previdenciário', 
+    'civil': 'Civil',
+    'tributario': 'Tributário',
+    'penal': 'Penal',
+    'familia': 'Família',
+    'consumidor': 'Consumidor',
+    'empresarial': 'Empresarial',
+    'outro': 'Outro'
+  };
+  return labels[area] || 'Outro';
 }
 
 // Função para converter Conversation do Supabase para Lead

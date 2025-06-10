@@ -1,164 +1,301 @@
-import { Lead, AreaDireito, FaseKanban, Score } from '@/types/lead';
+import { Lead, Score } from '@/types/lead';
 
-// Função para gerar um ID visual no formato QD-2025-XXXXXX
-const gerarIdVisual = (): string => {
-  const numeroRandom = Math.floor(100000 + Math.random() * 900000);
-  return `QD-2025-${numeroRandom}`;
-};
-
-// Função para gerar um tempo aleatório em minutos (de 5 minutos a 10 dias)
-const gerarTempoAleatorio = (): number => {
-  return Math.floor(5 + Math.random() * 14400); // 5 minutos a 10 dias em minutos
-};
-
-// Função para gerar uma data aleatória nos últimos 30 dias
-const gerarDataAleatoria = (): string => {
-  const hoje = new Date();
-  const diasAleatorios = Math.floor(Math.random() * 30);
-  const horasAleatorias = Math.floor(Math.random() * 24);
-  const minutosAleatorios = Math.floor(Math.random() * 60);
-  
-  const data = new Date(
-    hoje.getFullYear(),
-    hoje.getMonth(),
-    hoje.getDate() - diasAleatorios,
-    horasAleatorias,
-    minutosAleatorios
-  );
-  
-  return data.toISOString();
-};
-
-// Arrays com valores possíveis
-const nomes = [
-  'João Silva', 'Maria Santos', 'Pedro Oliveira', 'Ana Souza', 
-  'Carlos Pereira', 'Juliana Costa', 'Roberto Almeida', 'Fernanda Lima',
-  'Bruno Ferreira', 'Patricia Gomes', 'Ricardo Martins', 'Camila Rodrigues',
-  'Eduardo Santos', 'Luciana Oliveira', 'Marcelo Sousa', 'Beatriz Pereira',
-  'Daniel Costa', 'Amanda Almeida', 'Felipe Lima', 'Cristina Ferreira'
+export const mockLeads: Lead[] = [
+  {
+    id: '1',
+    id_visual: 'QD-2024-001ABC',
+    nome: 'João Silva',
+    telefone: '5571999999999',
+    email: 'joao.silva@email.com',
+    estado: 'BA',
+    profissao: 'Engenheiro',
+    canal_entrada: 'WhatsApp',
+    campanha_origem: 'Indicação',
+    data_entrada: '2024-01-20T10:00:00Z',
+    area_direito: 'trabalhista',
+    resumo_caso: 'Reclamação trabalhista por demissão sem justa causa.',
+    tese_juridica: 'Reversão da justa causa',
+    ainda_trabalha: false,
+    carteira_assinada: true,
+    tem_advogado: false,
+    tempo_empresa: '5 anos',
+    motivo_demissao: 'Sem justa causa',
+    mensagem_inicial: 'Fui demitido sem justa causa e gostaria de saber meus direitos.',
+    score: 75 as Score,
+    fase_atual: 'em_qualificacao',
+    tempo_na_fase: 30,
+    responsavel_id: undefined,
+    created_at: '2024-01-20T10:00:00Z',
+    updated_at: '2024-01-20T10:00:00Z'
+  },
+  {
+    id: '2',
+    id_visual: 'QD-2024-002DEF',
+    nome: 'Maria Souza',
+    telefone: '5571988888888',
+    email: 'maria.souza@email.com',
+    estado: 'SP',
+    profissao: 'Professora',
+    canal_entrada: 'Facebook',
+    campanha_origem: 'Anúncio Facebook',
+    data_entrada: '2024-01-22T14:30:00Z',
+    area_direito: 'previdenciario',
+    resumo_caso: 'Aposentadoria por tempo de contribuição.',
+    tese_juridica: 'Revisão do tempo de contribuição',
+    ainda_trabalha: true,
+    carteira_assinada: true,
+    tem_advogado: false,
+    tempo_empresa: '25 anos',
+    motivo_demissao: undefined,
+    mensagem_inicial: 'Gostaria de saber se já posso me aposentar.',
+    score: 50 as Score,
+    fase_atual: 'aguardando_documentos',
+    tempo_na_fase: 60,
+    responsavel_id: undefined,
+    created_at: '2024-01-22T14:30:00Z',
+    updated_at: '2024-01-22T14:30:00Z'
+  },
+  {
+    id: '3',
+    id_visual: 'QD-2024-003GHI',
+    nome: 'Carlos Ferreira',
+    telefone: '5571977777777',
+    email: 'carlos.ferreira@email.com',
+    estado: 'RJ',
+    profissao: 'Autônomo',
+    canal_entrada: 'Google Ads',
+    campanha_origem: 'Link Patrocinado Google',
+    data_entrada: '2024-01-25T09:15:00Z',
+    area_direito: 'civil',
+    resumo_caso: 'Ação de despejo por falta de pagamento.',
+    tese_juridica: 'Notificação prévia',
+    ainda_trabalha: true,
+    carteira_assinada: false,
+    tem_advogado: true,
+    tempo_empresa: undefined,
+    motivo_demissao: undefined,
+    mensagem_inicial: 'Preciso de ajuda para despejar um inquilino que não paga o aluguel.',
+    score: 25 as Score,
+    fase_atual: 'documentos_recebidos',
+    tempo_na_fase: 120,
+    responsavel_id: undefined,
+    created_at: '2024-01-25T09:15:00Z',
+    updated_at: '2024-01-25T09:15:00Z'
+  },
+  {
+    id: '4',
+    id_visual: 'QD-2024-004JKL',
+    nome: 'Ana Paula Oliveira',
+    telefone: '5571966666666',
+    email: 'ana.paula@email.com',
+    estado: 'MG',
+    profissao: 'Empresária',
+    canal_entrada: 'LinkedIn',
+    campanha_origem: 'Conteúdo LinkedIn',
+    data_entrada: '2024-01-28T16:45:00Z',
+    area_direito: 'tributario',
+    resumo_caso: 'Planejamento tributário para redução de impostos.',
+    tese_juridica: 'Elisão fiscal',
+    ainda_trabalha: true,
+    carteira_assinada: false,
+    tem_advogado: true,
+    tempo_empresa: undefined,
+    motivo_demissao: undefined,
+    mensagem_inicial: 'Gostaria de reduzir a carga tributária da minha empresa.',
+    score: 100 as Score,
+    fase_atual: 'analise_juridica',
+    tempo_na_fase: 240,
+    responsavel_id: undefined,
+    created_at: '2024-01-28T16:45:00Z',
+    updated_at: '2024-01-28T16:45:00Z'
+  },
+  {
+    id: '5',
+    id_visual: 'QD-2024-005MNO',
+    nome: 'Ricardo Almeida',
+    telefone: '5571955555555',
+    email: 'ricardo.almeida@email.com',
+    estado: 'RS',
+    profissao: 'Servidor Público',
+    canal_entrada: 'E-mail Marketing',
+    campanha_origem: 'Newsletter',
+    data_entrada: '2024-02-01T11:00:00Z',
+    area_direito: 'penal',
+    resumo_caso: 'Defesa em processo criminal por crime ambiental.',
+    tese_juridica: 'Inexistência de dolo',
+    ainda_trabalha: true,
+    carteira_assinada: true,
+    tem_advogado: true,
+    tempo_empresa: '12 anos',
+    motivo_demissao: undefined,
+    mensagem_inicial: 'Estou sendo acusado de um crime ambiental que não cometi.',
+    score: 25 as Score,
+    fase_atual: 'aguardando_reuniao',
+    tempo_na_fase: 480,
+    responsavel_id: undefined,
+    created_at: '2024-02-01T11:00:00Z',
+    updated_at: '2024-02-01T11:00:00Z'
+  },
+  {
+    id: '6',
+    id_visual: 'QD-2024-006PQR',
+    nome: 'Juliana Costa',
+    telefone: '5571944444444',
+    email: 'juliana.costa@email.com',
+    estado: 'SC',
+    profissao: 'Estudante',
+    canal_entrada: 'Instagram',
+    campanha_origem: 'Stories Instagram',
+    data_entrada: '2024-02-05T15:20:00Z',
+    area_direito: 'familia',
+    resumo_caso: 'Ação de divórcio litigioso com guarda dos filhos.',
+    tese_juridica: 'Guarda compartilhada',
+    ainda_trabalha: false,
+    carteira_assinada: false,
+    tem_advogado: false,
+    tempo_empresa: undefined,
+    motivo_demissao: undefined,
+    mensagem_inicial: 'Preciso me divorciar e garantir a guarda dos meus filhos.',
+    score: 50 as Score,
+    fase_atual: 'reuniao_agendada',
+    tempo_na_fase: 1440,
+    responsavel_id: undefined,
+    created_at: '2024-02-05T15:20:00Z',
+    updated_at: '2024-02-05T15:20:00Z'
+  },
+  {
+    id: '7',
+    id_visual: 'QD-2024-007STU',
+    nome: 'Fernando Martins',
+    telefone: '5571933333333',
+    email: 'fernando.martins@email.com',
+    estado: 'PR',
+    profissao: 'Aposentado',
+    canal_entrada: 'WhatsApp',
+    campanha_origem: 'Grupo WhatsApp',
+    data_entrada: '2024-02-10T08:00:00Z',
+    area_direito: 'consumidor',
+    resumo_caso: 'Ação de indenização por vício em produto.',
+    tese_juridica: 'Responsabilidade do fornecedor',
+    ainda_trabalha: false,
+    carteira_assinada: false,
+    tem_advogado: true,
+    tempo_empresa: undefined,
+    motivo_demissao: undefined,
+    mensagem_inicial: 'Comprei um produto com defeito e não consigo resolver com a loja.',
+    score: 75 as Score,
+    fase_atual: 'aguardando_aprovacao',
+    tempo_na_fase: 2880,
+    responsavel_id: undefined,
+    created_at: '2024-02-10T08:00:00Z',
+    updated_at: '2024-02-10T08:00:00Z'
+  },
+  {
+    id: '8',
+    id_visual: 'QD-2024-008VWX',
+    nome: 'Patrícia Oliveira',
+    telefone: '5571922222222',
+    email: 'patricia.oliveira@email.com',
+    estado: 'GO',
+    profissao: 'Comerciante',
+    canal_entrada: 'Google Ads',
+    campanha_origem: 'Remarketing Google',
+    data_entrada: '2024-02-15T14:45:00Z',
+    area_direito: 'empresarial',
+    resumo_caso: 'Recuperação judicial de empresa em crise financeira.',
+    tese_juridica: 'Plano de recuperação judicial',
+    ainda_trabalha: true,
+    carteira_assinada: false,
+    tem_advogado: true,
+    tempo_empresa: undefined,
+    motivo_demissao: undefined,
+    mensagem_inicial: 'Minha empresa está em crise e preciso de ajuda para evitar a falência.',
+    score: 100 as Score,
+    fase_atual: 'aprovado',
+    tempo_na_fase: 5760,
+    responsavel_id: undefined,
+    created_at: '2024-02-15T14:45:00Z',
+    updated_at: '2024-02-15T14:45:00Z'
+  },
+  {
+    id: '9',
+    id_visual: 'QD-2024-009YZA',
+    nome: 'Roberto Silva',
+    telefone: '5571911111111',
+    email: 'roberto.silva@email.com',
+    estado: 'DF',
+    profissao: 'Professor',
+    canal_entrada: 'E-mail Marketing',
+    campanha_origem: 'E-mail de Boas-Vindas',
+    data_entrada: '2024-02-20T09:30:00Z',
+    area_direito: 'trabalhista',
+    resumo_caso: 'Reintegração ao emprego por estabilidade.',
+    tese_juridica: 'Estabilidade provisória',
+    ainda_trabalha: false,
+    carteira_assinada: true,
+    tem_advogado: true,
+    tempo_empresa: '3 anos',
+    motivo_demissao: 'Sem justa causa',
+    mensagem_inicial: 'Fui demitido durante o período de estabilidade e quero ser reintegrado.',
+    score: 25 as Score,
+    fase_atual: 'rejeitado',
+    tempo_na_fase: 11520,
+    responsavel_id: undefined,
+    created_at: '2024-02-20T09:30:00Z',
+    updated_at: '2024-02-20T09:30:00Z'
+  },
+  {
+    id: '10',
+    id_visual: 'QD-2024-010BCD',
+    nome: 'Amanda Souza',
+    telefone: '5571900000000',
+    email: 'amanda.souza@email.com',
+    estado: 'ES',
+    profissao: 'Estudante',
+    canal_entrada: 'Facebook',
+    campanha_origem: 'Página Facebook',
+    data_entrada: '2024-02-25T17:00:00Z',
+    area_direito: 'civil',
+    resumo_caso: 'Ação de responsabilidade civil por danos morais.',
+    tese_juridica: 'Ofensa à honra',
+    ainda_trabalha: false,
+    carteira_assinada: false,
+    tem_advogado: false,
+    tempo_empresa: undefined,
+    motivo_demissao: undefined,
+    mensagem_inicial: 'Fui ofendida nas redes sociais e quero ser indenizada.',
+    score: 50 as Score,
+    fase_atual: 'concluido',
+    tempo_na_fase: 23040,
+    responsavel_id: undefined,
+    created_at: '2024-02-25T17:00:00Z',
+    updated_at: '2024-02-25T17:00:00Z'
+  },
+  {
+    id: '11',
+    id_visual: 'QD-2024-011ABC',
+    nome: 'Eduardo Santos',
+    telefone: '5571988887777',
+    email: 'eduardo.santos@email.com',
+    estado: 'SP',
+    profissao: 'Gerente',
+    canal_entrada: 'Instagram',
+    campanha_origem: 'Anúncios Instagram',
+    data_entrada: '2024-03-15T08:30:00Z',
+    area_direito: 'empresarial',
+    resumo_caso: 'Questões societárias e contratuais em empresa familiar.',
+    tese_juridica: 'Dissolução parcial de sociedade',
+    ainda_trabalha: true,
+    carteira_assinada: true,
+    tem_advogado: false,
+    tempo_empresa: '8 anos',
+    motivo_demissao: undefined,
+    mensagem_inicial: 'Preciso de ajuda com questões societárias da empresa familiar.',
+    score: 75 as Score,
+    fase_atual: 'aguardando_reuniao',
+    tempo_na_fase: 180,
+    responsavel_id: undefined,
+    created_at: '2024-03-15T08:30:00Z',
+    updated_at: '2024-03-15T08:30:00Z'
+  }
 ];
-
-const telefones = [
-  '(11) 98765-4321', '(21) 98765-1234', '(31) 97654-3210', '(41) 96543-2109',
-  '(51) 95432-1098', '(61) 94321-0987', '(71) 93210-9876', '(81) 92109-8765',
-  '(91) 91098-7654', '(12) 90987-6543', '(22) 98756-4312', '(32) 97645-3201'
-];
-
-const estados = [
-  'SP', 'RJ', 'MG', 'PR', 'RS', 'SC', 'BA', 'PE', 'CE', 'GO', 'DF', 'AM'
-];
-
-const profissoes = [
-  'Professor', 'Engenheiro', 'Médico', 'Advogado', 'Contador', 'Programador',
-  'Designer', 'Vendedor', 'Motorista', 'Enfermeiro', 'Administrador', 'Empresário'
-];
-
-const canaisEntrada = [
-  'Site', 'Instagram', 'Facebook', 'Google', 'Indicação', 'WhatsApp',
-  'Email', 'Ligação', 'LinkedIn', 'TikTok', 'YouTube', 'Presencial'
-];
-
-const campanhasOrigem = [
-  'Google Ads', 'Facebook Ads', 'Instagram Ads', 'Email Marketing', 'Orgânico',
-  'YouTube Ads', 'Referência', 'Parceria', 'TikTok Ads', 'LinkedIn Ads'
-];
-
-const areasDireito: AreaDireito[] = [
-  'trabalhista', 'previdenciario', 'civil', 'tributario', 'penal', 'empresarial', 'outro'
-];
-
-const fases: FaseKanban[] = [
-  'em_qualificacao', 'aguardando_documentos', 'documentos_recebidos', 'analise_juridica', 'aguardando_reuniao', 'reuniao_agendada', 'aguardando_aprovacao', 'aprovado', 'rejeitado', 'concluido'
-];
-
-// Valores numéricos de score em vez do tipo String
-const scores = [25, 50, 75, 100];
-
-const resumosCaso = [
-  'Cliente foi demitido sem justa causa e não recebeu todas as verbas rescisórias.',
-  'Acidente de trabalho sem CAT emitida pela empresa.',
-  'Cliente busca revisão de aposentadoria.',
-  'Ação de danos morais contra empresa de telefonia.',
-  'Processo de inventário e partilha de bens.',
-  'Cobrança indevida de imposto.',
-  'Cliente sofreu calúnia e difamação.',
-  'Precisa de defesa em processo criminal.',
-  'Abertura de empresa com orientação tributária.',
-  'Execução de título extrajudicial.'
-];
-
-const tesesJuridicas = [
-  'Rescisão indireta do contrato de trabalho',
-  'Pagamento de horas extras não registradas',
-  'Adicional de insalubridade',
-  'Revisão de benefício por incapacidade',
-  'Contagem especial de tempo de contribuição',
-  'Reparação por dano moral e material',
-  'Nulidade de cláusulas abusivas em contrato',
-  'Planejamento tributário',
-  'Exclusão de inscrição em órgãos de proteção ao crédito',
-  'Legítima defesa'
-];
-
-const motivosDemissao = [
-  'Corte de custos', 'Fechamento de unidade', 'Baixo desempenho',
-  'Comportamento inadequado', 'Justa causa', 'Término de contrato',
-  'Acordo entre as partes', 'Reestruturação da empresa'
-];
-
-const mensagensIniciais = [
-  'Olá, gostaria de saber como proceder para entrar com uma ação trabalhista.',
-  'Bom dia, fui demitido ontem e gostaria de saber meus direitos.',
-  'Preciso de orientação sobre aposentadoria, podem me ajudar?',
-  'Sofri um acidente de trabalho e a empresa não quer reconhecer.',
-  'Estou com um problema com uma operadora de celular, cobranças indevidas.',
-  'Quero abrir um processo contra meu vizinho por perturbação do sossego.',
-  'Preciso fazer um inventário, como funciona?',
-  'Estou sendo processado e preciso de um advogado com urgência.',
-  'Quero montar uma empresa, vocês podem me auxiliar?',
-  'Fui multado injustamente, como recorrer?'
-];
-
-// Função para gerar um lead aleatório
-const gerarLeadAleatorio = (index: number): Lead => {
-  const id = `lead-${index}`;
-  const fase_atual = fases[Math.floor(Math.random() * fases.length)];
-  const area_direito = areasDireito[Math.floor(Math.random() * areasDireito.length)];
-  const score = scores[Math.floor(Math.random() * scores.length)];
-  const ainda_trabalha = Math.random() > 0.5;
-  
-  const data_entrada = gerarDataAleatoria();
-  const created_at = data_entrada;
-  const updated_at = data_entrada;
-  
-  return {
-    id,
-    id_visual: gerarIdVisual(),
-    nome: nomes[Math.floor(Math.random() * nomes.length)],
-    telefone: telefones[Math.floor(Math.random() * telefones.length)],
-    email: `cliente${index}@exemplo.com`,
-    estado: estados[Math.floor(Math.random() * estados.length)],
-    profissao: profissoes[Math.floor(Math.random() * profissoes.length)],
-    canal_entrada: canaisEntrada[Math.floor(Math.random() * canaisEntrada.length)],
-    campanha_origem: campanhasOrigem[Math.floor(Math.random() * campanhasOrigem.length)],
-    data_entrada,
-    area_direito,
-    resumo_caso: resumosCaso[Math.floor(Math.random() * resumosCaso.length)],
-    tese_juridica: tesesJuridicas[Math.floor(Math.random() * tesesJuridicas.length)],
-    ainda_trabalha,
-    carteira_assinada: Math.random() > 0.3,
-    tem_advogado: Math.random() > 0.8,
-    tempo_empresa: ainda_trabalha ? `${Math.floor(Math.random() * 10) + 1} anos` : undefined,
-    motivo_demissao: !ainda_trabalha ? motivosDemissao[Math.floor(Math.random() * motivosDemissao.length)] : undefined,
-    mensagem_inicial: mensagensIniciais[Math.floor(Math.random() * mensagensIniciais.length)],
-    score,
-    fase_atual,
-    tempo_na_fase: gerarTempoAleatorio(),
-    responsavel_id: Math.random() > 0.7 ? '1' : undefined,
-    created_at,
-    updated_at
-  };
-};
-
-// Generate 50 random leads
-export const mockLeads: Lead[] = Array.from({ length: 50 }, (_, index) => gerarLeadAleatorio(index));

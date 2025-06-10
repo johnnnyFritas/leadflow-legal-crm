@@ -9,28 +9,22 @@ export interface AuthUser {
   instance_name: string;
   phone?: string;
   main_lawyer_name?: string;
+  name?: string; // Derived from main_lawyer_name or company_name
+  role?: string; // Default role
+  avatarUrl?: string; // Optional avatar
 }
 
 class AuthService {
   async login(email: string, password: string): Promise<AuthUser | null> {
     try {
       // Buscar instância pelo email
-      const { data: instances, error } = await supabase
-        .from('clients_instances')
-        .select('*')
-        .eq('email', email.toLowerCase().trim())
-        .limit(1);
-
-      if (error) {
-        console.error('Erro ao buscar instância:', error);
-        throw new Error('Erro de autenticação');
-      }
+      const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
 
       if (!instances || instances.length === 0) {
         throw new Error('Email não encontrado');
       }
 
-      const instance = instances[0] as ClientInstance;
+      const instance = instances[0];
 
       // Verificar se a senha (id) está correta
       if (instance.id !== password) {
@@ -44,7 +38,10 @@ class AuthService {
         company_name: instance.company_name,
         instance_name: instance.instance_name,
         phone: instance.phone,
-        main_lawyer_name: instance.main_lawyer_name
+        main_lawyer_name: instance.main_lawyer_name,
+        name: instance.main_lawyer_name || instance.company_name,
+        role: 'Advogado',
+        avatarUrl: undefined
       };
 
       // Salvar no localStorage
