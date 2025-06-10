@@ -18,6 +18,7 @@ class AuthService {
   async login(email: string, password: string): Promise<AuthUser | null> {
     try {
       console.log('Tentando fazer login com:', email);
+      console.log('Senha fornecida:', password);
       
       // Buscar instância pelo email
       const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
@@ -27,9 +28,15 @@ class AuthService {
       }
 
       const instance = instances[0];
+      console.log('Instância encontrada:', {
+        id: instance.id,
+        instance_id: instance.instance_id,
+        email: instance.email
+      });
 
-      // Verificar se a senha (id) está correta
-      if (instance.id !== password) {
+      // Verificar se a senha (instance_id) está correta
+      if (instance.instance_id !== password) {
+        console.log('Senha incorreta. Esperado:', instance.instance_id, 'Recebido:', password);
         throw new Error('Senha incorreta');
       }
 
