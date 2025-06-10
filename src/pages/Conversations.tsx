@@ -13,7 +13,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/components/ui/sonner';
 import LeadDetails from '@/components/lead/LeadDetails';
-import { Lead } from '@/types/lead';
+import { Lead, AreaDireito } from '@/types/lead';
 
 const Conversations = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -90,6 +90,21 @@ const Conversations = () => {
   };
 
   const handleViewLead = (conversation: Conversation) => {
+    // Helper function to map legal_area to AreaDireito
+    const mapToAreaDireito = (legalArea: string): AreaDireito => {
+      const mapping: Record<string, AreaDireito> = {
+        'Trabalhista': 'trabalhista',
+        'Previdenciário': 'previdenciario',
+        'Civil': 'civil',
+        'Tributário': 'tributario',
+        'Penal': 'penal',
+        'Família': 'familia',
+        'Consumidor': 'consumidor',
+        'Empresarial': 'empresarial'
+      };
+      return mapping[legalArea] || 'outro';
+    };
+
     // Convert conversation to lead format for the details modal
     const lead: Lead = {
       id: conversation.id,
@@ -102,13 +117,14 @@ const Conversations = () => {
       canal_entrada: conversation.channel || '',
       campanha_origem: '',
       data_entrada: conversation.entry_datetime,
-      area_direito: conversation.legal_area,
+      area_direito: mapToAreaDireito(conversation.legal_area || ''),
       score: 50, // Default score
       fase_atual: conversation.step as any,
       tempo_na_fase: 0,
       resumo_caso: conversation.case_summary || '',
       tese_juridica: conversation.legal_thesis || '',
       mensagem_inicial: '',
+      created_at: conversation.entry_datetime,
       updated_at: conversation.entry_datetime
     };
     
@@ -214,10 +230,6 @@ const Conversations = () => {
                   </p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0 ml-2">
-                  <Button size="sm" variant="outline" className="hidden sm:flex">
-                    <Phone size={16} className="mr-2" />
-                    Ligar
-                  </Button>
                   <Button size="sm" variant="outline" onClick={() => handleViewLead(selectedConversation)}>
                     <Eye size={16} className="mr-2" />
                     <span className="hidden sm:inline">Ver detalhes</span>
