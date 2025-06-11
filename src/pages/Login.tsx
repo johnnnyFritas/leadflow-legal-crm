@@ -55,7 +55,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background gradients */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-slate-800" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-blue-100 to-white dark:from-slate-900 dark:via-blue-950 dark:to-slate-800" />
       
       {/* Theme toggle */}
       <div className="absolute top-6 right-6 z-10">
@@ -77,7 +77,10 @@ const Login = () => {
           <div className="flex items-center justify-center mb-2">
             <div className="w-24 h-24 rounded-full bg-white dark:bg-gray-800 p-4 shadow-lg border border-gray-200 dark:border-gray-700">
               <img 
-                src="/lovable-uploads/661cf4b1-3411-4b37-8277-f7973f7182a3.png" 
+                src={theme === 'dark' 
+                  ? "https://res.cloudinary.com/dntp7nxsr/image/upload/v1749665492/Color_logo_-_no_background_1_jxqzjb.png"
+                  : "https://res.cloudinary.com/dntp7nxsr/image/upload/v1749664970/44b1780d-4ab0-435b-9b07-1c767fa5b426_a4e8fd.png"
+                }
                 alt="CRM Quero Direito Logo"
                 className="w-full h-full object-contain"
               />
