@@ -38,35 +38,54 @@ const Sidebar = () => {
   const SidebarContentItems = () => (
     <>
       {/* Header com logo */}
-      <SidebarHeader className="flex flex-col space-y-4 p-4 border-b border-border/20">
+      <SidebarHeader className="flex flex-col space-y-4 p-4 border-b border-border/40">
         {/* Logo */}
         <div className="flex justify-center">
           <div className="flex-shrink-0">
-            <img 
-              src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749662979/Black_logo_-_no_background_xmyamn.png" 
-              alt="Logo" 
-              className={`${state === "collapsed" ? "h-6" : "h-8"} w-auto dark:hidden`}
-            />
-            <img 
-              src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749663013/Color_logo_-_no_background_1_awsld6.png" 
-              alt="Logo" 
-              className={`${state === "collapsed" ? "h-6" : "h-8"} w-auto hidden dark:block`}
-            />
+            {state === "collapsed" ? (
+              // Favicon quando fechada
+              <>
+                <img 
+                  src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749664970/44b1780d-4ab0-435b-9b07-1c767fa5b426_a4e8fd.png" 
+                  alt="Logo" 
+                  className="h-8 w-8 dark:hidden"
+                />
+                <img 
+                  src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749664797/5d974ba3-d588-48dc-929d-6dca2929605b_bbwv1k.png" 
+                  alt="Logo" 
+                  className="h-8 w-8 hidden dark:block"
+                />
+              </>
+            ) : (
+              // Logo completa quando aberta (maior)
+              <>
+                <img 
+                  src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749662979/Black_logo_-_no_background_xmyamn.png" 
+                  alt="Logo" 
+                  className="h-10 w-auto dark:hidden"
+                />
+                <img 
+                  src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749663013/Color_logo_-_no_background_1_awsld6.png" 
+                  alt="Logo" 
+                  className="h-10 w-auto hidden dark:block"
+                />
+              </>
+            )}
           </div>
         </div>
 
         {/* Botão de toggle centralizado com linha separadora */}
         <div className="flex flex-col items-center space-y-3">
-          <div className="w-full border-t border-border/20"></div>
+          <div className="w-full border-t border-border/40"></div>
           <SidebarTrigger className="hover:bg-accent/80 hover:text-accent-foreground hover:shadow-md transition-all" />
-          <div className="w-full border-t border-border/20"></div>
+          <div className="w-full border-t border-border/40"></div>
         </div>
 
         {/* Seção de perfil do usuário */}
-        <div className={`flex ${state === "collapsed" ? "flex-col" : "items-center"} gap-3 w-full`}>
-          <Avatar className={`${state === "collapsed" ? "mx-auto" : ""} h-10 w-10 flex-shrink-0`}>
+        <div className={`flex ${state === "collapsed" ? "justify-center" : "items-center"} gap-3 w-full`}>
+          <Avatar className={`${state === "collapsed" ? "" : ""} h-10 w-10 flex-shrink-0 ring-2 ring-border/20`}>
             <AvatarImage src={user?.avatarUrl} />
-            <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">{user?.name?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
           {state !== "collapsed" && (
             <div className="flex-1 overflow-hidden min-w-0">
@@ -80,12 +99,12 @@ const Sidebar = () => {
       {/* Itens do menu */}
       <SidebarContent className="px-3 py-4">
         <SidebarGroup>
-          <SidebarMenu>
+          <SidebarMenu className="space-y-2">
             <SidebarMenuItem>
               <SidebarMenuButton 
                 asChild 
                 tooltip="Kanban de Leads" 
-                className={`transition-all ${isActive("/app/kanban") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+                className={`transition-all ${state === "collapsed" ? "justify-center" : ""} ${isActive("/app/kanban") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
               >
                 <Link to="/app/kanban" className="w-full">
                   <Kanban size={18} />
@@ -98,7 +117,7 @@ const Sidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 tooltip="Conversas" 
-                className={`transition-all ${isActive("/app/conversas") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+                className={`transition-all ${state === "collapsed" ? "justify-center" : ""} ${isActive("/app/conversas") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
               >
                 <Link to="/app/conversas" className="w-full">
                   <MessageSquare size={18} />
@@ -111,7 +130,7 @@ const Sidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 tooltip="Agenda" 
-                className={`transition-all ${isActive("/app/agenda") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+                className={`transition-all ${state === "collapsed" ? "justify-center" : ""} ${isActive("/app/agenda") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
               >
                 <Link to="/app/agenda" className="w-full">
                   <Calendar size={18} />
@@ -124,7 +143,7 @@ const Sidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 tooltip="Configurações" 
-                className={`transition-all ${isActive("/app/settings") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+                className={`transition-all ${state === "collapsed" ? "justify-center" : ""} ${isActive("/app/settings") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
               >
                 <Link to="/app/settings" className="w-full">
                   <Settings size={18} />
@@ -137,7 +156,7 @@ const Sidebar = () => {
       </SidebarContent>
       
       {/* Botão de logout no footer */}
-      <SidebarFooter className="p-3 mt-auto border-t border-border/20">
+      <SidebarFooter className="p-3 mt-auto border-t border-border/40">
         <Button 
           variant="outline" 
           className={`${state === "collapsed" ? 'justify-center p-2' : 'w-full justify-start'} transition-all hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 hover:shadow-sm`}
