@@ -1,5 +1,5 @@
 
-import { Lead, Score } from '@/types/lead';
+import { Lead } from '@/types/lead';
 
 export const mockLeads: Lead[] = [
   {
@@ -22,9 +22,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: '5 anos',
     motivo_demissao: 'Sem justa causa',
     mensagem_inicial: 'Fui demitido sem justa causa e gostaria de saber meus direitos.',
-    score: 75 as Score,
     fase_atual: 'Em Qualificação',
-    tempo_na_fase: 30,
     responsavel_id: undefined,
     created_at: '2024-01-20T10:00:00Z',
     updated_at: '2024-01-20T10:00:00Z'
@@ -49,9 +47,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: '25 anos',
     motivo_demissao: undefined,
     mensagem_inicial: 'Gostaria de saber se já posso me aposentar.',
-    score: 50 as Score,
     fase_atual: 'Atendimento Humano',
-    tempo_na_fase: 60,
     responsavel_id: undefined,
     created_at: '2024-01-22T14:30:00Z',
     updated_at: '2024-01-22T14:30:00Z'
@@ -76,9 +72,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: undefined,
     motivo_demissao: undefined,
     mensagem_inicial: 'Preciso de ajuda para despejar um inquilino que não paga o aluguel.',
-    score: 25 as Score,
     fase_atual: 'Qualificado',
-    tempo_na_fase: 120,
     responsavel_id: undefined,
     created_at: '2024-01-25T09:15:00Z',
     updated_at: '2024-01-25T09:15:00Z'
@@ -103,9 +97,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: undefined,
     motivo_demissao: undefined,
     mensagem_inicial: 'Gostaria de reduzir a carga tributária da minha empresa.',
-    score: 100 as Score,
     fase_atual: 'Em Análise',
-    tempo_na_fase: 240,
     responsavel_id: undefined,
     created_at: '2024-01-28T16:45:00Z',
     updated_at: '2024-01-28T16:45:00Z'
@@ -130,9 +122,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: '12 anos',
     motivo_demissao: undefined,
     mensagem_inicial: 'Estou sendo acusado de um crime ambiental que não cometi.',
-    score: 25 as Score,
     fase_atual: 'Em marcação de reunião',
-    tempo_na_fase: 480,
     responsavel_id: undefined,
     created_at: '2024-02-01T11:00:00Z',
     updated_at: '2024-02-01T11:00:00Z'
@@ -157,9 +147,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: undefined,
     motivo_demissao: undefined,
     mensagem_inicial: 'Preciso me divorciar e garantir a guarda dos meus filhos.',
-    score: 50 as Score,
     fase_atual: 'Reunião marcada',
-    tempo_na_fase: 1440,
     responsavel_id: undefined,
     created_at: '2024-02-05T15:20:00Z',
     updated_at: '2024-02-05T15:20:00Z'
@@ -184,9 +172,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: undefined,
     motivo_demissao: undefined,
     mensagem_inicial: 'Comprei um produto com defeito e não consigo resolver com a loja.',
-    score: 75 as Score,
     fase_atual: 'Qualificado',
-    tempo_na_fase: 2880,
     responsavel_id: undefined,
     created_at: '2024-02-10T08:00:00Z',
     updated_at: '2024-02-10T08:00:00Z'
@@ -211,9 +197,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: undefined,
     motivo_demissao: undefined,
     mensagem_inicial: 'Minha empresa está em crise e preciso de ajuda para evitar a falência.',
-    score: 100 as Score,
     fase_atual: 'Link de fechamento',
-    tempo_na_fase: 5760,
     responsavel_id: undefined,
     created_at: '2024-02-15T14:45:00Z',
     updated_at: '2024-02-15T14:45:00Z'
@@ -238,9 +222,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: '3 anos',
     motivo_demissao: 'Sem justa causa',
     mensagem_inicial: 'Fui demitido durante o período de estabilidade e quero ser reintegrado.',
-    score: 25 as Score,
     fase_atual: 'Reunião cancelada',
-    tempo_na_fase: 11520,
     responsavel_id: undefined,
     created_at: '2024-02-20T09:30:00Z',
     updated_at: '2024-02-20T09:30:00Z'
@@ -265,9 +247,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: undefined,
     motivo_demissao: undefined,
     mensagem_inicial: 'Fui ofendida nas redes sociais e quero ser indenizada.',
-    score: 50 as Score,
     fase_atual: 'Link de fechamento',
-    tempo_na_fase: 23040,
     responsavel_id: undefined,
     created_at: '2024-02-25T17:00:00Z',
     updated_at: '2024-02-25T17:00:00Z'
@@ -292,9 +272,7 @@ export const mockLeads: Lead[] = [
     tempo_empresa: '8 anos',
     motivo_demissao: undefined,
     mensagem_inicial: 'Preciso de ajuda com questões societárias da empresa familiar.',
-    score: 75 as Score,
     fase_atual: 'Em marcação de reunião',
-    tempo_na_fase: 180,
     responsavel_id: undefined,
     created_at: '2024-03-15T08:30:00Z',
     updated_at: '2024-03-15T08:30:00Z'

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -115,7 +114,7 @@ const Conversations = () => {
     const lead: Lead = {
       id: conversation.id,
       id_visual: conversation.id.substring(0, 8).toUpperCase(),
-      nome: conversation.name || 'Null',
+      nome: conversation.name || 'Nome não informado',
       telefone: conversation.phone,
       email: '',
       estado: conversation.location || '',
@@ -123,9 +122,7 @@ const Conversations = () => {
       canal_entrada: conversation.channel || '',
       data_entrada: conversation.entry_datetime,
       area_direito: mapToAreaDireito(conversation.legal_area || ''),
-      score: 50,
       fase_atual: conversation.step as any,
-      tempo_na_fase: 0,
       resumo_caso: conversation.case_summary || '',
       tese_juridica: conversation.legal_thesis || '',
       mensagem_inicial: '',
