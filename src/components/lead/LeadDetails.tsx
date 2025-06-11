@@ -113,18 +113,21 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
   
   // Carregar comentários quando o lead mudar
   useEffect(() => {
-    if (lead?.ConclusãoCaso) {
-      // Se há comentários salvos, carregá-los
-      const savedComments = lead.ConclusãoCaso.split('\n').filter(c => c.trim())
-        .map((comment, index) => ({
-          id: `${lead.id}-${index}`,
-          text: comment,
-          date: lead.updated_at,
-          author: 'Sistema'
-        }));
-      setComments(savedComments);
+    if (lead?.id) {
+      // Carregar comentários do campo Coments (não ConclusãoCaso)
+      const savedComments = localStorage.getItem(`comments_${lead.id}`);
+      if (savedComments) {
+        try {
+          setComments(JSON.parse(savedComments));
+        } catch (error) {
+          console.error('Erro ao carregar comentários:', error);
+          setComments([]);
+        }
+      } else {
+        setComments([]);
+      }
     }
-  }, [lead]);
+  }, [lead?.id]);
 
   // Mutation para mover lead
   const moveLeadMutation = useMutation({
@@ -169,10 +172,8 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
     // Fechar o modal primeiro
     onOpenChange(false);
     
-    // Navegar para conversas e aguardar um pouco antes de buscar a conversa específica
-    setTimeout(() => {
-      navigate('/app/conversations');
-    }, 100);
+    // Navegar diretamente para a página de conversas
+    navigate('/app/conversas');
   };
 
   const handleMovePhase = () => {
@@ -196,11 +197,6 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
   const handleAddComment = () => {
     if (!comment.trim() || !lead) return;
     
-    addCommentMutation.mutate({
-      leadId: lead.id,
-      comment: comment.trim()
-    });
-
     const newComment = {
       id: Date.now().toString(),
       text: comment,
@@ -208,7 +204,17 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
       author: 'Você',
     };
     
-    setComments([newComment, ...comments]);
+    const updatedComments = [newComment, ...comments];
+    setComments(updatedComments);
+    
+    // Salvar no localStorage
+    localStorage.setItem(`comments_${lead.id}`, JSON.stringify(updatedComments));
+    
+    addCommentMutation.mutate({
+      leadId: lead.id,
+      comment: comment.trim()
+    });
+
     setComment('');
   };
 

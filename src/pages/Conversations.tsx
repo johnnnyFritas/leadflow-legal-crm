@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -231,7 +232,7 @@ const Conversations = () => {
             <div className="p-3 lg:p-4 border-b border-border bg-card">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-bold truncate">{selectedConversation.name || 'Null'}</h3>
+                  <h3 className="font-bold truncate">{selectedConversation.name || 'Nome não informado'}</h3>
                   <p className="text-sm text-muted-foreground truncate">
                     {selectedConversation.phone}
                   </p>
