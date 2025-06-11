@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Message } from '@/types/supabase';
-import { Bot, Download, Play, Pause, Volume2 } from 'lucide-react';
+import { Bot, Download, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -21,7 +21,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const renderFileContent = () => {
+  // Renderizar conteúdo de mídia baseado no message_type
+  const renderMediaContent = () => {
     if (!message.file_url) return null;
 
     switch (message.message_type) {
@@ -30,7 +31,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           <div className="mb-2">
             <img 
               src={message.file_url} 
-              alt={message.file_name || 'Imagem'}
+              alt="imagem enviada"
               className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover"
               onClick={() => window.open(message.file_url, '_blank')}
               loading="lazy"
@@ -87,15 +88,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           </div>
         );
       
-      case 'document':
       case 'file':
         return (
           <div className="mb-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg max-w-xs">
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">
+                <a 
+                  href={message.file_url} 
+                  download={message.file_name}
+                  className="font-medium text-sm truncate text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                >
                   {message.file_name || 'Documento'}
-                </p>
+                </a>
                 {message.file_size && (
                   <p className="text-xs opacity-70">{formatFileSize(message.file_size)}</p>
                 )}
@@ -133,7 +137,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             : 'bg-muted'
         }`}
       >
-        {/* System message indicator */}
+        {/* Indicador de mensagem do sistema */}
         {message.sender_role === 'system' && (
           <div className="flex items-center gap-2 mb-1">
             <Bot size={14} />
@@ -141,10 +145,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           </div>
         )}
         
-        {/* File content */}
-        {renderFileContent()}
+        {/* Conteúdo de mídia (imagem, áudio, vídeo, arquivo) */}
+        {renderMediaContent()}
         
-        {/* Text content */}
+        {/* Conteúdo de texto */}
         {message.content && (
           <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         )}

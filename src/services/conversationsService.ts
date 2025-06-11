@@ -125,7 +125,7 @@ class ConversationsService {
     conversationId: string, 
     file: File, 
     fileUrl: string, 
-    messageType: 'image' | 'video' | 'audio' | 'document' | 'file',
+    messageType: 'image' | 'video' | 'audio' | 'file',
     senderPhone?: string
   ): Promise<Message> {
     // Verificar se a conversa pertence à instância
@@ -137,31 +137,32 @@ class ConversationsService {
     const user = authService.getCurrentUser();
     const endpoint = '/messages';
     
+    // Criar dados da mensagem com mídia
     const data: Omit<Message, 'id'> = {
       conversation_id: conversationId,
       sender_role: 'agent',
       sender_phone: senderPhone || user?.phone || '5571999999999',
       content: '', // Mensagens de arquivo podem ter conteúdo vazio
-      message_type: messageType,
+      message_type: messageType, // Usar os tipos definidos: 'text', 'image', 'audio', 'video', 'file'
       sent_at: new Date().toISOString(),
-      file_url: fileUrl,
+      file_url: fileUrl, // URL retornada pelo webhook n8n
       file_name: file.name,
       file_size: file.size,
       file_type: file.type,
-      // Adicionar metadados específicos se necessário
-      file_duration: undefined, // Para áudio/vídeo, seria necessário calcular
-      file_width: undefined,   // Para imagens, seria necessário calcular
-      file_height: undefined   // Para imagens, seria necessário calcular
+      // Metadados adicionais (podem ser calculados posteriormente se necessário)
+      file_duration: undefined, // Para áudio/vídeo
+      file_width: undefined,   // Para imagens
+      file_height: undefined   // Para imagens
     };
 
-    console.log('Enviando mensagem com arquivo:', data);
+    console.log('Enviando mensagem com arquivo via n8n:', data);
     
     try {
       const result = await supabase.post<Message[]>(endpoint, data);
-      console.log('Mensagem com arquivo enviada:', result[0]);
+      console.log('Mensagem com arquivo salva no Supabase:', result[0]);
       return result[0];
     } catch (error) {
-      console.error('Erro ao enviar mensagem com arquivo:', error);
+      console.error('Erro ao salvar mensagem com arquivo no Supabase:', error);
       throw error;
     }
   }
@@ -228,3 +229,5 @@ class ConversationsService {
 }
 
 export const conversationsService = new ConversationsService();
+
+// ... keep existing code (rest of the methods)

@@ -1,4 +1,3 @@
-
 export interface ClientInstance {
   id: string;
   instance_id: string; // Added missing property
@@ -74,15 +73,15 @@ export interface Message {
   sender_role: 'client' | 'agent' | 'system';
   sender_phone: string;
   content: string;
-  message_type: 'text' | 'file' | 'image' | 'audio' | 'video' | 'document';
+  message_type: 'text' | 'image' | 'audio' | 'video' | 'file'; // Tipos de mensagem claramente definidos
   sent_at: string;
   file_url?: string;
   file_name?: string;
   file_size?: number;
   file_type?: string;
-  file_duration?: number; // For audio/video files
-  file_width?: number; // For images
-  file_height?: number; // For images
+  file_duration?: number; // Para áudio/vídeo
+  file_width?: number; // Para imagens
+  file_height?: number; // Para imagens
 }
 
 export interface GoogleCalendarEvent {

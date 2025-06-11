@@ -1,19 +1,12 @@
 
 import { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/components/ui/sonner';
 
-// Configurações do Cloudinary (em produção, essas deveriam vir de variáveis de ambiente)
-const CLOUDINARY_CLOUD_NAME = 'dntp7nxsr';
-const CLOUDINARY_API_KEY = '951776241316294';
-const CLOUDINARY_UPLOAD_PRESET = 'unsigned_preset'; // Substitua pelo seu preset
+// Configuração do webhook n8n
+const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://your-n8n-webhook-url.com/webhook/upload';
 
 interface UploadResult {
-  secure_url: string;
-  public_id: string;
-  resource_type: string;
-  format: string;
-  bytes: number;
+  url: string;
 }
 
 export const useFileUpload = () => {
@@ -53,58 +46,51 @@ export const useFileUpload = () => {
     return true;
   };
 
-  const getResourceType = (mimeType: string): string => {
+  const getMessageType = (mimeType: string): string => {
     if (mimeType.startsWith('image/')) return 'image';
     if (mimeType.startsWith('video/')) return 'video';
-    return 'raw'; // Para áudio, documentos, etc.
+    if (mimeType.startsWith('audio/')) return 'audio';
+    return 'file'; // Para documentos, etc.
   };
 
-  const uploadToCloudinary = async (file: File, conversationId: string): Promise<UploadResult | null> => {
+  const uploadToN8N = async (file: File, conversationId: string, senderId: string): Promise<UploadResult | null> => {
     try {
       setIsUploading(true);
 
-      // Validar arquivo
+      // Validar arquivo antes do upload
       if (!validateFile(file)) {
         return null;
       }
 
-      // Gerar nome único
-      const timestamp = Date.now();
-      const uniqueId = uuidv4();
-      const fileName = `${conversationId}/${uniqueId}/${timestamp}_${file.name}`;
+      console.log('Enviando arquivo para webhook n8n:', { fileName: file.name, fileSize: file.size });
 
-      // Determinar resource_type baseado no tipo MIME
-      const resourceType = getResourceType(file.type);
-
-      // Preparar FormData
+      // Preparar FormData para envio multipart
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      formData.append('public_id', fileName);
+      formData.append('conversationId', conversationId);
+      formData.append('senderId', senderId);
+      formData.append('fileName', file.name);
+      formData.append('fileSize', file.size.toString());
+      formData.append('mimeType', file.type);
 
-      // URL do Cloudinary
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
-
-      console.log('Uploading to Cloudinary:', { fileName, resourceType, fileSize: file.size });
-
-      // Fazer upload
-      const response = await fetch(cloudinaryUrl, {
+      // Enviar para webhook n8n
+      const response = await fetch(N8N_WEBHOOK_URL, {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Cloudinary upload error:', errorText);
+        console.error('Erro no webhook n8n:', errorText);
         throw new Error(`Erro no upload: ${response.status}`);
       }
 
       const result: UploadResult = await response.json();
-      console.log('Upload successful:', result);
+      console.log('Upload via n8n bem-sucedido:', result);
 
       return result;
     } catch (error) {
-      console.error('Erro ao fazer upload:', error);
+      console.error('Erro ao fazer upload via n8n:', error);
       toast.error('Erro ao fazer upload do arquivo');
       return null;
     } finally {
@@ -113,8 +99,9 @@ export const useFileUpload = () => {
   };
 
   return {
-    uploadToCloudinary,
+    uploadToN8N,
     isUploading,
-    validateFile
+    validateFile,
+    getMessageType
   };
 };

@@ -26,7 +26,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const { uploadToCloudinary, isUploading } = useFileUpload();
+  const { uploadToN8N, isUploading, getMessageType } = useFileUpload();
   const { 
     isRecording, 
     recordingTime, 
@@ -43,41 +43,40 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  // Função para processar upload de arquivo
+  // Função para processar upload de arquivo via webhook n8n
   const handleUploadFile = async (file: File) => {
-    console.log('Iniciando upload de arquivo:', file);
+    console.log('Iniciando upload de arquivo via n8n:', file);
     
     try {
-      // Upload para Cloudinary
-      const uploadResult = await uploadToCloudinary(file, conversationId);
+      // Obter senderId (usuário atual)
+      const senderId = 'current-user-id'; // TODO: pegar do contexto de auth
+      
+      // Upload para n8n webhook
+      const uploadResult = await uploadToN8N(file, conversationId, senderId);
       
       if (uploadResult) {
-        console.log('Upload concluído:', uploadResult);
+        console.log('Upload via n8n concluído:', uploadResult);
         
         // Determinar tipo de mensagem baseado no MIME type
-        let messageType = 'file';
-        if (file.type.startsWith('image/')) messageType = 'image';
-        else if (file.type.startsWith('video/')) messageType = 'video';
-        else if (file.type.startsWith('audio/')) messageType = 'audio';
-        else messageType = 'document';
+        const messageType = getMessageType(file.type);
 
-        // Enviar mensagem com arquivo
-        onSendFile(file, uploadResult.secure_url, messageType);
+        // Enviar mensagem com arquivo usando a URL retornada pelo n8n
+        onSendFile(file, uploadResult.url, messageType);
         
         toast.success('Arquivo enviado com sucesso!');
       }
     } catch (error) {
-      console.error('Erro no upload:', error);
+      console.error('Erro no upload via n8n:', error);
       toast.error('Erro ao enviar arquivo');
     }
   };
 
-  // Handler para anexos gerais
+  // Handler para anexos gerais (documentos, etc)
   const handleFileUpload = () => {
     fileInputRef.current?.click();
   };
 
-  // Handler para fotos/imagens
+  // Handler para fotos/imagens com câmera
   const handleImageUpload = () => {
     imageInputRef.current?.click();
   };
@@ -88,20 +87,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
     if (file) {
       handleUploadFile(file);
     }
-    // Limpar input
+    // Limpar input para permitir seleção do mesmo arquivo novamente
     event.target.value = '';
   };
 
   // Handler para gravação de áudio
   const handleAudioRecord = async () => {
     if (isRecording) {
-      // Parar gravação
+      // Parar gravação e processar arquivo de áudio
       const audioFile = await stopRecording();
       if (audioFile) {
         await handleUploadFile(audioFile);
       }
     } else {
-      // Iniciar gravação
+      // Iniciar gravação de áudio
       await startRecording();
     }
   };
@@ -114,7 +113,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <div className="p-3 lg:p-4 border-t border-border">
-      {/* Inputs ocultos para upload */}
+      {/* Inputs ocultos para captura de arquivos */}
       <input
         ref={fileInputRef}
         type="file"
@@ -131,7 +130,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         onChange={handleFileSelected}
       />
 
-      {/* Indicador de gravação */}
+      {/* Indicador de gravação de áudio */}
       {isRecording && (
         <div className="flex items-center justify-between mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
           <div className="flex items-center gap-2">
@@ -151,7 +150,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         </div>
       )}
 
-      {/* Botões de ação */}
+      {/* Botões de ação para mídia */}
       <div className="flex gap-2 mb-2">
         <Button 
           size="sm" 
@@ -191,7 +190,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
         </Button>
       </div>
 
-      {/* Input de mensagem */}
+      {/* Input de mensagem de texto */}
       <div className="flex gap-2">
         <Input
           placeholder="Digite sua mensagem..."
