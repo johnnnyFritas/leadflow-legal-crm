@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Send, Phone, Eye, Search, MessageSquare } from 'lucide-react';
+import { Send, Phone, Eye, Search, MessageSquare, Paperclip, Mic, Camera, File } from 'lucide-react';
 import { conversationsService } from '@/services/conversationsService';
 import { Conversation, Message } from '@/types/supabase';
 import { format, parseISO } from 'date-fns';
@@ -15,6 +15,7 @@ import { toast } from '@/components/ui/sonner';
 import LeadDetails from '@/components/lead/LeadDetails';
 import { Lead, AreaDireito } from '@/types/lead';
 import { useNavigate } from 'react-router-dom';
+import MessageBubble from '@/components/chat/MessageBubble';
 
 const Conversations = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -77,10 +78,6 @@ const Conversations = () => {
     }
   };
 
-  const formatMessageTime = (timestamp: string) => {
-    return format(parseISO(timestamp), "HH:mm", { locale: ptBR });
-  };
-
   const getStepBadgeColor = (step: string) => {
     const colors: Record<string, string> = {
       'Introdução': 'bg-blue-100 text-blue-800',
@@ -138,6 +135,21 @@ const Conversations = () => {
 
   const handleOpenConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
+  };
+
+  const handleFileUpload = () => {
+    // Placeholder for file upload - will be implemented in next phases
+    toast.info('Upload de arquivos será implementado em breve');
+  };
+
+  const handleAudioRecord = () => {
+    // Placeholder for audio recording - will be implemented in next phases
+    toast.info('Gravação de áudio será implementada em breve');
+  };
+
+  const handleVideoRecord = () => {
+    // Placeholder for video recording - will be implemented in next phases
+    toast.info('Gravação de vídeo será implementada em breve');
   };
 
   if (loadingConversations) {
@@ -257,29 +269,39 @@ const Conversations = () => {
                 </div>
               ) : (
                 messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${message.sender_role === 'agent' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] lg:max-w-md px-3 lg:px-4 py-2 rounded-lg ${
-                        message.sender_role === 'agent'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <p className="text-sm">{message.content}</p>
-                      <span className="text-xs opacity-70 mt-1 block">
-                        {formatMessageTime(message.sent_at)}
-                      </span>
-                    </div>
-                  </div>
+                  <MessageBubble key={message.id} message={message} />
                 ))
               )}
             </div>
 
-            {/* Campo de digitação */}
+            {/* Campo de digitação com botões de mídia */}
             <div className="p-3 lg:p-4 border-t border-border">
+              <div className="flex gap-2 mb-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={handleFileUpload}
+                  className="flex-shrink-0"
+                >
+                  <Paperclip size={16} />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={handleAudioRecord}
+                  className="flex-shrink-0"
+                >
+                  <Mic size={16} />
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={handleVideoRecord}
+                  className="flex-shrink-0"
+                >
+                  <Camera size={16} />
+                </Button>
+              </div>
               <div className="flex gap-2">
                 <Input
                   placeholder="Digite sua mensagem..."
