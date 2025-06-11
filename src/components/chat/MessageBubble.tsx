@@ -15,6 +15,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     return format(parseISO(timestamp), "HH:mm", { locale: ptBR });
   };
 
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   const renderFileContent = () => {
     if (!message.file_url) return null;
 
@@ -25,30 +31,38 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             <img 
               src={message.file_url} 
               alt={message.file_name || 'Imagem'}
-              className="max-w-xs rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+              className="max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover"
               onClick={() => window.open(message.file_url, '_blank')}
+              loading="lazy"
             />
             {message.file_name && (
               <p className="text-xs opacity-70 mt-1">{message.file_name}</p>
+            )}
+            {message.file_size && (
+              <p className="text-xs opacity-50">{formatFileSize(message.file_size)}</p>
             )}
           </div>
         );
       
       case 'audio':
         return (
-          <div className="mb-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            <div className="flex items-center gap-3">
-              <Volume2 size={20} />
-              <div className="flex-1">
-                <audio controls className="w-full">
-                  <source src={message.file_url} type="audio/mpeg" />
-                  Seu navegador não suporta áudio.
-                </audio>
+          <div className="mb-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg max-w-xs">
+            <div className="flex items-center gap-3 mb-2">
+              <Volume2 size={20} className="flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">
+                  {message.file_name || 'Áudio'}
+                </p>
+                {message.file_size && (
+                  <p className="text-xs opacity-70">{formatFileSize(message.file_size)}</p>
+                )}
               </div>
             </div>
-            {message.file_name && (
-              <p className="text-xs opacity-70 mt-1">{message.file_name}</p>
-            )}
+            <audio controls className="w-full">
+              <source src={message.file_url} type="audio/webm" />
+              <source src={message.file_url} type="audio/mp3" />
+              Seu navegador não suporta áudio.
+            </audio>
           </div>
         );
       
@@ -57,14 +71,18 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
           <div className="mb-2">
             <video 
               controls 
-              className="max-w-xs rounded-lg"
+              className="max-w-xs max-h-64 rounded-lg"
               preload="metadata"
             >
               <source src={message.file_url} type="video/mp4" />
+              <source src={message.file_url} type="video/webm" />
               Seu navegador não suporta vídeo.
             </video>
             {message.file_name && (
               <p className="text-xs opacity-70 mt-1">{message.file_name}</p>
+            )}
+            {message.file_size && (
+              <p className="text-xs opacity-50">{formatFileSize(message.file_size)}</p>
             )}
           </div>
         );
@@ -72,20 +90,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       case 'document':
       case 'file':
         return (
-          <div className="mb-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <div className="mb-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg max-w-xs">
             <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <p className="font-medium text-sm">{message.file_name}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">
+                  {message.file_name || 'Documento'}
+                </p>
                 {message.file_size && (
-                  <p className="text-xs opacity-70">
-                    {(message.file_size / 1024 / 1024).toFixed(2)} MB
-                  </p>
+                  <p className="text-xs opacity-70">{formatFileSize(message.file_size)}</p>
+                )}
+                {message.file_type && (
+                  <p className="text-xs opacity-50 uppercase">{message.file_type}</p>
                 )}
               </div>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => window.open(message.file_url, '_blank')}
+                title="Download"
               >
                 <Download size={16} />
               </Button>
@@ -124,7 +146,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         
         {/* Text content */}
         {message.content && (
-          <p className="text-sm">{message.content}</p>
+          <p className="text-sm whitespace-pre-wrap">{message.content}</p>
         )}
         
         <span className="text-xs opacity-70 mt-1 block">

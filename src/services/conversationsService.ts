@@ -121,6 +121,51 @@ class ConversationsService {
     return result[0];
   }
 
+  async sendFileMessage(
+    conversationId: string, 
+    file: File, 
+    fileUrl: string, 
+    messageType: 'image' | 'video' | 'audio' | 'document' | 'file',
+    senderPhone?: string
+  ): Promise<Message> {
+    // Verificar se a conversa pertence à instância
+    const conversation = await this.getConversationById(conversationId);
+    if (!conversation) {
+      throw new Error('Conversa não encontrada ou não pertence à instância');
+    }
+
+    const user = authService.getCurrentUser();
+    const endpoint = '/messages';
+    
+    const data: Omit<Message, 'id'> = {
+      conversation_id: conversationId,
+      sender_role: 'agent',
+      sender_phone: senderPhone || user?.phone || '5571999999999',
+      content: '', // Mensagens de arquivo podem ter conteúdo vazio
+      message_type: messageType,
+      sent_at: new Date().toISOString(),
+      file_url: fileUrl,
+      file_name: file.name,
+      file_size: file.size,
+      file_type: file.type,
+      // Adicionar metadados específicos se necessário
+      file_duration: undefined, // Para áudio/vídeo, seria necessário calcular
+      file_width: undefined,   // Para imagens, seria necessário calcular
+      file_height: undefined   // Para imagens, seria necessário calcular
+    };
+
+    console.log('Enviando mensagem com arquivo:', data);
+    
+    try {
+      const result = await supabase.post<Message[]>(endpoint, data);
+      console.log('Mensagem com arquivo enviada:', result[0]);
+      return result[0];
+    } catch (error) {
+      console.error('Erro ao enviar mensagem com arquivo:', error);
+      throw error;
+    }
+  }
+
   async createConversation(phone: string, caseData: Partial<Conversation>): Promise<Conversation> {
     const instanceId = this.getInstanceId();
     const endpoint = '/conversations';

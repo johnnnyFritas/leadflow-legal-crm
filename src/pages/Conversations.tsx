@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsService } from '@/services/conversationsService';
@@ -44,12 +43,48 @@ const Conversations = () => {
     }
   });
 
+  const sendFileMutation = useMutation({
+    mutationFn: ({ 
+      conversationId, 
+      file, 
+      fileUrl, 
+      messageType 
+    }: { 
+      conversationId: string, 
+      file: File, 
+      fileUrl: string, 
+      messageType: 'image' | 'video' | 'audio' | 'document' | 'file' 
+    }) =>
+      conversationsService.sendFileMessage(conversationId, file, fileUrl, messageType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['messages', selectedConversation?.id] });
+      toast.success('Arquivo enviado com sucesso!');
+    },
+    onError: (error) => {
+      console.error('Erro ao enviar arquivo:', error);
+      toast.error('Erro ao enviar arquivo');
+    }
+  });
+
   const handleSendMessage = () => {
     if (!selectedConversation || !newMessage.trim()) return;
 
     sendMessageMutation.mutate({
       conversationId: selectedConversation.id,
       content: newMessage.trim()
+    });
+  };
+
+  const handleSendFile = (file: File, fileUrl: string, messageType: string) => {
+    if (!selectedConversation) return;
+
+    console.log('Enviando arquivo:', { file, fileUrl, messageType });
+
+    sendFileMutation.mutate({
+      conversationId: selectedConversation.id,
+      file,
+      fileUrl,
+      messageType: messageType as 'image' | 'video' | 'audio' | 'document' | 'file'
     });
   };
 
@@ -129,7 +164,9 @@ const Conversations = () => {
               newMessage={newMessage}
               onMessageChange={setNewMessage}
               onSendMessage={handleSendMessage}
-              isLoading={sendMessageMutation.isPending}
+              onSendFile={handleSendFile}
+              conversationId={selectedConversation.id}
+              isLoading={sendMessageMutation.isPending || sendFileMutation.isPending}
             />
           </>
         ) : (
