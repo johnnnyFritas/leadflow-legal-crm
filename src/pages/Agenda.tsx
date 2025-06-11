@@ -115,102 +115,106 @@ const Agenda = () => {
   };
 
   return (
-    <div className="space-y-3 sm:space-y-4 p-2 sm:p-4 lg:p-6 min-h-screen overflow-x-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
-        <h2 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold tracking-tight">Agenda</h2>
-        <div className="w-full sm:w-auto">
-          <NewEventModal 
-            selectedDate={selectedDate} 
-            onEventCreated={handleEventCreated}
-          />
+    <div className="w-full min-h-screen overflow-hidden">
+      <div className="space-y-3 sm:space-y-4 p-2 sm:p-4 lg:p-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+          <h2 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold tracking-tight">Agenda</h2>
+          <div className="w-full sm:w-auto">
+            <NewEventModal 
+              selectedDate={selectedDate} 
+              onEventCreated={handleEventCreated}
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Layout responsivo: vertical em mobile, lado a lado em desktop */}
-      <div className="flex flex-col lg:grid lg:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4 xl:gap-6">
-        {/* Calendário Lateral */}
-        <Card className="lg:col-span-1 w-full">
-          <CardHeader className="pb-2 lg:pb-3 px-3 lg:px-6 pt-3 lg:pt-6">
-            <CardTitle className="flex items-center gap-2 text-sm lg:text-base xl:text-lg">
-              <CalendarDays size={isMobile ? 14 : 16} />
-              <span>Calendário</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 px-3 lg:px-6 pb-3 lg:pb-6">
-            {/* Container do calendário */}
-            <div className="w-full">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                className="w-full rounded-md border"
-                locale={ptBR}
-              />
-            </div>
-            
-            {/* Botões de Visualização */}
-            <div className="space-y-2">
-              <div className="text-xs lg:text-sm font-medium text-muted-foreground">
-                Visualização
-              </div>
-              <div className="flex flex-row lg:flex-col gap-1">
-                <Button 
-                  variant={viewMode === 'day' ? 'default' : 'outline'} 
-                  size="sm" 
-                  onClick={() => setViewMode('day')}
-                  className="flex-1 lg:w-full justify-center text-xs lg:text-sm h-7 lg:h-8"
-                >
-                  Dia
-                </Button>
-                <Button 
-                  variant={viewMode === 'week' ? 'default' : 'outline'} 
-                  size="sm" 
-                  onClick={() => setViewMode('week')}
-                  className="flex-1 lg:w-full justify-center text-xs lg:text-sm h-7 lg:h-8"
-                >
-                  Semana
-                </Button>
-                <Button 
-                  variant={viewMode === 'month' ? 'default' : 'outline'} 
-                  size="sm" 
-                  onClick={() => setViewMode('month')}
-                  className="flex-1 lg:w-full justify-center text-xs lg:text-sm h-7 lg:h-8"
-                >
-                  Mês
-                </Button>
-              </div>
-            </div>
+        {/* Layout responsivo: vertical em mobile/tablet, lado a lado em desktop */}
+        <div className="w-full space-y-3 lg:space-y-0 lg:grid lg:grid-cols-4 xl:grid-cols-5 lg:gap-4 xl:gap-6">
+          {/* Calendário Lateral */}
+          <div className="w-full lg:col-span-1">
+            <Card className="w-full">
+              <CardHeader className="pb-2 lg:pb-3 px-3 lg:px-6 pt-3 lg:pt-6">
+                <CardTitle className="flex items-center gap-2 text-sm lg:text-base xl:text-lg">
+                  <CalendarDays size={isMobile ? 14 : 16} />
+                  <span>Calendário</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 px-3 lg:px-6 pb-3 lg:pb-6">
+                {/* Container do calendário com overflow controlado */}
+                <div className="w-full overflow-hidden">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    className="w-full rounded-md border"
+                    locale={ptBR}
+                  />
+                </div>
+                
+                {/* Botões de Visualização */}
+                <div className="space-y-2">
+                  <div className="text-xs lg:text-sm font-medium text-muted-foreground">
+                    Visualização
+                  </div>
+                  <div className="flex flex-row lg:flex-col gap-1">
+                    <Button 
+                      variant={viewMode === 'day' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setViewMode('day')}
+                      className="flex-1 lg:w-full justify-center text-xs lg:text-sm h-7 lg:h-8"
+                    >
+                      Dia
+                    </Button>
+                    <Button 
+                      variant={viewMode === 'week' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setViewMode('week')}
+                      className="flex-1 lg:w-full justify-center text-xs lg:text-sm h-7 lg:h-8"
+                    >
+                      Semana
+                    </Button>
+                    <Button 
+                      variant={viewMode === 'month' ? 'default' : 'outline'} 
+                      size="sm" 
+                      onClick={() => setViewMode('month')}
+                      className="flex-1 lg:w-full justify-center text-xs lg:text-sm h-7 lg:h-8"
+                    >
+                      Mês
+                    </Button>
+                  </div>
+                </div>
 
-            {/* Debug Info */}
-            <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span>Modo:</span>
-                  <span className="font-medium">{viewMode}</span>
+                {/* Debug Info */}
+                <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
+                  <div className="space-y-1">
+                    <div className="flex justify-between">
+                      <span>Modo:</span>
+                      <span className="font-medium">{viewMode}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Data:</span>
+                      <span className="font-medium">
+                        {format(selectedDate, isMobile ? 'dd/MM' : 'dd/MM/yyyy')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Eventos:</span>
+                      <span className="font-medium">
+                        {viewMode === 'day' ? dayEvents.length :
+                         viewMode === 'week' ? weekEvents.length :
+                         monthEvents.length}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Data:</span>
-                  <span className="font-medium">
-                    {format(selectedDate, isMobile ? 'dd/MM' : 'dd/MM/yyyy')}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Eventos:</span>
-                  <span className="font-medium">
-                    {viewMode === 'day' ? dayEvents.length :
-                     viewMode === 'week' ? weekEvents.length :
-                     monthEvents.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Área Principal */}
-        <div className="lg:col-span-3 xl:col-span-4 w-full overflow-hidden">
-          {renderViewContent()}
+          {/* Área Principal */}
+          <div className="w-full lg:col-span-3 xl:col-span-4 overflow-hidden">
+            {renderViewContent()}
+          </div>
         </div>
       </div>
     </div>
