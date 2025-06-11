@@ -63,6 +63,23 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Nova paleta institucional
+        'brand-blue': {
+          light: '#3FA9F5',
+          DEFAULT: '#1C78C0', 
+          dark: '#0F2C5D',
+        },
+        'brand-gray': {
+          light: '#E6E6E6',
+          DEFAULT: '#4A4A4A',
+          dark: '#232323',
+        },
+        'metal': {
+          charcoal: '#232323',
+          onyx: '#353839', 
+          steel: '#606060',
+          silver: '#C0C0C0',
+        },
         // Kanban specific colors
         kanban: {
           column: "rgba(30, 41, 59, 0.8)",

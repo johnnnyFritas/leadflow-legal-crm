@@ -23,8 +23,7 @@ import {
   MessageSquare,
   Calendar,
   Settings,
-  LogOut,
-  ChevronLeft
+  LogOut
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -36,48 +35,55 @@ const Sidebar = () => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  // Renomeando para SidebarContentItems para evitar conflito com o componente importado
   const SidebarContentItems = () => (
     <>
       {/* Header com logo e título do sistema */}
-      <SidebarHeader className="flex flex-col items-center space-y-2 p-4 border-b border-border/20 relative">
+      <SidebarHeader className="flex flex-col items-center space-y-3 p-4 border-b border-border/20 relative">
         <div className="flex items-center justify-between w-full">
           {state !== "collapsed" ? (
-            <div className="flex items-center space-x-2">
-              <div className="rounded-md bg-primary p-1">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
-                  <path d="m8 12 2 2 6-6"></path>
-                </svg>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-bold">CRM Quero Direito</span>
-                <span className="text-xs text-muted-foreground">Versão 1.0</span>
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                <img 
+                  src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749662979/Black_logo_-_no_background_xmyamn.png" 
+                  alt="Logo" 
+                  className="h-8 w-auto dark:hidden"
+                />
+                <img 
+                  src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749663013/Color_logo_-_no_background_1_awsld6.png" 
+                  alt="Logo" 
+                  className="h-8 w-auto hidden dark:block"
+                />
               </div>
             </div>
           ) : (
-            <div className="rounded-md bg-primary p-1 mx-auto">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path>
-                <path d="m8 12 2 2 6-6"></path>
-              </svg>
+            <div className="mx-auto flex-shrink-0">
+              <img 
+                src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749662979/Black_logo_-_no_background_xmyamn.png" 
+                alt="Logo" 
+                className="h-6 w-auto dark:hidden"
+              />
+              <img 
+                src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749663013/Color_logo_-_no_background_1_awsld6.png" 
+                alt="Logo" 
+                className="h-6 w-auto hidden dark:block"
+              />
             </div>
           )}
           
-          {/* Botão de abrir/fechar movido para o canto direito superior */}
-          <div className="absolute right-2 top-4">
+          {/* Botão de abrir/fechar */}
+          <div className={`${state === "collapsed" ? "absolute right-2 top-2" : ""}`}>
             <SidebarTrigger className="hover:bg-accent/80 hover:text-accent-foreground hover:shadow-md transition-all" />
           </div>
         </div>
 
         {/* Seção de perfil do usuário */}
-        <div className={`flex ${state === "collapsed" ? "flex-col" : "items-center"} gap-3 w-full mt-2 py-3 border-t border-border/20`}>
-          <Avatar className={`${state === "collapsed" ? "mx-auto" : ""} h-10 w-10`}>
+        <div className={`flex ${state === "collapsed" ? "flex-col" : "items-center"} gap-3 w-full pt-3 border-t border-border/20`}>
+          <Avatar className={`${state === "collapsed" ? "mx-auto" : ""} h-10 w-10 flex-shrink-0`}>
             <AvatarImage src={user?.avatarUrl} />
             <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
           </Avatar>
           {state !== "collapsed" && (
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden min-w-0">
               <p className="font-medium text-sm whitespace-nowrap overflow-hidden text-ellipsis">{user?.name}</p>
               <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
             </div>
@@ -86,7 +92,7 @@ const Sidebar = () => {
       </SidebarHeader>
       
       {/* Itens do menu */}
-      <SidebarContent className="px-2 py-4">
+      <SidebarContent className="px-3 py-4">
         <SidebarGroup>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -97,7 +103,7 @@ const Sidebar = () => {
               >
                 <Link to="/app/kanban" className="w-full">
                   <Kanban size={18} />
-                  <span>Leads</span>
+                  {state !== "collapsed" && <span>Leads</span>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -110,7 +116,7 @@ const Sidebar = () => {
               >
                 <Link to="/app/conversas" className="w-full">
                   <MessageSquare size={18} />
-                  <span>Conversas</span>
+                  {state !== "collapsed" && <span>Conversas</span>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -123,7 +129,7 @@ const Sidebar = () => {
               >
                 <Link to="/app/agenda" className="w-full">
                   <Calendar size={18} />
-                  <span>Agenda</span>
+                  {state !== "collapsed" && <span>Agenda</span>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -136,7 +142,7 @@ const Sidebar = () => {
               >
                 <Link to="/app/settings" className="w-full">
                   <Settings size={18} />
-                  <span>Configurações</span>
+                  {state !== "collapsed" && <span>Configurações</span>}
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -159,7 +165,7 @@ const Sidebar = () => {
   );
 
   return (
-    <SidebarComponent collapsible="icon" className="h-full overflow-hidden">
+    <SidebarComponent collapsible="icon" className="h-full overflow-hidden w-16 data-[state=expanded]:w-64">
       <SidebarContentItems />
       <SidebarRail />
     </SidebarComponent>

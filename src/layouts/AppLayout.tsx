@@ -2,6 +2,7 @@
 import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Sidebar from "@/components/Sidebar";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
 
 const AppLayout = () => {
@@ -23,10 +24,11 @@ const AppLayout = () => {
     <SidebarProvider>
       <div className="flex h-screen w-full">
         <Sidebar />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-3 md:p-6 pb-20 md:pb-6">
           <Outlet />
         </main>
       </div>
+      <MobileBottomNav />
     </SidebarProvider>
   );
 };
