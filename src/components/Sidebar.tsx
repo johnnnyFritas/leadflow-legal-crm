@@ -57,17 +57,17 @@ const Sidebar = () => {
                 />
               </>
             ) : (
-              // Logo completa quando aberta (tamanho reduzido)
+              // Logo completa quando aberta (tamanho original)
               <>
                 <img 
                   src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749662979/Black_logo_-_no_background_xmyamn.png" 
                   alt="Logo" 
-                  className="h-12 w-auto dark:hidden"
+                  className="h-10 w-auto dark:hidden"
                 />
                 <img 
                   src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749663013/Color_logo_-_no_background_1_awsld6.png" 
                   alt="Logo" 
-                  className="h-12 w-auto hidden dark:block"
+                  className="h-10 w-auto hidden dark:block"
                 />
               </>
             )}
@@ -97,16 +97,16 @@ const Sidebar = () => {
       </SidebarHeader>
       
       {/* Itens do menu */}
-      <SidebarContent className="px-3 py-4">
+      <SidebarContent className={state === "collapsed" ? "px-0 py-4" : "px-3 py-4"}>
         <SidebarGroup>
           <SidebarMenu className="space-y-2">
             <SidebarMenuItem>
               <SidebarMenuButton 
                 asChild 
                 tooltip="Kanban de Leads" 
-                className={`transition-all ${state === "collapsed" ? "justify-center w-8 h-8 p-0" : "justify-start"} ${isActive("/app/kanban") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+                className={`transition-all ${state === "collapsed" ? "justify-center w-full h-8 p-0 mx-auto" : "justify-start"} ${isActive("/app/kanban") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
               >
-                <Link to="/app/kanban" className={`flex items-center ${state === "collapsed" ? "justify-center" : "w-full"}`}>
+                <Link to="/app/kanban" className={`flex items-center ${state === "collapsed" ? "justify-center w-full" : "w-full"}`}>
                   <Kanban size={18} className={state === "collapsed" ? "" : "mr-3"} />
                   {state !== "collapsed" && <span>Leads</span>}
                 </Link>
@@ -117,9 +117,9 @@ const Sidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 tooltip="Conversas" 
-                className={`transition-all ${state === "collapsed" ? "justify-center w-8 h-8 p-0" : "justify-start"} ${isActive("/app/conversas") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+                className={`transition-all ${state === "collapsed" ? "justify-center w-full h-8 p-0 mx-auto" : "justify-start"} ${isActive("/app/conversas") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
               >
-                <Link to="/app/conversas" className={`flex items-center ${state === "collapsed" ? "justify-center" : "w-full"}`}>
+                <Link to="/app/conversas" className={`flex items-center ${state === "collapsed" ? "justify-center w-full" : "w-full"}`}>
                   <MessageSquare size={18} className={state === "collapsed" ? "" : "mr-3"} />
                   {state !== "collapsed" && <span>Conversas</span>}
                 </Link>
@@ -130,9 +130,9 @@ const Sidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 tooltip="Agenda" 
-                className={`transition-all ${state === "collapsed" ? "justify-center w-8 h-8 p-0" : "justify-start"} ${isActive("/app/agenda") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+                className={`transition-all ${state === "collapsed" ? "justify-center w-full h-8 p-0 mx-auto" : "justify-start"} ${isActive("/app/agenda") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
               >
-                <Link to="/app/agenda" className={`flex items-center ${state === "collapsed" ? "justify-center" : "w-full"}`}>
+                <Link to="/app/agenda" className={`flex items-center ${state === "collapsed" ? "justify-center w-full" : "w-full"}`}>
                   <Calendar size={18} className={state === "collapsed" ? "" : "mr-3"} />
                   {state !== "collapsed" && <span>Agenda</span>}
                 </Link>
@@ -143,9 +143,9 @@ const Sidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 tooltip="Configurações" 
-                className={`transition-all ${state === "collapsed" ? "justify-center w-8 h-8 p-0" : "justify-start"} ${isActive("/app/settings") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
+                className={`transition-all ${state === "collapsed" ? "justify-center w-full h-8 p-0 mx-auto" : "justify-start"} ${isActive("/app/settings") ? "bg-accent text-accent-foreground" : "hover:bg-accent/80 hover:text-accent-foreground"} hover:shadow-md`}
               >
-                <Link to="/app/settings" className={`flex items-center ${state === "collapsed" ? "justify-center" : "w-full"}`}>
+                <Link to="/app/settings" className={`flex items-center ${state === "collapsed" ? "justify-center w-full" : "w-full"}`}>
                   <Settings size={18} className={state === "collapsed" ? "" : "mr-3"} />
                   {state !== "collapsed" && <span>Configurações</span>}
                 </Link>
