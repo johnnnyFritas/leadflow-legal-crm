@@ -1,0 +1,72 @@
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { toast } from '@/components/ui/sonner';
+import { Moon, Sun } from 'lucide-react';
+
+const PreferencesTab = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    } else {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setTheme(isDark ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', isDark);
+    }
+  }, []);
+
+  const handleThemeChange = (value: 'light' | 'dark') => {
+    setTheme(value);
+    document.documentElement.classList.toggle('dark', value === 'dark');
+    localStorage.setItem('theme', value);
+    toast.success(`Tema alterado para ${value === 'dark' ? 'escuro' : 'claro'}`);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Tema</CardTitle>
+        <CardDescription>
+          Escolha entre tema claro ou escuro para o sistema.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <RadioGroup value={theme} onValueChange={(v) => handleThemeChange(v as 'light' | 'dark')} className="grid grid-cols-2 gap-4">
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="light" id="light" className="sr-only" />
+            <Label
+              htmlFor="light"
+              className={`flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer ${
+                theme === 'light' ? 'border-primary' : ''
+              }`}
+            >
+              <Sun className="h-6 w-6 mb-2" />
+              <span>Claro</span>
+            </Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="dark" id="dark" className="sr-only" />
+            <Label
+              htmlFor="dark"
+              className={`flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground cursor-pointer ${
+                theme === 'dark' ? 'border-primary' : ''
+              }`}
+            >
+              <Moon className="h-6 w-6 mb-2" />
+              <span>Escuro</span>
+            </Label>
+          </div>
+        </RadioGroup>
+      </CardContent>
+    </Card>
+  );
+};
+
+export default PreferencesTab;
