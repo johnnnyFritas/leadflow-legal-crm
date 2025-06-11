@@ -11,7 +11,6 @@ import {
   SheetTitle 
 } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { 
   Select,
@@ -29,7 +28,6 @@ import {
 } from '@/components/ui/dialog';
 import { 
   Lead,
-  getScoreLabel, 
   formatTimeElapsed, 
   getAreaLabel,
   defaultFases
@@ -127,6 +125,20 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
       toast.error('Erro ao mover lead');
     }
   });
+
+  // Mutation para adicionar comentário
+  const addCommentMutation = useMutation({
+    mutationFn: async ({ leadId, comment }: { leadId: string, comment: string }) => {
+      return conversationsService.updateConversation(leadId, { Coments: comment });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success('Comentário adicionado com sucesso!');
+    },
+    onError: () => {
+      toast.error('Erro ao adicionar comentário');
+    }
+  });
   
   if (!lead) return null;
   
@@ -137,11 +149,10 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
     (Date.now() - new Date(lead.data_entrada).getTime()) / (1000 * 60)
   );
   const timeElapsed = formatTimeElapsed(minutesElapsed);
-  const timeInPhase = formatTimeElapsed(lead.tempo_na_fase);
 
   const handleOpenConversation = () => {
-    // Redirecionar para a página de conversas
-    navigate('/app/conversations');
+    // Redirecionar para a página de conversas com filtro no lead específico
+    navigate(`/app/conversations?leadId=${lead.id}`);
     onOpenChange(false);
   };
 
@@ -164,8 +175,13 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
   };
   
   const handleAddComment = () => {
-    if (!comment.trim()) return;
+    if (!comment.trim() || !lead) return;
     
+    addCommentMutation.mutate({
+      leadId: lead.id,
+      comment: comment.trim()
+    });
+
     const newComment = {
       id: Date.now().toString(),
       text: comment,
@@ -175,29 +191,12 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
     
     setComments([newComment, ...comments]);
     setComment('');
-    toast.success('Comentário adicionado');
   };
 
   const hasCaseConclusion = lead.ConclusãoCaso && lead.ConclusãoCaso.trim().length > 0;
 
   const renderDynamicFields = () => {
     switch (lead.area_direito) {
-      case 'trabalhista':
-        return (
-          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
-            <h5 className="font-medium text-sm mb-3">Informações Trabalhistas</h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <YesNoItem label="Ainda trabalha na empresa?" value={lead.ainda_trabalha} />
-              <DetailItem label="Tipo de vínculo" value={lead.tipo_vinculo || 'Não informado'} />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <YesNoItem label="Já tem advogado?" value={lead.tem_advogado} />
-              <DetailItem label="Motivo da demissão" value={lead.motivo_demissao || 'Não informado'} />
-            </div>
-            <DetailItem label="Tempo na empresa" value={lead.tempo_empresa || 'Não informado'} />
-          </div>
-        );
-        
       case 'previdenciario':
         return (
           <div className="space-y-2 bg-muted/30 p-3 rounded-md">
@@ -267,15 +266,7 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
         );
         
       default:
-        return (
-          <div className="space-y-2 bg-muted/30 p-3 rounded-md">
-            <h5 className="font-medium text-sm mb-3">Informações Gerais</h5>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <DetailItem label="Área do Direito" value={getAreaLabel(lead.area_direito)} />
-              <YesNoItem label="Já possui advogado?" value={lead.tem_advogado} />
-            </div>
-          </div>
-        );
+        return null;
     }
   };
   
@@ -293,9 +284,6 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-lg font-medium">{lead.nome}</h3>
-              <Badge className={`score-${lead.score <= 30 ? 'low' : lead.score <= 70 ? 'medium' : 'high'}`}>
-                {lead.score}
-              </Badge>
             </div>
             
             <Separator />
@@ -308,15 +296,16 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
               <DetailItem label="Data/hora de entrada" value={formattedDate} />
               <DetailItem label="Área do Direito" value={getAreaLabel(lead.area_direito)} />
               <DetailItem label="Tempo total desde entrada" value={timeElapsed} copyable={false} />
-              <DetailItem label="Tempo na fase atual" value={timeInPhase} copyable={false} />
             </div>
             
             <Separator />
             
             <div className="space-y-3">
-              <h4 className="font-medium">Informações do Caso</h4>
+              <h4 className="font-medium">Resumo do Caso</h4>
               
-              <DetailItem label="Mensagem Inicial" value={lead.resumo_caso} />
+              <div className="bg-muted/30 p-3 rounded-md">
+                <p className="text-sm">{lead.resumo_caso}</p>
+              </div>
               
               {renderDynamicFields()}
             </div>
@@ -332,8 +321,13 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
                   onChange={(e) => setComment(e.target.value)}
                   className="min-h-[100px]"
                 />
-                <Button onClick={handleAddComment} size="sm" className="w-full">
-                  Adicionar comentário
+                <Button 
+                  onClick={handleAddComment} 
+                  size="sm" 
+                  className="w-full"
+                  disabled={addCommentMutation.isPending}
+                >
+                  {addCommentMutation.isPending ? 'Salvando...' : 'Adicionar comentário'}
                 </Button>
               </div>
               

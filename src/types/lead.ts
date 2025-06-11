@@ -48,8 +48,6 @@ export type AreaDireito =
   | 'empresarial'
   | 'outro';
 
-export type Score = 25 | 50 | 75 | 100;
-
 export interface Lead {
   id: string;
   id_visual: string;
@@ -70,9 +68,7 @@ export interface Lead {
   tempo_empresa?: string;
   motivo_demissao?: string;
   mensagem_inicial?: string;
-  score: Score;
   fase_atual: FaseKanban;
-  tempo_na_fase: number;
   responsavel_id?: string;
   created_at: string;
   updated_at: string;
@@ -92,7 +88,7 @@ export interface Lead {
   meeting_link?: string;
   event_id?: string;
   attendant_phone?: string;
-  ConclusãoCaso?: string; // Added field for case conclusion
+  ConclusãoCaso?: string;
 
   // Campos específicos por área do direito
   tipo_vinculo?: string;
@@ -118,12 +114,6 @@ export interface Lead {
 }
 
 // Utility functions
-export function getScoreLabel(score: number): string {
-  if (score <= 30) return 'Baixo';
-  if (score <= 70) return 'Médio';
-  return 'Alto';
-}
-
 export function formatTimeElapsed(minutes: number): string {
   if (minutes < 60) {
     return `${minutes}min`;
@@ -170,22 +160,6 @@ function normalizeStep(step: string): FaseKanban {
 export function conversationToLead(conversation: Conversation): Lead {
   console.log('Convertendo conversation para lead:', conversation);
   
-  // Calcular score baseado nos dados disponíveis de forma mais inteligente
-  let score: Score = 25; // Score padrão baixo
-  
-  // Score baseado na completude dos dados
-  let scorePoints = 0;
-  if (conversation.case_summary && conversation.case_summary.trim() !== '') scorePoints += 25;
-  if (conversation.legal_area && conversation.legal_area.trim() !== '') scorePoints += 25;
-  if (conversation.approved) scorePoints += 50;
-  else if (conversation.legal_thesis && conversation.legal_thesis.trim() !== '') scorePoints += 25;
-  
-  // Atribuir score baseado nos pontos
-  if (scorePoints >= 75) score = 100;
-  else if (scorePoints >= 50) score = 75;
-  else if (scorePoints >= 25) score = 50;
-  else score = 25;
-
   // Mapear área do direito
   const areaMapping: Record<string, AreaDireito> = {
     'Trabalhista': 'trabalhista',
@@ -200,18 +174,16 @@ export function conversationToLead(conversation: Conversation): Lead {
 
   const area_direito = areaMapping[conversation.legal_area || ''] || 'outro';
 
-  // Calcular tempo na fase (em minutos desde entry_datetime)
-  const entryDate = conversation.entry_datetime ? new Date(conversation.entry_datetime) : new Date();
-  const tempoNaFase = Math.floor((Date.now() - entryDate.getTime()) / (1000 * 60));
-
-  // Usar o campo 'name' corretamente - se não tiver valor, usar 'Null'
-  const nome = conversation.name && conversation.name.trim() !== '' ? conversation.name : 'Null';
+  // Usar o campo 'name' corretamente - se não tiver valor válido, usar 'Nome não informado'
+  const nome = conversation.name && conversation.name.trim() !== '' && conversation.name !== 'Null' 
+    ? conversation.name 
+    : 'Nome não informado';
 
   // Normalizar step para uma das etapas válidas
   const faseAtual = normalizeStep(conversation.step || 'Introdução');
 
-  // Gerar ID visual mais limpo
-  const idVisual = `${conversation.id.slice(-6).toUpperCase()}`;
+  // Gerar ID visual mais limpo baseado no ID
+  const idVisual = `#${conversation.id.slice(-4).toUpperCase()}`;
 
   const lead: Lead = {
     id: conversation.id,
@@ -233,9 +205,7 @@ export function conversationToLead(conversation: Conversation): Lead {
     tempo_empresa: conversation.employment_duration_text || undefined,
     motivo_demissao: conversation.employment_status === 'Desempregado' ? 'Não informado' : undefined,
     mensagem_inicial: conversation.case_summary || 'Primeiro contato',
-    score,
     fase_atual: faseAtual,
-    tempo_na_fase: tempoNaFase,
     responsavel_id: conversation.attendant_phone || undefined,
     created_at: conversation.entry_datetime || new Date().toISOString(),
     updated_at: conversation.entry_datetime || new Date().toISOString(),
@@ -268,7 +238,7 @@ export function leadToConversation(lead: Lead, instanceId: string): Partial<Conv
     id: lead.id,
     instance_id: instanceId,
     phone: lead.telefone,
-    name: lead.nome === 'Null' ? null : lead.nome, // Garantir que 'Null' vire null
+    name: lead.nome === 'Nome não informado' ? null : lead.nome,
     thread_id: lead.thread_id || `thread_${Date.now()}`,
     entry_datetime: lead.data_entrada,
     channel: lead.canal_entrada,

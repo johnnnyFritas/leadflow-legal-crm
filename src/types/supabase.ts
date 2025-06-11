@@ -1,3 +1,4 @@
+
 export interface ClientInstance {
   id: string;
   instance_id: string; // Added missing property
@@ -63,6 +64,7 @@ export interface Conversation {
   profession: string;
   attendant_phone: string | null;
   ConclusãoCaso?: string; // Added field for case conclusion
+  Coments?: string; // Added field for comments
 }
 
 export interface Message {

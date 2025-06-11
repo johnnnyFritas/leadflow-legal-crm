@@ -2,11 +2,9 @@
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Draggable } from 'react-beautiful-dnd';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
   Lead, 
-  getScoreLabel, 
   formatTimeElapsed, 
   getAreaLabel 
 } from '@/types/lead';
@@ -19,21 +17,6 @@ interface KanbanCardProps {
 
 const KanbanCard = ({ lead, index, onClick }: KanbanCardProps) => {
   const formattedDate = format(parseISO(lead.data_entrada), "dd/MM 'às' HH:mm", { locale: ptBR });
-  
-  // Calculate time elapsed since lead entry
-  const minutesElapsed = Math.floor(
-    (Date.now() - new Date(lead.data_entrada).getTime()) / (1000 * 60)
-  );
-  
-  const timeElapsed = formatTimeElapsed(minutesElapsed);
-  const timeInPhase = formatTimeElapsed(lead.tempo_na_fase);
-  
-  // Função atualizada para utilizar score numérico
-  const getScoreClass = (score: number) => {
-    if (score <= 30) return 'score-low';
-    if (score <= 70) return 'score-medium';
-    return 'score-high';
-  };
   
   const getAreaClass = (area: string) => {
     switch (area) {
@@ -60,8 +43,8 @@ const KanbanCard = ({ lead, index, onClick }: KanbanCardProps) => {
             <span className="text-xs font-medium text-muted-foreground">
               {lead.id_visual}
             </span>
-            <span className={`score-badge ${getScoreClass(lead.score)} px-1 py-0.5 rounded text-xs font-medium`}>
-              {lead.score}
+            <span className={`area-badge ${getAreaClass(lead.area_direito)} px-1 py-0.5 rounded text-xs`}>
+              {getAreaLabel(lead.area_direito)}
             </span>
           </div>
           
@@ -73,22 +56,8 @@ const KanbanCard = ({ lead, index, onClick }: KanbanCardProps) => {
             {lead.telefone}
           </div>
           
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">
-              {formattedDate}
-            </span>
-            <span className={`area-badge ${getAreaClass(lead.area_direito)} px-1 py-0.5 rounded text-xs`}>
-              {getAreaLabel(lead.area_direito)}
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-            <div className="timer">
-              <span className="font-medium">Total:</span> {timeElapsed}
-            </div>
-            <div className="timer">
-              <span className="font-medium">Na fase:</span> {timeInPhase}
-            </div>
+          <div className="text-xs text-muted-foreground mb-2">
+            {formattedDate}
           </div>
           
           <Button 
