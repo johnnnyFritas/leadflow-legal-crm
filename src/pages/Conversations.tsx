@@ -53,7 +53,7 @@ const Conversations = () => {
       conversationId: string, 
       file: File, 
       fileUrl: string, 
-      messageType: 'image' | 'video' | 'audio' | 'document' | 'file' 
+      messageType: 'image' | 'video' | 'audio' | 'file' 
     }) =>
       conversationsService.sendFileMessage(conversationId, file, fileUrl, messageType),
     onSuccess: () => {
@@ -84,7 +84,7 @@ const Conversations = () => {
       conversationId: selectedConversation.id,
       file,
       fileUrl,
-      messageType: messageType as 'image' | 'video' | 'audio' | 'document' | 'file'
+      messageType: messageType as 'image' | 'video' | 'audio' | 'file'
     });
   };
 

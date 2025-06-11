@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { toast } from '@/components/ui/sonner';
 
 // Configuração do webhook n8n
-const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL || 'https://your-n8n-webhook-url.com/webhook/upload';
+const N8N_WEBHOOK_URL = 'https://autowebhook.haddx.com.br/webhook/arquivosbinarios';
 
 interface UploadResult {
   url: string;
