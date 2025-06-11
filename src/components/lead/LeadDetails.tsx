@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -111,6 +110,21 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   
+  // Carregar comentários quando o lead mudar
+  useEffect(() => {
+    if (lead?.ConclusãoCaso) {
+      // Se há comentários salvos, carregá-los
+      const savedComments = lead.ConclusãoCaso.split('\n').filter(c => c.trim())
+        .map((comment, index) => ({
+          id: `${lead.id}-${index}`,
+          text: comment,
+          date: lead.updated_at,
+          author: 'Sistema'
+        }));
+      setComments(savedComments);
+    }
+  }, [lead]);
+
   // Mutation para mover lead
   const moveLeadMutation = useMutation({
     mutationFn: async ({ leadId, newStep, previousStep }: { leadId: string, newStep: string, previousStep: string }) => {
@@ -151,9 +165,13 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
   const timeElapsed = formatTimeElapsed(minutesElapsed);
 
   const handleOpenConversation = () => {
-    // Redirecionar para a página de conversas com filtro no lead específico
-    navigate(`/app/conversations?leadId=${lead.id}`);
+    // Fechar o modal primeiro
     onOpenChange(false);
+    
+    // Navegar para conversas e aguardar um pouco antes de buscar a conversa específica
+    setTimeout(() => {
+      navigate('/app/conversations');
+    }, 100);
   };
 
   const handleMovePhase = () => {
@@ -295,7 +313,6 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
               <DetailItem label="Canal de Entrada" value={lead.canal_entrada} />
               <DetailItem label="Data/hora de entrada" value={formattedDate} />
               <DetailItem label="Área do Direito" value={getAreaLabel(lead.area_direito)} />
-              <DetailItem label="Tempo total desde entrada" value={timeElapsed} copyable={false} />
             </div>
             
             <Separator />
@@ -428,3 +445,5 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
 };
 
 export default LeadDetails;
+
+</edits_to_apply>

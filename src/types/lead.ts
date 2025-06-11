@@ -1,4 +1,3 @@
-
 import { Conversation } from './supabase';
 
 // Etapas corretas do Kanban conforme especificado
@@ -174,10 +173,12 @@ export function conversationToLead(conversation: Conversation): Lead {
 
   const area_direito = areaMapping[conversation.legal_area || ''] || 'outro';
 
-  // Usar o campo 'name' corretamente - se não tiver valor válido, usar 'Nome não informado'
-  const nome = conversation.name && conversation.name.trim() !== '' && conversation.name !== 'Null' 
+  // CORREÇÃO: Verificar corretamente se o nome existe e não é null/undefined
+  const nome = conversation.name && conversation.name.trim() && conversation.name !== 'null' && conversation.name !== 'NULL'
     ? conversation.name 
     : 'Nome não informado';
+
+  console.log('Nome processado:', { original: conversation.name, processado: nome });
 
   // Normalizar step para uma das etapas válidas
   const faseAtual = normalizeStep(conversation.step || 'Introdução');

@@ -154,9 +154,6 @@ const Conversations = () => {
         <div className="p-3 lg:p-4 border-b border-border space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold">Conversas</h2>
-            <Button size="sm" className="rounded-full" disabled>
-              +
-            </Button>
           </div>
           
           {/* Search */}
@@ -199,7 +196,7 @@ const Conversations = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-sm lg:text-base truncate">
-                      {conversation.name || 'Null'}
+                      {conversation.name || 'Nome não informado'}
                     </span>
                     <span className="text-xs text-muted-foreground flex-shrink-0 ml-2">
                       {format(parseISO(conversation.entry_datetime), "HH:mm", { locale: ptBR })}
