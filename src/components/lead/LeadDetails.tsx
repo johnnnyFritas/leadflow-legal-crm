@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -417,6 +416,7 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
         </SheetContent>
       </Sheet>
 
+      {/* Case Conclusion Dialog */}
       <Dialog open={isConclusionOpen} onOpenChange={setIsConclusionOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -445,3 +445,5 @@ const LeadDetails = ({ lead, open, onOpenChange, onOpenConversation }: LeadDetai
 };
 
 export default LeadDetails;
+
+</edits_to_apply>
