@@ -1,4 +1,3 @@
-
 export interface ClientInstance {
   id: string;
   instance_id: string; // Added missing property
@@ -12,6 +11,7 @@ export interface ClientInstance {
   min_notice_minutes: number;
   meeting_duration_minutes: number;
   email: string;
+  password?: string; // Added password field
   main_lawyer_name?: string;
   secondary_attendant_name?: string;
   secondary_attendant_phone?: string;

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { User, Eye, EyeOff, Moon, Sun, Users, Lock, UserCog, Palette } from 'lucide-react';
 
 const Settings = () => {
-  const { user, updateUserProfile } = useAuth();
+  const { user, updateUserProfile, changePassword } = useAuth();
   
   // Profile state
   const [name, setName] = useState(user?.name || '');
@@ -95,7 +94,7 @@ const Settings = () => {
     }, 500);
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (newPassword !== confirmPassword) {
@@ -103,16 +102,24 @@ const Settings = () => {
       return;
     }
     
+    if (!currentPassword || !newPassword) {
+      toast.error('Preencha todos os campos');
+      return;
+    }
+    
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await changePassword(currentPassword, newPassword);
       toast.success('Senha alterada com sucesso!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao alterar senha');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -292,6 +299,7 @@ const Settings = () => {
                       type={showCurrentPassword ? "text" : "password"} 
                       value={currentPassword} 
                       onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
                     />
                     <Button
                       type="button"
@@ -319,6 +327,7 @@ const Settings = () => {
                       type={showNewPassword ? "text" : "password"} 
                       value={newPassword} 
                       onChange={(e) => setNewPassword(e.target.value)}
+                      required
                     />
                     <Button
                       type="button"
@@ -344,6 +353,7 @@ const Settings = () => {
                       type={showConfirmPassword ? "text" : "password"} 
                       value={confirmPassword} 
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
                     />
                     <Button
                       type="button"

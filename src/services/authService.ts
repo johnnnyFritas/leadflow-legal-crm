@@ -30,13 +30,12 @@ class AuthService {
       const instance = instances[0];
       console.log('Instância encontrada:', {
         id: instance.id,
-        instance_id: instance.instance_id,
         email: instance.email
       });
 
-      // Verificar se a senha (instance_id) está correta
-      if (instance.instance_id !== password) {
-        console.log('Senha incorreta. Esperado:', instance.instance_id, 'Recebido:', password);
+      // Verificar se a senha está correta
+      if (instance.password !== password) {
+        console.log('Senha incorreta');
         throw new Error('Senha incorreta');
       }
 
@@ -81,6 +80,7 @@ class AuthService {
         company_name: name,
         instance_name: name.toLowerCase().replace(/\s+/g, '_'),
         main_lawyer_name: name,
+        password: password,
         created_at: new Date().toISOString()
       };
 
@@ -112,6 +112,37 @@ class AuthService {
       return authUser;
     } catch (error) {
       console.error('Erro no registro:', error);
+      throw error;
+    }
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    try {
+      const user = this.getCurrentUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Verificar senha atual
+      const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(user.email)}&limit=1`);
+      
+      if (!instances || instances.length === 0) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      const instance = instances[0];
+      
+      if (instance.password !== currentPassword) {
+        throw new Error('Senha atual incorreta');
+      }
+
+      // Atualizar senha
+      await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
+        password: newPassword
+      });
+
+    } catch (error) {
+      console.error('Erro ao alterar senha:', error);
       throw error;
     }
   }
