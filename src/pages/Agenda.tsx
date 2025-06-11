@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar } from '@/components/ui/calendar';
@@ -128,10 +127,10 @@ const Agenda = () => {
           </div>
         </div>
 
-        {/* Layout responsivo: vertical em mobile/tablet, lado a lado em desktop */}
-        <div className="w-full space-y-3 lg:space-y-0 lg:grid lg:grid-cols-4 xl:grid-cols-5 lg:gap-4 xl:gap-6">
+        {/* Layout vertical empilhado */}
+        <div className="w-full space-y-3 sm:space-y-4">
           {/* Calendário Lateral */}
-          <div className="w-full lg:col-span-1">
+          <div className="w-full">
             <Card className="w-full">
               <CardHeader className="pb-2 lg:pb-3 px-3 lg:px-6 pt-3 lg:pt-6">
                 <CardTitle className="flex items-center gap-2 text-sm lg:text-base xl:text-lg">
@@ -156,12 +155,12 @@ const Agenda = () => {
                   <div className="text-xs lg:text-sm font-medium text-muted-foreground">
                     Visualização
                   </div>
-                  <div className="flex flex-row lg:flex-col gap-1">
+                  <div className="flex flex-row gap-1">
                     <Button 
                       variant={viewMode === 'day' ? 'default' : 'outline'} 
                       size="sm" 
                       onClick={() => setViewMode('day')}
-                      className="flex-1 lg:w-full justify-center text-xs lg:text-sm h-7 lg:h-8"
+                      className="flex-1 justify-center text-xs lg:text-sm h-7 lg:h-8"
                     >
                       Dia
                     </Button>
@@ -169,7 +168,7 @@ const Agenda = () => {
                       variant={viewMode === 'week' ? 'default' : 'outline'} 
                       size="sm" 
                       onClick={() => setViewMode('week')}
-                      className="flex-1 lg:w-full justify-center text-xs lg:text-sm h-7 lg:h-8"
+                      className="flex-1 justify-center text-xs lg:text-sm h-7 lg:h-8"
                     >
                       Semana
                     </Button>
@@ -177,7 +176,7 @@ const Agenda = () => {
                       variant={viewMode === 'month' ? 'default' : 'outline'} 
                       size="sm" 
                       onClick={() => setViewMode('month')}
-                      className="flex-1 lg:w-full justify-center text-xs lg:text-sm h-7 lg:h-8"
+                      className="flex-1 justify-center text-xs lg:text-sm h-7 lg:h-8"
                     >
                       Mês
                     </Button>
@@ -212,7 +211,7 @@ const Agenda = () => {
           </div>
 
           {/* Área Principal */}
-          <div className="w-full lg:col-span-3 xl:col-span-4 overflow-hidden">
+          <div className="w-full overflow-hidden">
             {renderViewContent()}
           </div>
         </div>
