@@ -37,47 +37,33 @@ const Sidebar = () => {
 
   const SidebarContentItems = () => (
     <>
-      {/* Header com logo e título do sistema */}
-      <SidebarHeader className="flex flex-col items-center space-y-3 p-4 border-b border-border/20 relative">
-        <div className="flex items-center justify-between w-full">
-          {state !== "collapsed" ? (
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0">
-                <img 
-                  src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749662979/Black_logo_-_no_background_xmyamn.png" 
-                  alt="Logo" 
-                  className="h-8 w-auto dark:hidden"
-                />
-                <img 
-                  src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749663013/Color_logo_-_no_background_1_awsld6.png" 
-                  alt="Logo" 
-                  className="h-8 w-auto hidden dark:block"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="mx-auto flex-shrink-0">
-              <img 
-                src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749662979/Black_logo_-_no_background_xmyamn.png" 
-                alt="Logo" 
-                className="h-6 w-auto dark:hidden"
-              />
-              <img 
-                src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749663013/Color_logo_-_no_background_1_awsld6.png" 
-                alt="Logo" 
-                className="h-6 w-auto hidden dark:block"
-              />
-            </div>
-          )}
-          
-          {/* Botão de abrir/fechar */}
-          <div className={`${state === "collapsed" ? "absolute right-2 top-2" : ""}`}>
-            <SidebarTrigger className="hover:bg-accent/80 hover:text-accent-foreground hover:shadow-md transition-all" />
+      {/* Header com logo */}
+      <SidebarHeader className="flex flex-col space-y-4 p-4 border-b border-border/20">
+        {/* Logo */}
+        <div className="flex justify-center">
+          <div className="flex-shrink-0">
+            <img 
+              src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749662979/Black_logo_-_no_background_xmyamn.png" 
+              alt="Logo" 
+              className={`${state === "collapsed" ? "h-6" : "h-8"} w-auto dark:hidden`}
+            />
+            <img 
+              src="https://res.cloudinary.com/dntp7nxsr/image/upload/v1749663013/Color_logo_-_no_background_1_awsld6.png" 
+              alt="Logo" 
+              className={`${state === "collapsed" ? "h-6" : "h-8"} w-auto hidden dark:block`}
+            />
           </div>
         </div>
 
+        {/* Botão de toggle centralizado com linha separadora */}
+        <div className="flex flex-col items-center space-y-3">
+          <div className="w-full border-t border-border/20"></div>
+          <SidebarTrigger className="hover:bg-accent/80 hover:text-accent-foreground hover:shadow-md transition-all" />
+          <div className="w-full border-t border-border/20"></div>
+        </div>
+
         {/* Seção de perfil do usuário */}
-        <div className={`flex ${state === "collapsed" ? "flex-col" : "items-center"} gap-3 w-full pt-3 border-t border-border/20`}>
+        <div className={`flex ${state === "collapsed" ? "flex-col" : "items-center"} gap-3 w-full`}>
           <Avatar className={`${state === "collapsed" ? "mx-auto" : ""} h-10 w-10 flex-shrink-0`}>
             <AvatarImage src={user?.avatarUrl} />
             <AvatarFallback>{user?.name?.charAt(0) || 'U'}</AvatarFallback>
@@ -165,7 +151,7 @@ const Sidebar = () => {
   );
 
   return (
-    <SidebarComponent collapsible="icon" className="h-full overflow-hidden w-16 data-[state=expanded]:w-64">
+    <SidebarComponent collapsible="icon" className="h-full overflow-hidden">
       <SidebarContentItems />
       <SidebarRail />
     </SidebarComponent>
