@@ -45,8 +45,12 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       case 'audio':
         return (
           <div className="mb-2">
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 max-w-xs">
-              <audio controls className="w-full">
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 min-w-[280px] max-w-sm">
+              <audio 
+                controls 
+                className="w-full h-8"
+                style={{ minHeight: '32px' }}
+              >
                 <source src={message.file_url} type="audio/webm" />
                 <source src={message.file_url} type="audio/mp3" />
                 Seu navegador não suporta áudio.
