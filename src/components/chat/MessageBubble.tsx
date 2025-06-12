@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Message } from '@/types/supabase';
-import { Bot, Download, Volume2 } from 'lucide-react';
+import { Bot, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,34 +36,22 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               onClick={() => window.open(message.file_url, '_blank')}
               loading="lazy"
             />
-            {message.file_name && (
-              <p className="text-xs opacity-70 mt-1">{message.file_name}</p>
-            )}
             {message.file_size && (
-              <p className="text-xs opacity-50">{formatFileSize(message.file_size)}</p>
+              <p className="text-xs opacity-50 mt-1">{formatFileSize(message.file_size)}</p>
             )}
           </div>
         );
       
       case 'audio':
         return (
-          <div className="mb-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg max-w-xs">
-            <div className="flex items-center gap-3 mb-2">
-              <Volume2 size={20} className="flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {message.file_name || 'Áudio'}
-                </p>
-                {message.file_size && (
-                  <p className="text-xs opacity-70">{formatFileSize(message.file_size)}</p>
-                )}
-              </div>
+          <div className="mb-2">
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 max-w-xs">
+              <audio controls className="w-full">
+                <source src={message.file_url} type="audio/webm" />
+                <source src={message.file_url} type="audio/mp3" />
+                Seu navegador não suporta áudio.
+              </audio>
             </div>
-            <audio controls className="w-full">
-              <source src={message.file_url} type="audio/webm" />
-              <source src={message.file_url} type="audio/mp3" />
-              Seu navegador não suporta áudio.
-            </audio>
           </div>
         );
       
@@ -79,11 +67,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
               <source src={message.file_url} type="video/webm" />
               Seu navegador não suporta vídeo.
             </video>
-            {message.file_name && (
-              <p className="text-xs opacity-70 mt-1">{message.file_name}</p>
-            )}
             {message.file_size && (
-              <p className="text-xs opacity-50">{formatFileSize(message.file_size)}</p>
+              <p className="text-xs opacity-50 mt-1">{formatFileSize(message.file_size)}</p>
             )}
           </div>
         );
@@ -124,24 +109,26 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     }
   };
 
+  // Determinar se a mensagem deve aparecer à direita
+  // Mensagens do sistema (IA) e do agente vão para a direita
+  const isRightSide = message.sender_role === 'agent' || message.sender_role === 'system';
+
   return (
     <div
-      className={`flex ${message.sender_role === 'agent' ? 'justify-end' : 'justify-start'}`}
+      className={`flex ${isRightSide ? 'justify-end' : 'justify-start'}`}
     >
       <div
         className={`max-w-[85%] lg:max-w-md px-3 lg:px-4 py-2 rounded-lg ${
-          message.sender_role === 'agent'
+          isRightSide
             ? 'bg-primary text-primary-foreground'
-            : message.sender_role === 'system'
-            ? 'bg-blue-100 text-blue-900 dark:bg-blue-900 dark:text-blue-100'
             : 'bg-muted'
         }`}
       >
-        {/* Indicador de mensagem do sistema */}
+        {/* Indicador de mensagem do sistema com novo rótulo */}
         {message.sender_role === 'system' && (
           <div className="flex items-center gap-2 mb-1">
             <Bot size={14} />
-            <span className="text-xs font-medium opacity-80">Sistema IA</span>
+            <span className="text-xs font-medium opacity-80">Quero Direito AI</span>
           </div>
         )}
         

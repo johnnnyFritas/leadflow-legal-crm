@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsService } from '@/services/conversationsService';
@@ -9,6 +10,8 @@ import ConversationsList from '@/components/conversations/ConversationsList';
 import ConversationHeader from '@/components/conversations/ConversationHeader';
 import MessagesList from '@/components/conversations/MessagesList';
 import MessageInput from '@/components/conversations/MessageInput';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 const Conversations = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -127,6 +130,11 @@ const Conversations = () => {
     setIsLeadDetailsOpen(true);
   };
 
+  // Função para voltar à lista de conversas no mobile
+  const handleBackToList = () => {
+    setSelectedConversation(null);
+  };
+
   if (loadingConversations) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -137,23 +145,40 @@ const Conversations = () => {
 
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-100px)] bg-background">
-      <ConversationsList
-        conversations={conversations}
-        selectedConversation={selectedConversation}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        selectedChannel={selectedChannel}
-        onChannelChange={setSelectedChannel}
-        onConversationSelect={setSelectedConversation}
-      />
+      {/* Lista de conversas - oculta no mobile quando há conversa selecionada */}
+      <div className={`${selectedConversation ? 'hidden lg:flex' : 'flex'} w-full lg:w-1/3`}>
+        <ConversationsList
+          conversations={conversations}
+          selectedConversation={selectedConversation}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedChannel={selectedChannel}
+          onChannelChange={setSelectedChannel}
+          onConversationSelect={setSelectedConversation}
+        />
+      </div>
 
-      <div className="flex-1 flex flex-col">
+      {/* Área de conversa - ocupa tela inteira no mobile quando selecionada */}
+      <div className={`${selectedConversation ? 'flex' : 'hidden lg:flex'} flex-1 flex-col`}>
         {selectedConversation ? (
           <>
-            <ConversationHeader
-              conversation={selectedConversation}
-              onViewLead={handleViewLead}
-            />
+            {/* Header com botão de voltar no mobile */}
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToList}
+                className="lg:hidden mr-2 ml-2"
+              >
+                <ArrowLeft size={20} />
+              </Button>
+              <div className="flex-1">
+                <ConversationHeader
+                  conversation={selectedConversation}
+                  onViewLead={handleViewLead}
+                />
+              </div>
+            </div>
 
             <MessagesList
               messages={messages}
