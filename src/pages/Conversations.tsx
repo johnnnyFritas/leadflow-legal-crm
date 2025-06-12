@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsService } from '@/services/conversationsService';
@@ -21,7 +22,9 @@ const Conversations = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isLeadDetailsOpen, setIsLeadDetailsOpen] = useState(false);
   const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
+  
+  // Usar breakpoint de 1024px para melhor experiência em notebooks
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth <= 1024 : false;
 
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
     queryKey: ['conversations'],
@@ -136,6 +139,11 @@ const Conversations = () => {
     setSelectedConversation(null);
   };
 
+  // Função para selecionar conversa
+  const handleConversationSelect = (conversation: Conversation) => {
+    setSelectedConversation(conversation);
+  };
+
   if (loadingConversations) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -147,72 +155,76 @@ const Conversations = () => {
   return (
     <div className="flex h-[calc(100vh-100px)] bg-background">
       {/* Lista de conversas - oculta em mobile quando há conversa selecionada */}
-      <div className={`${
-        isMobile && selectedConversation ? 'hidden' : 'block'
-      } ${
-        isMobile ? 'w-full' : 'w-1/3'
-      } ${
-        !isMobile ? 'border-r border-border' : ''
-      }`}>
-        <ConversationsList
-          conversations={conversations}
-          selectedConversation={selectedConversation}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          selectedChannel={selectedChannel}
-          onChannelChange={setSelectedChannel}
-          onConversationSelect={setSelectedConversation}
-        />
-      </div>
+      {(!isMobile || (isMobile && !selectedConversation)) && (
+        <div className={`${isMobile ? 'w-full' : 'w-1/3'} ${!isMobile ? 'border-r border-border' : ''}`}>
+          <ConversationsList
+            conversations={conversations}
+            selectedConversation={selectedConversation}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedChannel={selectedChannel}
+            onChannelChange={setSelectedChannel}
+            onConversationSelect={handleConversationSelect}
+          />
+        </div>
+      )}
 
       {/* Área de conversa - ocupa tela inteira no mobile quando selecionada */}
-      <div className={`${
-        isMobile && !selectedConversation ? 'hidden' : 'flex'
-      } ${
-        isMobile ? 'w-full' : 'flex-1'
-      } flex-col`}>
-        {selectedConversation ? (
-          <>
-            {/* Header com botão de voltar no mobile */}
-            <div className="flex items-center border-b border-border">
-              {isMobile && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleBackToList}
-                  className="mr-2 ml-2"
-                >
-                  <ArrowLeft size={20} />
-                </Button>
-              )}
-              <div className="flex-1">
-                <ConversationHeader
-                  conversation={selectedConversation}
-                  onViewLead={handleViewLead}
-                />
+      {(!isMobile || (isMobile && selectedConversation)) && (
+        <div className={`${isMobile ? 'w-full' : 'flex-1'} flex flex-col`}>
+          {selectedConversation ? (
+            <>
+              {/* Header com botão de voltar no mobile */}
+              <div className="flex items-center border-b border-border">
+                {isMobile && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBackToList}
+                    className="mr-2 ml-2"
+                  >
+                    <ArrowLeft size={20} />
+                  </Button>
+                )}
+                <div className="flex-1">
+                  <ConversationHeader
+                    conversation={selectedConversation}
+                    onViewLead={handleViewLead}
+                  />
+                </div>
               </div>
-            </div>
 
-            <MessagesList
-              messages={messages}
-              isLoading={loadingMessages}
-            />
+              <MessagesList
+                messages={messages}
+                isLoading={loadingMessages}
+              />
 
-            <MessageInput
-              newMessage={newMessage}
-              onMessageChange={setNewMessage}
-              onSendMessage={handleSendMessage}
-              onSendFile={handleSendFile}
-              conversationId={selectedConversation.id}
-              isLoading={sendMessageMutation.isPending || sendFileMutation.isPending}
-            />
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground p-4 text-center">
-            Selecione uma conversa para começar
-          </div>
-        )}
-      </div>
+              <MessageInput
+                newMessage={newMessage}
+                onMessageChange={setNewMessage}
+                onSendMessage={handleSendMessage}
+                onSendFile={handleSendFile}
+                conversationId={selectedConversation.id}
+                isLoading={sendMessageMutation.isPending || sendFileMutation.isPending}
+              />
+            </>
+          ) : (
+            // Placeholder apenas no desktop quando nenhuma conversa estiver selecionada
+            !isMobile && (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground p-4 text-center">
+                Selecione uma conversa para começar
+              </div>
+            )
+          )}
+        </div>
+      )}
+
+      {/* Placeholder no desktop quando nenhuma conversa estiver selecionada */}
+      {!selectedConversation && !isMobile && (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground p-4 text-center">
+          Selecione uma conversa para começar
+        </div>
+      )}
 
       <LeadDetails 
         lead={selectedLead} 
