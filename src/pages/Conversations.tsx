@@ -12,7 +12,6 @@ import MessagesList from '@/components/conversations/MessagesList';
 import MessageInput from '@/components/conversations/MessageInput';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useIsMobileOrTablet } from '@/hooks/use-desktop-mobile';
 
 const Conversations = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -22,8 +21,6 @@ const Conversations = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isLeadDetailsOpen, setIsLeadDetailsOpen] = useState(false);
   const queryClient = useQueryClient();
-  
-  const isMobile = useIsMobileOrTablet();
 
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
     queryKey: ['conversations'],
@@ -150,12 +147,10 @@ const Conversations = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-100px)] bg-background">
-      {/* Lista de conversas */}
-      {/* Desktop: sempre visível (1/3 da tela) */}
-      {/* Mobile: visível apenas quando nenhuma conversa está selecionada (tela cheia) */}
-      {(!isMobile || !selectedConversation) && (
-        <div className={`${isMobile ? 'w-full' : 'w-1/3 border-r border-border'}`}>
+    <div className="flex h-[calc(100vh-100px)] bg-background w-full">
+      {/* Lista de conversas - só aparece quando nenhuma conversa está selecionada */}
+      {!selectedConversation && (
+        <div className="w-full">
           <ConversationsList
             conversations={conversations}
             selectedConversation={selectedConversation}
@@ -168,55 +163,40 @@ const Conversations = () => {
         </div>
       )}
 
-      {/* Área de conversa */}
-      {/* Desktop: flex-1 (ocupa espaço restante ao lado da lista) */}
-      {/* Mobile: tela cheia quando conversa está selecionada */}
-      {(!isMobile || selectedConversation) && (
-        <div className={`${isMobile ? 'w-full' : 'flex-1'} flex flex-col`}>
-          {selectedConversation ? (
-            <>
-              {/* Header com botão de voltar apenas no mobile */}
-              <div className="flex items-center border-b border-border">
-                {isMobile && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleBackToList}
-                    className="mr-2 ml-2"
-                  >
-                    <ArrowLeft size={20} />
-                  </Button>
-                )}
-                <div className="flex-1">
-                  <ConversationHeader
-                    conversation={selectedConversation}
-                    onViewLead={handleViewLead}
-                  />
-                </div>
-              </div>
-
-              <MessagesList
-                messages={messages}
-                isLoading={loadingMessages}
+      {/* Conversa ativa - só aparece quando uma conversa está selecionada */}
+      {selectedConversation && (
+        <div className="w-full flex flex-col">
+          {/* Header da conversa com botão de voltar sempre visível */}
+          <div className="flex items-center border-b border-border bg-card">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackToList}
+              className="mr-2 ml-2"
+            >
+              <ArrowLeft size={20} />
+            </Button>
+            <div className="flex-1">
+              <ConversationHeader
+                conversation={selectedConversation}
+                onViewLead={handleViewLead}
               />
+            </div>
+          </div>
 
-              <MessageInput
-                newMessage={newMessage}
-                onMessageChange={setNewMessage}
-                onSendMessage={handleSendMessage}
-                onSendFile={handleSendFile}
-                conversationId={selectedConversation.id}
-                isLoading={sendMessageMutation.isPending || sendFileMutation.isPending}
-              />
-            </>
-          ) : (
-            // Placeholder apenas no desktop quando nenhuma conversa estiver selecionada
-            !isMobile && (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground p-4 text-center">
-                Selecione uma conversa para começar
-              </div>
-            )
-          )}
+          <MessagesList
+            messages={messages}
+            isLoading={loadingMessages}
+          />
+
+          <MessageInput
+            newMessage={newMessage}
+            onMessageChange={setNewMessage}
+            onSendMessage={handleSendMessage}
+            onSendFile={handleSendFile}
+            conversationId={selectedConversation.id}
+            isLoading={sendMessageMutation.isPending || sendFileMutation.isPending}
+          />
         </div>
       )}
 

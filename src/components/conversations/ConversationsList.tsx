@@ -54,7 +54,7 @@ const ConversationsList: React.FC<ConversationsListProps> = ({
   });
 
   return (
-    <div className="w-full lg:w-1/3 border-r border-border flex flex-col">
+    <div className="w-full border-r border-border flex flex-col h-full">
       <ConversationFilters
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
