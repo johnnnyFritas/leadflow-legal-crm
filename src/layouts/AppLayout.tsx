@@ -4,13 +4,12 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import Sidebar from "@/components/Sidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import { useAuthGuard } from "@/hooks/useAuthGuard";
+import { useIsMobileOrTablet } from "@/hooks/use-desktop-mobile";
 
 const AppLayout = () => {
   const { user, isLoading } = useAuthGuard();
   const location = useLocation();
-  
-  // Usar breakpoint de 1024px para melhor experiência
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth <= 1024 : false;
+  const isMobile = useIsMobileOrTablet();
   
   // Verificar se estamos na página de conversas e se há uma conversa selecionada na URL
   const isConversationsPage = location.pathname === '/app/conversas';

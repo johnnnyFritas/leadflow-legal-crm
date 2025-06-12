@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsService } from '@/services/conversationsService';
@@ -12,7 +11,7 @@ import MessagesList from '@/components/conversations/MessagesList';
 import MessageInput from '@/components/conversations/MessageInput';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobileOrTablet } from '@/hooks/use-desktop-mobile';
 
 const Conversations = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -23,8 +22,8 @@ const Conversations = () => {
   const [isLeadDetailsOpen, setIsLeadDetailsOpen] = useState(false);
   const queryClient = useQueryClient();
   
-  // Usar breakpoint de 1024px para melhor experiência em notebooks
-  const isMobile = typeof window !== 'undefined' ? window.innerWidth <= 1024 : false;
+  // Usar hook de responsividade com breakpoint correto
+  const isMobile = useIsMobileOrTablet();
 
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
     queryKey: ['conversations'],
@@ -154,8 +153,8 @@ const Conversations = () => {
 
   return (
     <div className="flex h-[calc(100vh-100px)] bg-background">
-      {/* Lista de conversas - oculta em mobile quando há conversa selecionada */}
-      {(!isMobile || (isMobile && !selectedConversation)) && (
+      {/* Lista de conversas - sempre visível no desktop, oculta no mobile quando há conversa selecionada */}
+      {(!isMobile || !selectedConversation) && (
         <div className={`${isMobile ? 'w-full' : 'w-1/3'} ${!isMobile ? 'border-r border-border' : ''}`}>
           <ConversationsList
             conversations={conversations}
@@ -169,12 +168,12 @@ const Conversations = () => {
         </div>
       )}
 
-      {/* Área de conversa - ocupa tela inteira no mobile quando selecionada */}
-      {(!isMobile || (isMobile && selectedConversation)) && (
+      {/* Área de conversa - flex-1 no desktop, full width no mobile quando selecionada */}
+      {(!isMobile || selectedConversation) && (
         <div className={`${isMobile ? 'w-full' : 'flex-1'} flex flex-col`}>
           {selectedConversation ? (
             <>
-              {/* Header com botão de voltar no mobile */}
+              {/* Header com botão de voltar apenas no mobile */}
               <div className="flex items-center border-b border-border">
                 {isMobile && (
                   <Button
@@ -216,13 +215,6 @@ const Conversations = () => {
               </div>
             )
           )}
-        </div>
-      )}
-
-      {/* Placeholder no desktop quando nenhuma conversa estiver selecionada */}
-      {!selectedConversation && !isMobile && (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground p-4 text-center">
-          Selecione uma conversa para começar
         </div>
       )}
 
