@@ -1,11 +1,12 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Paperclip, Mic, Camera, Square, Loader2 } from 'lucide-react';
 import { toast } from '@/components/ui/sonner';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useAudioRecorder } from '@/hooks/useAudioRecorder';
+import FilePreview from './FilePreview';
 
 interface MessageInputProps {
   newMessage: string;
@@ -26,6 +27,13 @@ const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  
+  // Estados para pré-visualização
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingFileType, setPendingFileType] = useState<'image' | 'video' | 'audio' | 'file' | null>(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState<string | null>(null);
+  const [isUploadingPreview, setIsUploadingPreview] = useState(false);
+  
   const { uploadToN8N, isUploading, getMessageType } = useFileUpload();
   const { 
     isRecording, 
@@ -43,31 +51,66 @@ const MessageInput: React.FC<MessageInputProps> = ({
     }
   };
 
-  // Função para processar upload de arquivo via webhook n8n
-  const handleUploadFile = async (file: File) => {
-    console.log('Iniciando upload de arquivo via n8n:', file);
+  // Função para detectar tipo de arquivo baseado no MIME type
+  const detectFileType = (file: File): 'image' | 'video' | 'audio' | 'file' => {
+    if (file.type.startsWith('image/')) return 'image';
+    if (file.type.startsWith('video/')) return 'video';
+    if (file.type.startsWith('audio/')) return 'audio';
+    return 'file';
+  };
+
+  // Função para preparar arquivo para pré-visualização
+  const prepareFilePreview = (file: File) => {
+    const fileType = detectFileType(file);
+    const previewUrl = URL.createObjectURL(file);
+    
+    setPendingFile(file);
+    setPendingFileType(fileType);
+    setPendingPreviewUrl(previewUrl);
+  };
+
+  // Função para cancelar pré-visualização
+  const cancelFilePreview = () => {
+    if (pendingPreviewUrl) {
+      URL.revokeObjectURL(pendingPreviewUrl);
+    }
+    setPendingFile(null);
+    setPendingFileType(null);
+    setPendingPreviewUrl(null);
+  };
+
+  // Função para confirmar envio do arquivo
+  const confirmFileSend = async () => {
+    if (!pendingFile) return;
+
+    setIsUploadingPreview(true);
     
     try {
       // Obter senderId (usuário atual)
       const senderId = 'current-user-id'; // TODO: pegar do contexto de auth
       
       // Upload para n8n webhook
-      const uploadResult = await uploadToN8N(file, conversationId, senderId);
+      const uploadResult = await uploadToN8N(pendingFile, conversationId, senderId);
       
       if (uploadResult) {
         console.log('Upload via n8n concluído:', uploadResult);
         
         // Determinar tipo de mensagem baseado no MIME type
-        const messageType = getMessageType(file.type);
+        const messageType = getMessageType(pendingFile.type);
 
         // Enviar mensagem com arquivo usando a URL retornada pelo n8n
-        onSendFile(file, uploadResult.url, messageType);
+        onSendFile(pendingFile, uploadResult.url, messageType);
+        
+        // Limpar pré-visualização
+        cancelFilePreview();
         
         toast.success('Arquivo enviado com sucesso!');
       }
     } catch (error) {
       console.error('Erro no upload via n8n:', error);
       toast.error('Erro ao enviar arquivo');
+    } finally {
+      setIsUploadingPreview(false);
     }
   };
 
@@ -85,7 +128,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
   const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      handleUploadFile(file);
+      prepareFilePreview(file);
     }
     // Limpar input para permitir seleção do mesmo arquivo novamente
     event.target.value = '';
@@ -94,10 +137,10 @@ const MessageInput: React.FC<MessageInputProps> = ({
   // Handler para gravação de áudio
   const handleAudioRecord = async () => {
     if (isRecording) {
-      // Parar gravação e processar arquivo de áudio
+      // Parar gravação e preparar arquivo de áudio para pré-visualização
       const audioFile = await stopRecording();
       if (audioFile) {
-        await handleUploadFile(audioFile);
+        prepareFilePreview(audioFile);
       }
     } else {
       // Iniciar gravação de áudio
@@ -110,6 +153,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
     cancelRecording();
     toast.info('Gravação cancelada');
   };
+
+  // Se há arquivo pendente, mostrar pré-visualização
+  if (pendingFile && pendingFileType && pendingPreviewUrl) {
+    return (
+      <FilePreview
+        file={pendingFile}
+        fileType={pendingFileType}
+        previewUrl={pendingPreviewUrl}
+        onSend={confirmFileSend}
+        onCancel={cancelFilePreview}
+        isUploading={isUploadingPreview}
+      />
+    );
+  }
 
   return (
     <div className="p-3 lg:p-4 border-t border-border">
