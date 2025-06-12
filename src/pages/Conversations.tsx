@@ -147,27 +147,25 @@ const Conversations = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-100px)] bg-background w-full">
+    <div className="flex h-screen bg-background w-full">
       {/* Lista de conversas - só aparece quando nenhuma conversa está selecionada */}
       {!selectedConversation && (
-        <div className="w-full">
-          <ConversationsList
-            conversations={conversations}
-            selectedConversation={selectedConversation}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            selectedChannel={selectedChannel}
-            onChannelChange={setSelectedChannel}
-            onConversationSelect={handleConversationSelect}
-          />
-        </div>
+        <ConversationsList
+          conversations={conversations}
+          selectedConversation={selectedConversation}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedChannel={selectedChannel}
+          onChannelChange={setSelectedChannel}
+          onConversationSelect={handleConversationSelect}
+        />
       )}
 
       {/* Conversa ativa - só aparece quando uma conversa está selecionada */}
       {selectedConversation && (
-        <div className="w-full flex flex-col">
-          {/* Header da conversa com botão de voltar sempre visível */}
-          <div className="flex items-center border-b border-border bg-card">
+        <div className="w-full h-full flex flex-col">
+          {/* Header da conversa com botão de voltar */}
+          <div className="flex items-center border-b border-border bg-card flex-shrink-0">
             <Button
               variant="ghost"
               size="sm"
@@ -184,19 +182,25 @@ const Conversations = () => {
             </div>
           </div>
 
-          <MessagesList
-            messages={messages}
-            isLoading={loadingMessages}
-          />
+          {/* Área de mensagens - ocupa o espaço restante */}
+          <div className="flex-1 overflow-hidden">
+            <MessagesList
+              messages={messages}
+              isLoading={loadingMessages}
+            />
+          </div>
 
-          <MessageInput
-            newMessage={newMessage}
-            onMessageChange={setNewMessage}
-            onSendMessage={handleSendMessage}
-            onSendFile={handleSendFile}
-            conversationId={selectedConversation.id}
-            isLoading={sendMessageMutation.isPending || sendFileMutation.isPending}
-          />
+          {/* Input fixo no final */}
+          <div className="flex-shrink-0">
+            <MessageInput
+              newMessage={newMessage}
+              onMessageChange={setNewMessage}
+              onSendMessage={handleSendMessage}
+              onSendFile={handleSendFile}
+              conversationId={selectedConversation.id}
+              isLoading={sendMessageMutation.isPending || sendFileMutation.isPending}
+            />
+          </div>
         </div>
       )}
 
