@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsService } from '@/services/conversationsService';
@@ -22,7 +23,6 @@ const Conversations = () => {
   const [isLeadDetailsOpen, setIsLeadDetailsOpen] = useState(false);
   const queryClient = useQueryClient();
   
-  // Usar hook de responsividade com breakpoint correto
   const isMobile = useIsMobileOrTablet();
 
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
@@ -133,12 +133,10 @@ const Conversations = () => {
     setIsLeadDetailsOpen(true);
   };
 
-  // Função para voltar à lista de conversas
   const handleBackToList = () => {
     setSelectedConversation(null);
   };
 
-  // Função para selecionar conversa
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);
   };
@@ -153,9 +151,11 @@ const Conversations = () => {
 
   return (
     <div className="flex h-[calc(100vh-100px)] bg-background">
-      {/* Lista de conversas - sempre visível no desktop, oculta no mobile quando há conversa selecionada */}
+      {/* Lista de conversas */}
+      {/* Desktop: sempre visível (1/3 da tela) */}
+      {/* Mobile: visível apenas quando nenhuma conversa está selecionada (tela cheia) */}
       {(!isMobile || !selectedConversation) && (
-        <div className={`${isMobile ? 'w-full' : 'w-1/3'} ${!isMobile ? 'border-r border-border' : ''}`}>
+        <div className={`${isMobile ? 'w-full' : 'w-1/3 border-r border-border'}`}>
           <ConversationsList
             conversations={conversations}
             selectedConversation={selectedConversation}
@@ -168,7 +168,9 @@ const Conversations = () => {
         </div>
       )}
 
-      {/* Área de conversa - flex-1 no desktop, full width no mobile quando selecionada */}
+      {/* Área de conversa */}
+      {/* Desktop: flex-1 (ocupa espaço restante ao lado da lista) */}
+      {/* Mobile: tela cheia quando conversa está selecionada */}
       {(!isMobile || selectedConversation) && (
         <div className={`${isMobile ? 'w-full' : 'flex-1'} flex flex-col`}>
           {selectedConversation ? (

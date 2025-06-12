@@ -4,7 +4,12 @@ import * as React from "react"
 const DESKTOP_BREAKPOINT = 1024
 
 export function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = React.useState<boolean | undefined>(undefined)
+  const [isDesktop, setIsDesktop] = React.useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= DESKTOP_BREAKPOINT
+    }
+    return true // Default to desktop for SSR
+  })
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(min-width: ${DESKTOP_BREAKPOINT}px)`)
@@ -16,11 +21,16 @@ export function useIsDesktop() {
     return () => mql.removeEventListener("change", onChange)
   }, [])
 
-  return !!isDesktop
+  return isDesktop
 }
 
 export function useIsMobileOrTablet() {
-  const [isMobileOrTablet, setIsMobileOrTablet] = React.useState<boolean | undefined>(undefined)
+  const [isMobileOrTablet, setIsMobileOrTablet] = React.useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < DESKTOP_BREAKPOINT
+    }
+    return false // Default to desktop for SSR
+  })
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${DESKTOP_BREAKPOINT - 1}px)`)
@@ -32,5 +42,5 @@ export function useIsMobileOrTablet() {
     return () => mql.removeEventListener("change", onChange)
   }, [])
 
-  return !!isMobileOrTablet
+  return isMobileOrTablet
 }
