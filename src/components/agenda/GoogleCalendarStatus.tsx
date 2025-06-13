@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Calendar, ExternalLink, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { calendarService } from '@/services/calendarService';
+import { googleAuthService } from '@/services/calendar/googleAuth';
 import { toast } from '@/components/ui/sonner';
 
 export const GoogleCalendarStatus = () => {
@@ -21,7 +21,7 @@ export const GoogleCalendarStatus = () => {
   const checkConnectionStatus = async () => {
     try {
       setIsLoading(true);
-      const instance = await calendarService.getClientInstance();
+      const instance = await googleAuthService.getClientInstance();
       
       if (instance) {
         const hasAllTokens = !!(
