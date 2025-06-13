@@ -68,8 +68,10 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
       addLog('info', 'Buscando QR Code...');
 
       const result = await getQRCode();
+      console.log('Resultado do QR Code:', result);
       
-      if (result.base64) {
+      if (result?.base64) {
+        // Verificar se já é uma data URI completa
         const qrCodeDataUri = result.base64.startsWith('data:image') 
           ? result.base64 
           : `data:image/png;base64,${result.base64}`;
@@ -77,10 +79,21 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
         setQrCode(qrCodeDataUri);
         addLog('success', 'QR Code atualizado');
         setQrTimer(30);
+      } else if (result?.qrcode) {
+        // Tentar usar campo qrcode se base64 não estiver disponível
+        const qrCodeDataUri = result.qrcode.startsWith('data:image') 
+          ? result.qrcode 
+          : `data:image/png;base64,${result.qrcode}`;
+        
+        setQrCode(qrCodeDataUri);
+        addLog('success', 'QR Code atualizado');
+        setQrTimer(30);
       } else {
-        addLog('warning', 'QR Code não disponível na resposta');
+        console.error('QR Code não encontrado na resposta:', result);
+        addLog('error', 'QR Code não disponível na resposta da API');
       }
     } catch (error) {
+      console.error('Erro ao buscar QR Code:', error);
       addLog('error', `Erro ao buscar QR Code: ${error}`);
     } finally {
       setIsLoadingQR(false);
@@ -184,8 +197,11 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
   useEffect(() => {
     if (connectionStatus === 'waiting_qr') {
       addLog('info', 'Aguardando scan do QR Code...');
-      fetchQRCode();
-      startQRCodeRefresh();
+      // Aguardar um pouco antes de buscar o QR Code para dar tempo da instância ser criada
+      setTimeout(() => {
+        fetchQRCode();
+        startQRCodeRefresh();
+      }, 2000);
     } else if (connectionStatus === 'connected') {
       stopQRCodeRefresh();
       setQrCode('');
@@ -196,6 +212,9 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
       toast.success('WhatsApp conectado!');
     } else if (connectionStatus === 'connecting') {
       addLog('info', 'Configurando instância...');
+    } else if (connectionStatus === 'disconnected') {
+      stopQRCodeRefresh();
+      setQrCode('');
     }
   }, [connectionStatus, instanceStatus]);
 
@@ -227,6 +246,10 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
                       src={qrCode} 
                       alt="QR Code" 
                       className="mx-auto w-48 h-48 object-contain"
+                      onError={(e) => {
+                        console.error('Erro ao carregar QR Code:', e);
+                        addLog('error', 'Erro ao exibir QR Code');
+                      }}
                     />
                   </div>
                   <p className="text-sm text-gray-600">
@@ -246,7 +269,16 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
                   ) : (
                     <div className="flex flex-col items-center space-y-2">
                       <QrCode size={32} className="text-gray-400" />
-                      <p className="text-sm text-gray-600">QR Code será gerado</p>
+                      <p className="text-sm text-gray-600">Aguardando QR Code</p>
+                      <Button 
+                        onClick={fetchQRCode} 
+                        variant="outline" 
+                        size="sm"
+                        className="mt-2"
+                      >
+                        <RefreshCw size={16} className="mr-2" />
+                        Tentar Novamente
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -300,7 +332,7 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
               </Button>
             )}
             
-            {qrCode && isWaitingQR && (
+            {isWaitingQR && (
               <Button 
                 onClick={fetchQRCode} 
                 variant="outline"
