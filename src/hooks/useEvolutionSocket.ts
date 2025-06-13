@@ -21,32 +21,32 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   } = useEvolutionStatus();
 
   const handleStatusChange = useCallback((status: ConnectionStatus) => {
-    console.log('🔄 STATUS CHANGE:', status);
+    console.log('🔄 SOCKET: STATUS CHANGE:', status);
     setConnectionStatus(status);
     options.onStatusChange?.(status);
   }, [options]);
 
   const connectWebSocket = useCallback((instanceName: string) => {
-    console.log('🌐 CONECTANDO WEBSOCKET para:', instanceName);
+    console.log('🌐 SOCKET: CONECTANDO WEBSOCKET para:', instanceName);
     
     if (webSocketRef.current) {
-      console.log('🔄 Desconectando WebSocket anterior');
+      console.log('🔄 SOCKET: Desconectando WebSocket anterior');
       webSocketRef.current.disconnect();
     }
 
     const socketOptions: EvolutionSocketOptions = {
       onMessage: (event) => {
-        console.log('📨 Mensagem WebSocket recebida:', event);
+        console.log('📨 SOCKET: Mensagem WebSocket recebida:', event);
         options.onMessage?.(event);
       },
       onStatusChange: (status) => {
-        console.log('🔄 WebSocket status change:', status);
+        console.log('🔄 SOCKET: WebSocket status change:', status);
         if (status === 'connected') {
-          console.log('✅ WebSocket conectado com sucesso');
+          console.log('✅ SOCKET: WebSocket conectado com sucesso');
         }
       },
       onError: (error) => {
-        console.error('❌ Erro WebSocket:', error);
+        console.error('❌ SOCKET: Erro WebSocket:', error);
         setLastError(String(error));
         options.onError?.(error);
       }
@@ -57,21 +57,54 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   }, [options]);
 
   const handleConnected = useCallback((status: any) => {
-    console.log('✅ WHATSAPP CONECTADO:', status);
+    console.log('✅ SOCKET: WHATSAPP CONECTADO:', status);
     connectWebSocket(status.instanceName);
   }, [connectWebSocket]);
 
-  const connect = useCallback(async () => {
+  const validateUser = useCallback(() => {
+    console.log('🔐 SOCKET: Validando usuário...');
+    
     const user = authService.getCurrentUser();
     if (!user) {
-      console.error('❌ Usuário não encontrado');
+      console.error('❌ SOCKET: Usuário não encontrado');
       setLastError('Usuário não autenticado');
-      return;
+      return null;
+    }
+
+    if (!authService.isUserDataComplete()) {
+      console.error('❌ SOCKET: Dados do usuário incompletos:', {
+        hasId: !!user.id,
+        hasEmail: !!user.email,
+        hasInstanceName: !!user.instance_name,
+        instanceName: user.instance_name
+      });
+      setLastError('Dados do usuário incompletos. Faça logout e login novamente.');
+      return null;
     }
 
     if (!user.instance_name || user.instance_name.trim() === '') {
-      console.error('❌ Nome da instância não encontrado ou vazio');
+      console.error('❌ SOCKET: Nome da instância não encontrado ou vazio');
       setLastError('Nome da instância não configurado. Faça logout e login novamente.');
+      return null;
+    }
+
+    console.log('✅ SOCKET: Usuário validado com sucesso:', {
+      id: user.id,
+      email: user.email,
+      instance_name: user.instance_name
+    });
+
+    return user;
+  }, []);
+
+  const connect = useCallback(async () => {
+    console.log('🚀 SOCKET: INICIANDO PROCESSO DE CONEXÃO...');
+
+    // Primeira validação: verificar autenticação
+    const user = validateUser();
+    if (!user) {
+      console.error('❌ SOCKET: Validação falhou, abortando conexão');
+      handleStatusChange('disconnected');
       return;
     }
 
@@ -79,62 +112,62 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
       handleStatusChange('connecting');
       setLastError(null);
       
-      console.log('🚀 INICIANDO PROCESSO DE CONEXÃO para:', user.instance_name);
+      console.log('🚀 SOCKET: Usuário validado, iniciando conexão para:', user.instance_name);
 
       // 1. Criar/verificar instância
       try {
-        console.log('📝 Criando instância...');
+        console.log('📝 SOCKET: Criando instância...');
         await EvolutionApi.createInstance(user.instance_name);
-        console.log('✅ Instância criada/verificada');
+        console.log('✅ SOCKET: Instância criada/verificada');
       } catch (error) {
-        console.log('⚠️ Instância pode já existir, continuando...', error);
+        console.log('⚠️ SOCKET: Instância pode já existir, continuando...', error);
       }
 
       // 2. Verificar status da instância
-      console.log('🔍 Verificando status da instância...');
+      console.log('🔍 SOCKET: Verificando status da instância...');
       const status = await EvolutionApi.fetchInstanceStatus(user.instance_name);
-      console.log('📊 Status da instância:', status);
+      console.log('📊 SOCKET: Status da instância:', status);
       setInstanceStatus(status);
       
       if (status?.ownerJid) {
         // WhatsApp já está conectado
-        console.log('✅ WhatsApp já conectado:', status);
+        console.log('✅ SOCKET: WhatsApp já conectado:', status);
         handleStatusChange('connected');
         connectWebSocket(user.instance_name);
         handleConnected(status);
       } else {
         // WhatsApp não está conectado, forçar para waiting_qr
-        console.log('📱 WhatsApp não conectado, forçando para waiting_qr');
+        console.log('📱 SOCKET: WhatsApp não conectado, forçando para waiting_qr');
         handleStatusChange('waiting_qr');
         
         // 3. Conectar WebSocket - IMPORTANTE: conectar mesmo se WhatsApp não estiver conectado
-        console.log('🌐 Conectando WebSocket para aguardar eventos...');
+        console.log('🌐 SOCKET: Conectando WebSocket para aguardar eventos...');
         connectWebSocket(user.instance_name);
         
         // 4. Configurar webhook
         try {
-          console.log('🔗 Configurando webhook...');
+          console.log('🔗 SOCKET: Configurando webhook...');
           await EvolutionApi.configureWebhook(user.instance_name);
-          console.log('✅ Webhook configurado');
+          console.log('✅ SOCKET: Webhook configurado');
         } catch (error) {
-          console.error('⚠️ Erro ao configurar webhook:', error);
+          console.error('⚠️ SOCKET: Erro ao configurar webhook:', error);
         }
         
         // 5. Iniciar verificação contínua do status APENAS se não estiver conectado
-        console.log('🔄 Iniciando verificação contínua de status...');
+        console.log('🔄 SOCKET: Iniciando verificação contínua de status...');
         startStatusCheck(user.instance_name, connectionStatus, handleStatusChange, handleConnected);
       }
       
     } catch (error) {
-      console.error('❌ Erro no processo de conexão:', error);
+      console.error('❌ SOCKET: Erro no processo de conexão:', error);
       handleStatusChange('disconnected');
       setLastError(`Erro ao conectar: ${error}`);
       options.onError?.(error);
     }
-  }, [connectionStatus, handleStatusChange, handleConnected, options, setInstanceStatus, startStatusCheck, connectWebSocket]);
+  }, [connectionStatus, handleStatusChange, handleConnected, options, setInstanceStatus, startStatusCheck, connectWebSocket, validateUser]);
 
   const disconnect = useCallback(() => {
-    console.log('🔌 DESCONECTANDO...');
+    console.log('🔌 SOCKET: DESCONECTANDO...');
     stopStatusCheck();
 
     if (reconnectTimeoutRef.current) {
@@ -143,41 +176,41 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     }
 
     if (webSocketRef.current) {
-      console.log('🌐 Desconectando WebSocket...');
+      console.log('🌐 SOCKET: Desconectando WebSocket...');
       webSocketRef.current.disconnect();
       webSocketRef.current = null;
     }
     
     handleStatusChange('disconnected');
     setInstanceStatus(null);
-    console.log('✅ Desconectado com sucesso');
+    console.log('✅ SOCKET: Desconectado com sucesso');
   }, [handleStatusChange, setInstanceStatus, stopStatusCheck]);
 
   const sendMessage = useCallback((payload: any) => {
     if (webSocketRef.current?.isConnected) {
-      console.log('📤 Enviando mensagem via WebSocket:', payload);
+      console.log('📤 SOCKET: Enviando mensagem via WebSocket:', payload);
       return webSocketRef.current.sendMessage(payload);
     }
-    console.warn('⚠️ WebSocket não conectado, não é possível enviar mensagem');
+    console.warn('⚠️ SOCKET: WebSocket não conectado, não é possível enviar mensagem');
     return false;
   }, []);
 
   const getQRCode = useCallback(async () => {
-    const user = authService.getCurrentUser();
-    if (!user?.instance_name) {
-      throw new Error('Instância não configurada');
+    const user = validateUser();
+    if (!user) {
+      throw new Error('Usuário não autenticado ou dados incompletos');
     }
     
-    console.log('📱 Buscando QR Code para:', user.instance_name);
+    console.log('📱 SOCKET: Buscando QR Code para:', user.instance_name);
     const result = await EvolutionApi.fetchQRCode(user.instance_name);
-    console.log('📱 QR Code recebido:', { hasBase64: !!result?.base64 });
+    console.log('📱 SOCKET: QR Code recebido:', { hasBase64: !!result?.base64 });
     return result;
-  }, []);
+  }, [validateUser]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('🧹 Limpando recursos do hook...');
+      console.log('🧹 SOCKET: Limpando recursos do hook...');
       disconnect();
     };
   }, [disconnect]);
