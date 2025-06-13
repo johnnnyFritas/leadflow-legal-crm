@@ -1,4 +1,3 @@
-
 import { AuthUser } from '@/types/auth';
 import { AuthStorage } from '@/services/auth/authStorage';
 import { AuthApi } from '@/services/auth/authApi';
@@ -131,5 +130,5 @@ class AuthService {
 
 export const authService = new AuthService();
 
-// Re-export AuthUser type for backward compatibility
-export type { AuthUser } from '@/types/auth';
+// Export AuthUser type for backward compatibility
+export { AuthUser } from '@/types/auth';
