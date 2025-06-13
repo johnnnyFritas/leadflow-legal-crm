@@ -1,28 +1,10 @@
-import { supabase } from '@/lib/supabase';
-import { ClientInstance } from '@/types/supabase';
 
-export interface AuthUser {
-  id: string;
-  email: string;
-  company_name: string;
-  instance_name: string;
-  phone?: string;
-  main_lawyer_name?: string;
-  name?: string;
-  role?: string;
-  avatarUrl?: string;
-}
+import { AuthUser } from '@/types/auth';
+import { AuthStorage } from '@/services/auth/authStorage';
+import { AuthApi } from '@/services/auth/authApi';
+import { generateInstanceName } from '@/utils/instanceUtils';
 
 class AuthService {
-  private generateInstanceName(companyName: string): string {
-    return companyName
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]/g, '')
-      .replace(/\s+/g, '');
-  }
-
   async updateInstanceData(instanceId: string, phone: string): Promise<void> {
     try {
       const user = this.getCurrentUser();
@@ -30,18 +12,11 @@ class AuthService {
         throw new Error('Usuário não autenticado');
       }
 
-      console.log('Atualizando dados da instância no Supabase:', { instanceId, phone });
-
-      await supabase.patch(`/clients_instances?id=eq.${user.id}`, {
-        instance_id: instanceId,
-        phone: phone
-      });
+      await AuthApi.updateInstanceData(instanceId, phone);
 
       // Atualizar dados locais do usuário
       const updatedUser = { ...user, phone };
-      localStorage.setItem('authUser', JSON.stringify(updatedUser));
-
-      console.log('Dados da instância atualizados com sucesso');
+      AuthStorage.setAuthUser(updatedUser);
     } catch (error) {
       console.error('Erro ao atualizar dados da instância:', error);
       throw error;
@@ -53,13 +28,12 @@ class AuthService {
       console.log('Tentando fazer login com:', email);
       console.log('Senha fornecida:', password);
       
-      const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
-
-      if (!instances || instances.length === 0) {
+      let instance = await AuthApi.findUserByEmail(email);
+      
+      if (!instance) {
         throw new Error('Email não encontrado');
       }
 
-      let instance = instances[0];
       console.log('Instância encontrada:', {
         id: instance.id,
         email: instance.email,
@@ -72,30 +46,17 @@ class AuthService {
       }
 
       if (!instance.instance_name || instance.instance_name.trim() === '') {
-        const newInstanceName = this.generateInstanceName(instance.company_name);
+        const newInstanceName = generateInstanceName(instance.company_name);
         console.log('Gerando instance_name:', newInstanceName);
         
-        await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
-          instance_name: newInstanceName
-        });
-        
+        await AuthApi.updateInstanceName(instance.id, newInstanceName);
         instance.instance_name = newInstanceName;
       }
 
-      const authUser: AuthUser = {
-        id: instance.id,
-        email: instance.email,
-        company_name: instance.company_name,
-        instance_name: instance.instance_name,
-        phone: instance.phone,
-        main_lawyer_name: instance.main_lawyer_name,
-        name: instance.main_lawyer_name || instance.company_name,
-        role: 'Advogado',
-        avatarUrl: undefined
-      };
+      const authUser = AuthApi.createAuthUserFromInstance(instance);
 
-      localStorage.setItem('authUser', JSON.stringify(authUser));
-      localStorage.setItem('instanceId', instance.id);
+      AuthStorage.setAuthUser(authUser);
+      AuthStorage.setInstanceId(instance.id);
 
       return authUser;
     } catch (error) {
@@ -108,45 +69,17 @@ class AuthService {
     try {
       console.log('Tentando registrar com:', email);
       
-      const existingInstances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
+      const existingInstance = await AuthApi.findUserByEmail(email);
 
-      if (existingInstances && existingInstances.length > 0) {
+      if (existingInstance) {
         throw new Error('Email já cadastrado');
       }
 
-      const instanceName = this.generateInstanceName(name);
+      const newInstance = await AuthApi.createNewInstance(email, password, name);
+      const authUser = AuthApi.createAuthUserFromInstance(newInstance);
 
-      const instanceData = {
-        email: email.toLowerCase().trim(),
-        company_name: name,
-        instance_name: instanceName,
-        main_lawyer_name: name,
-        password: password,
-        created_at: new Date().toISOString()
-      };
-
-      const newInstances = await supabase.post<ClientInstance[]>('/clients_instances', instanceData);
-
-      if (!newInstances || newInstances.length === 0) {
-        throw new Error('Erro ao criar conta');
-      }
-
-      const newInstance = newInstances[0];
-
-      const authUser: AuthUser = {
-        id: newInstance.id,
-        email: newInstance.email,
-        company_name: newInstance.company_name,
-        instance_name: newInstance.instance_name,
-        phone: newInstance.phone,
-        main_lawyer_name: newInstance.main_lawyer_name,
-        name: newInstance.main_lawyer_name || newInstance.company_name,
-        role: 'Advogado',
-        avatarUrl: undefined
-      };
-
-      localStorage.setItem('authUser', JSON.stringify(authUser));
-      localStorage.setItem('instanceId', newInstance.id);
+      AuthStorage.setAuthUser(authUser);
+      AuthStorage.setInstanceId(newInstance.id);
 
       return authUser;
     } catch (error) {
@@ -162,22 +95,17 @@ class AuthService {
         throw new Error('Usuário não autenticado');
       }
 
-      const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(user.email)}&limit=1`);
+      const instance = await AuthApi.findUserByEmail(user.email);
       
-      if (!instances || instances.length === 0) {
+      if (!instance) {
         throw new Error('Usuário não encontrado');
       }
-
-      const instance = instances[0];
       
       if (instance.password !== currentPassword) {
         throw new Error('Senha atual incorreta');
       }
 
-      await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
-        password: newPassword
-      });
-
+      await AuthApi.updatePassword(instance.id, newPassword);
     } catch (error) {
       console.error('Erro ao alterar senha:', error);
       throw error;
@@ -185,22 +113,15 @@ class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem('authUser');
-    localStorage.removeItem('instanceId');
+    AuthStorage.clearAuth();
   }
 
   getCurrentUser(): AuthUser | null {
-    try {
-      const userStr = localStorage.getItem('authUser');
-      if (!userStr) return null;
-      return JSON.parse(userStr);
-    } catch {
-      return null;
-    }
+    return AuthStorage.getAuthUser();
   }
 
   getInstanceId(): string | null {
-    return localStorage.getItem('instanceId');
+    return AuthStorage.getInstanceId();
   }
 
   isAuthenticated(): boolean {
