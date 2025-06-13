@@ -16,28 +16,33 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   onRefresh
 }) => {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.error('Erro ao carregar QR Code:', e);
-    console.error('QR Code src:', qrCode);
-    console.error('QR Code length:', qrCode?.length);
-    console.error('QR Code starts with data:', qrCode?.startsWith('data:'));
+    console.error('❌ Erro ao carregar QR Code:', e);
+    console.error('❌ QR Code src:', qrCode);
+    console.error('❌ QR Code length:', qrCode?.length);
+    console.error('❌ QR Code starts with data:', qrCode?.startsWith('data:'));
+    const target = e.target as HTMLImageElement;
+    console.error('❌ Erro detalhado:', target.error);
   };
 
   const handleImageLoad = () => {
-    console.log('QR Code carregado com sucesso!');
-    console.log('QR Code src length:', qrCode?.length);
+    console.log('✅ QR Code carregado com sucesso!');
+    console.log('✅ QR Code src length:', qrCode?.length);
   };
 
-  // Log detalhado sobre o estado do QR Code
-  console.log('QRCodeDisplay render:', {
+  // Log detalhado sobre o estado do QR Code a cada render
+  console.log('🔍 QRCodeDisplay render:', {
     hasQrCode: !!qrCode,
     qrCodeLength: qrCode?.length,
     qrCodeStart: qrCode?.substring(0, 50),
-    isLoadingQR
+    isLoadingQR,
+    shouldShowImage: !!qrCode && qrCode.trim() !== ''
   });
+
+  const shouldShowQRCode = qrCode && qrCode.trim() !== '';
 
   return (
     <div className="text-center space-y-3">
-      {qrCode ? (
+      {shouldShowQRCode ? (
         <div className="space-y-2">
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white">
             <img 
@@ -46,6 +51,11 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
               className="mx-auto w-48 h-48 object-contain"
               onError={handleImageError}
               onLoad={handleImageLoad}
+              style={{
+                display: 'block',
+                maxWidth: '100%',
+                height: 'auto'
+              }}
             />
           </div>
           <p className="text-sm text-gray-600">
@@ -77,6 +87,13 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Debug info - remover em produção */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-400 mt-2">
+          Debug: QR Code length: {qrCode?.length || 0} | Has QR: {shouldShowQRCode ? 'Yes' : 'No'}
         </div>
       )}
     </div>
