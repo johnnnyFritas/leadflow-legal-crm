@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsService } from '@/services/conversationsService';
@@ -101,7 +102,10 @@ const ConversationsContent = () => {
 
     try {
       // Tentar enviar via Evolution WebSocket primeiro
-      const sentViaEvolution = await sendEvolutionMessage(selectedConversation.id, newMessage.trim());
+      const sentViaEvolution = sendEvolutionMessage({
+        conversationId: selectedConversation.id,
+        content: newMessage.trim()
+      });
       
       if (!sentViaEvolution) {
         // Fallback para REST se WebSocket falhou
@@ -285,7 +289,7 @@ const ConversationsContent = () => {
 
 const Conversations = () => {
   return (
-    <EvolutionProvider onNewMessage={(message) => console.log('Nova mensagem:', message)}>
+    <EvolutionProvider>
       <ConversationsContent />
     </EvolutionProvider>
   );
