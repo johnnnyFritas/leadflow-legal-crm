@@ -36,50 +36,80 @@ export const useQRCodeManager = (
       setIsLoadingQR(true);
       addLog?.('info', 'Buscando QR Code...');
 
-      console.log('🔄 FETCHQR: Iniciando busca');
+      console.log('🔄 FETCHQR: Iniciando busca do QR Code');
 
       const result = await getQRCode();
-      console.log('📥 FETCHQR: Resultado da API:', {
+      console.log('📥 FETCHQR: Resultado completo da API:', {
+        result,
         type: typeof result,
         hasResult: !!result,
         keys: result ? Object.keys(result) : []
       });
       
-      const qrString = result?.base64 || result?.code || result?.qrcode || result?.qr || result;
+      // Tentar extrair QR de múltiplas formas
+      let qrString = '';
+      
+      // Primeira tentativa: propriedades diretas
+      if (result?.base64) {
+        qrString = result.base64;
+        console.log('✅ FETCHQR: QR encontrado em result.base64');
+      } 
+      // Segunda tentativa: result como string direta
+      else if (typeof result === 'string' && result.trim() !== '') {
+        qrString = result;
+        console.log('✅ FETCHQR: QR é string direta');
+      }
+      // Terceira tentativa: outras propriedades
+      else if (result?.code) {
+        qrString = result.code;
+        console.log('✅ FETCHQR: QR encontrado em result.code');
+      } else if (result?.qrcode) {
+        qrString = result.qrcode;
+        console.log('✅ FETCHQR: QR encontrado em result.qrcode');
+      } else if (result?.qr) {
+        qrString = result.qr;
+        console.log('✅ FETCHQR: QR encontrado em result.qr');
+      }
       
       console.log('🔍 FETCHQR: QR String extraída:', {
         hasQrString: !!qrString,
         length: qrString?.length,
         type: typeof qrString,
+        startsWithData: qrString?.startsWith('data:'),
         preview: qrString?.substring(0, 50)
       });
       
       if (qrString && typeof qrString === 'string' && qrString.trim() !== '') {
+        // Garantir que o QR code tenha o prefixo data:image correto
         let finalQrCode = qrString.startsWith('data:image') 
           ? qrString 
           : `data:image/png;base64,${qrString}`;
 
         console.log('🚀 FETCHQR: Definindo QR Code final:', {
           length: finalQrCode.length,
-          preview: finalQrCode.substring(0, 50)
+          startsWithData: finalQrCode.startsWith('data:'),
+          preview: finalQrCode.substring(0, 80)
         });
 
         setQrCode(finalQrCode);
         setRenderKey(prev => prev + 1);
-        addLog?.('success', `QR Code recebido (${finalQrCode.length} chars)`);
+        addLog?.('success', `QR Code recebido e configurado (${finalQrCode.length} chars)`);
         setQrTimer(30);
 
-        console.log('✅ FETCHQR: QR Code definido com sucesso');
+        console.log('✅ FETCHQR: QR Code definido com sucesso no estado');
       } else {
-        console.log('🧪 FETCHQR: Usando QR de teste');
-        const testQR = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
-        setQrCode(testQR);
+        console.warn('⚠️ FETCHQR: QR Code não encontrado ou inválido');
+        addLog?.('warning', 'QR Code não encontrado na resposta da API');
+        
+        // Limpar QR code anterior se não houver novo
+        setQrCode('');
         setRenderKey(prev => prev + 1);
-        addLog?.('warning', 'Usando QR Code de teste - API não retornou QR válido');
       }
     } catch (error) {
-      console.error('❌ FETCHQR: Erro:', error);
+      console.error('❌ FETCHQR: Erro ao buscar QR Code:', error);
       addLog?.('error', `Erro ao buscar QR Code: ${error}`);
+      setQrCode('');
+      setRenderKey(prev => prev + 1);
     } finally {
       setIsLoadingQR(false);
     }

@@ -1,3 +1,4 @@
+
 import { InstanceStatus } from '@/types/evolution';
 import { EVOLUTION_CONFIG } from '@/constants/evolution';
 
@@ -98,7 +99,7 @@ export class EvolutionApi {
   }
 
   static async fetchQRCode(instanceName: string): Promise<any> {
-    console.log('Buscando QR Code para:', instanceName);
+    console.log('🔍 Buscando QR Code para:', instanceName);
     
     const response = await fetch(`${this.BASE_URL}/instance/connect/${instanceName}`, {
       method: 'GET',
@@ -112,16 +113,49 @@ export class EvolutionApi {
     }
 
     const result = await response.json();
-    console.log('QR Code resposta original:', result);
+    console.log('📥 QR Code resposta RAW da API:', result);
     
-    // Normalizar a resposta da API - mapear 'code' para 'base64'
+    // Extrair QR code de diferentes estruturas possíveis
+    let qrBase64 = '';
+    
+    // Tentar diferentes caminhos para o QR code
+    if (result.qrcode?.base64) {
+      qrBase64 = result.qrcode.base64;
+      console.log('✅ QR encontrado em result.qrcode.base64');
+    } else if (result.qrcode?.code) {
+      qrBase64 = result.qrcode.code;
+      console.log('✅ QR encontrado em result.qrcode.code');
+    } else if (result.base64) {
+      qrBase64 = result.base64;
+      console.log('✅ QR encontrado em result.base64');
+    } else if (result.code) {
+      qrBase64 = result.code;
+      console.log('✅ QR encontrado em result.code');
+    } else if (typeof result === 'string') {
+      qrBase64 = result;
+      console.log('✅ QR é string direta');
+    }
+
+    console.log('🔍 QR extraído:', {
+      hasQr: !!qrBase64,
+      length: qrBase64?.length,
+      startsWithData: qrBase64?.startsWith('data:'),
+      preview: qrBase64?.substring(0, 50)
+    });
+    
+    // Normalizar resultado
     const normalizedResult = {
-      base64: result.base64 || result.code || result.qrcode || '',
-      pairingCode: result.pairingCode,
-      count: result.count
+      base64: qrBase64,
+      pairingCode: result.qrcode?.pairingCode || result.pairingCode,
+      count: result.qrcode?.count || result.count || 1
     };
     
-    console.log('QR Code normalizado:', { hasBase64: !!normalizedResult.base64 });
+    console.log('📤 QR Code normalizado:', {
+      hasBase64: !!normalizedResult.base64,
+      base64Length: normalizedResult.base64?.length,
+      hasPairingCode: !!normalizedResult.pairingCode
+    });
+    
     return normalizedResult;
   }
 
