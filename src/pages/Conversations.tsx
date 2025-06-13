@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsService } from '@/services/conversationsService';
@@ -12,6 +11,7 @@ import MessagesList from '@/components/conversations/MessagesList';
 import MessageInput from '@/components/conversations/MessageInput';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { WhatsAppStatus } from '@/components/whatsapp/WhatsAppStatus';
 
 const Conversations = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -150,15 +150,25 @@ const Conversations = () => {
     <div className="flex h-screen bg-background w-full">
       {/* Lista de conversas - só aparece quando nenhuma conversa está selecionada */}
       {!selectedConversation && (
-        <ConversationsList
-          conversations={conversations}
-          selectedConversation={selectedConversation}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          selectedChannel={selectedChannel}
-          onChannelChange={setSelectedChannel}
-          onConversationSelect={handleConversationSelect}
-        />
+        <div className="w-full h-full flex flex-col">
+          {/* Status do WhatsApp */}
+          <div className="flex-shrink-0 p-4 border-b border-border">
+            <WhatsAppStatus />
+          </div>
+          
+          {/* Lista de conversas */}
+          <div className="flex-1 overflow-hidden">
+            <ConversationsList
+              conversations={conversations}
+              selectedConversation={selectedConversation}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              selectedChannel={selectedChannel}
+              onChannelChange={setSelectedChannel}
+              onConversationSelect={handleConversationSelect}
+            />
+          </div>
+        </div>
       )}
 
       {/* Conversa ativa - só aparece quando uma conversa está selecionada */}
