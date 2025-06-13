@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertTriangle, XCircle, QrCode, RefreshCw, Phone, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertTriangle, XCircle, QrCode, RefreshCw, Phone, Loader2, Wifi, WifiOff } from 'lucide-react';
 import { useEvolutionSocket } from '@/hooks/useEvolutionSocket';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -13,12 +13,18 @@ export const WhatsAppStatus = () => {
   const { user } = useAuth();
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   
-  // Gerar instanceName baseado no nome da empresa
+  // Gerar instanceName limpo baseado no nome da empresa
+  const cleanInstanceName = (name: string): string => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais
+      .replace(/\s+/g, ''); // Remove espaços
+  };
+
   const instanceName = user?.instance_name || 
-    user?.company_name?.toLowerCase()
-      .replace(/\s+/g, '')
-      .replace(/[^a-z0-9]/g, '') || 
-    'default';
+    (user?.company_name ? cleanInstanceName(user.company_name) : 'default');
 
   const {
     isConnected,
@@ -74,6 +80,14 @@ export const WhatsAppStatus = () => {
       default:
         return 'WhatsApp não conectado';
     }
+  };
+
+  const getWebSocketStatusIcon = () => {
+    return isConnected ? (
+      <Wifi className="h-4 w-4 text-green-600" />
+    ) : (
+      <WifiOff className="h-4 w-4 text-red-600" />
+    );
   };
 
   return (
@@ -157,7 +171,11 @@ export const WhatsAppStatus = () => {
           {/* Informações técnicas */}
           <div className="text-sm text-muted-foreground space-y-1">
             <p>Instância: <code className="bg-muted px-1 py-0.5 rounded">{instanceName}</code></p>
-            <p>WebSocket: {isConnected ? '🟢 Conectado' : '🔴 Desconectado'}</p>
+            <div className="flex items-center gap-2">
+              <span>WebSocket:</span>
+              {getWebSocketStatusIcon()}
+              <span>{isConnected ? 'Conectado' : 'Desconectado'}</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -175,11 +193,11 @@ export const WhatsAppStatus = () => {
           <div className="space-y-4">
             {qrCode ? (
               <div className="flex flex-col items-center space-y-4">
-                <div className="bg-white p-4 rounded-lg">
+                <div className="bg-white p-4 rounded-lg border">
                   <img 
                     src={qrCode} 
                     alt="QR Code WhatsApp" 
-                    className="w-64 h-64"
+                    className="w-64 h-64 object-contain"
                   />
                 </div>
                 <div className="text-center space-y-2">

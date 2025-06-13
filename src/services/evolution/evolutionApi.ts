@@ -26,6 +26,8 @@ class EvolutionApiService {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Evolution API error! status: ${response.status}, response: ${errorText}`);
         throw new Error(`Evolution API error! status: ${response.status}`);
       }
 
@@ -36,30 +38,38 @@ class EvolutionApiService {
     }
   }
 
+  // Conectar instância (necessário antes de gerar QR)
   async connectInstance(instanceName: string): Promise<ConnectionResponse> {
-    return this.request<ConnectionResponse>('/instance/connect', 'POST', {
-      instanceName
-    });
+    return this.request<ConnectionResponse>(`/instance/${instanceName}/connect`, 'POST');
   }
 
+  // Gerar QR Code
   async generateQRCode(instanceName: string): Promise<QRCodeResponse> {
-    return this.request<QRCodeResponse>('/instance/qr', 'POST', {
-      instanceName
-    });
+    return this.request<QRCodeResponse>(`/instance/${instanceName}/qr`, 'POST');
   }
 
+  // Desconectar instância
   async disconnectInstance(instanceName: string): Promise<ConnectionResponse> {
-    return this.request<ConnectionResponse>('/instance/disconnect', 'POST', {
-      instanceName
-    });
+    return this.request<ConnectionResponse>(`/instance/${instanceName}/disconnect`, 'POST');
   }
 
+  // Obter status da instância
   async getInstanceStatus(instanceName: string): Promise<any> {
-    return this.request(`/instance/status/${instanceName}`, 'GET');
+    return this.request(`/instance/${instanceName}/status`, 'GET');
   }
 
+  // Deletar instância
   async deleteInstance(instanceName: string): Promise<ConnectionResponse> {
-    return this.request<ConnectionResponse>(`/instance/delete/${instanceName}`, 'DELETE');
+    return this.request<ConnectionResponse>(`/instance/${instanceName}/delete`, 'DELETE');
+  }
+
+  // Criar instância
+  async createInstance(instanceName: string): Promise<ConnectionResponse> {
+    return this.request<ConnectionResponse>(`/instance/create`, 'POST', {
+      instanceName,
+      qrcode: true,
+      integration: 'WHATSAPP-BAILEYS'
+    });
   }
 }
 

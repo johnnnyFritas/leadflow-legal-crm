@@ -18,6 +18,17 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const qrRefreshInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Função para gerar instanceName limpo
+  const cleanInstanceName = useCallback((name: string): string => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais
+      .replace(/\s+/g, ''); // Remove espaços
+  }, []);
 
   // Função para salvar mensagem no banco
   const saveMessage = useCallback(async (messageData: WebSocketMessage) => {
@@ -28,13 +39,14 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
         sender_phone: messageData.phone,
         sent_at: messageData.timestamp || new Date().toISOString(),
         conversation_id: messageData.conversation_id,
-        message_type: 'text'
+        message_type: 'text',
+        instance_id: instanceName
       });
       console.log('Mensagem salva no banco:', messageData);
     } catch (error) {
       console.error('Erro ao salvar mensagem no banco:', error);
     }
-  }, []);
+  }, [instanceName]);
 
   // Função para atualizar status da instância no banco
   const updateInstanceStatus = useCallback(async (status: InstanceStatus) => {
@@ -65,15 +77,16 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
 
   // Função para conectar ao WebSocket
   const connectSocket = useCallback(() => {
-    if (socketRef.current) {
+    if (socketRef.current?.connected) {
       socketRef.current.disconnect();
     }
 
-    const socketUrl = `wss://evo.haddx.com.br/${instanceName}`;
-    console.log('Conectando ao WebSocket:', socketUrl);
+    const socketUrl = `wss://evo.haddx.com.br`;
+    console.log('Conectando ao WebSocket:', `${socketUrl}/${instanceName}`);
 
     const socket = io(socketUrl, {
       transports: ['websocket'],
+      path: `/${instanceName}`,
       auth: {
         token: apiKey
       },
@@ -117,9 +130,19 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
 
       if (status.status === 'connected') {
         setQrCode(''); // Limpar QR quando conectar
+        setIsGeneratingQR(false);
+        setIsConnecting(false);
+        
+        // Parar refresh automático do QR
+        if (qrRefreshInterval.current) {
+          clearInterval(qrRefreshInterval.current);
+          qrRefreshInterval.current = null;
+        }
+        
         toast.success(`WhatsApp conectado ao número: ${status.phone}`);
       } else if (status.status === 'disconnected') {
         setConnectedPhone('');
+        setIsConnecting(false);
         toast.warning('WhatsApp desconectado');
       }
     });
@@ -160,7 +183,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
       }
     });
 
-    // Escutar mensagens de clientes (qualquer outro evento de mensagem)
+    // Escutar mensagens de clientes
     socket.on('message', (data: any) => {
       console.log('Mensagem do cliente recebida:', data);
       
@@ -201,12 +224,13 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     });
 
     socketRef.current = socket;
-  }, [instanceName, apiKey, saveMessage, updateInstanceStatus]);
+  }, [instanceName, apiKey, saveMessage, updateInstanceStatus, attemptReconnect]);
 
   // Função para tentativa de reconexão
   const attemptReconnect = useCallback(() => {
     if (reconnectAttempts.current >= maxReconnectAttempts) {
       console.log('Máximo de tentativas de reconexão atingido');
+      toast.error('Falha na conexão. Verifique sua internet e tente novamente.');
       return;
     }
 
@@ -222,44 +246,70 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     }, 5000);
   }, [connectSocket]);
 
+  // Função para refresh automático do QR
+  const startQRRefresh = useCallback(() => {
+    if (qrRefreshInterval.current) {
+      clearInterval(qrRefreshInterval.current);
+    }
+
+    qrRefreshInterval.current = setInterval(() => {
+      if (instanceStatus !== 'connected' && !isGeneratingQR) {
+        console.log('Refreshing QR Code automaticamente...');
+        generateQRCode();
+      }
+    }, 30000); // 30 segundos
+  }, [instanceStatus, isGeneratingQR]);
+
   // Função para gerar QR Code
   const generateQRCode = useCallback(async () => {
     try {
       setIsGeneratingQR(true);
       setQrCode('');
+      setInstanceStatus('connecting');
 
-      // Primeiro conectar a instância
-      console.log('Conectando instância:', instanceName);
+      console.log('Criando/conectando instância:', instanceName);
+      
+      // Primeiro tentar criar a instância (caso não exista)
+      try {
+        await evolutionApi.createInstance(instanceName);
+      } catch (error) {
+        // Se já existir, apenas conectar
+        console.log('Instância já existe, apenas conectando...');
+      }
+
+      // Conectar a instância
       await evolutionApi.connectInstance(instanceName);
 
-      // Depois gerar QR
+      // Gerar QR
       console.log('Gerando QR Code para:', instanceName);
       const qrResponse = await evolutionApi.generateQRCode(instanceName);
       
       if (qrResponse.qr) {
-        setQrCode(qrResponse.qr);
-        setInstanceStatus('connecting');
+        setQrCode(`data:image/png;base64,${qrResponse.qr}`);
         toast.info('QR Code gerado! Escaneie com seu WhatsApp.');
         
-        // Auto-refresh QR a cada 30 segundos
-        setTimeout(() => {
-          if (instanceStatus !== 'connected') {
-            generateQRCode();
-          }
-        }, 30000);
+        // Iniciar refresh automático
+        startQRRefresh();
       }
     } catch (error) {
       console.error('Erro ao gerar QR Code:', error);
       toast.error('Erro ao gerar QR Code. Tente novamente.');
+      setInstanceStatus('disconnected');
     } finally {
       setIsGeneratingQR(false);
     }
-  }, [instanceName, instanceStatus]);
+  }, [instanceName, startQRRefresh]);
 
   // Função para trocar número (desconectar)
   const changeNumber = useCallback(async () => {
     try {
       setIsConnecting(true);
+      
+      // Parar refresh do QR
+      if (qrRefreshInterval.current) {
+        clearInterval(qrRefreshInterval.current);
+        qrRefreshInterval.current = null;
+      }
       
       // Desconectar socket
       if (socketRef.current) {
@@ -273,6 +323,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
       setInstanceStatus('disconnected');
       setConnectedPhone('');
       setQrCode('');
+      setIsConnected(false);
       
       // Atualizar banco
       await updateInstanceStatus({
@@ -291,7 +342,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
 
   // Função para enviar mensagem
   const sendMessage = useCallback(async (phone: string, message: string, conversationId?: string) => {
-    if (!socketRef.current || !isConnected) {
+    if (!socketRef.current?.connected || instanceStatus !== 'connected') {
       toast.error('WhatsApp não conectado. Conecte primeiro.');
       return false;
     }
@@ -322,7 +373,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
       toast.error('Erro ao enviar mensagem');
       return false;
     }
-  }, [isConnected, instanceName, saveMessage]);
+  }, [instanceStatus, instanceName, saveMessage]);
 
   // Conectar ao montar o componente
   useEffect(() => {
@@ -337,8 +388,11 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      if (qrRefreshInterval.current) {
+        clearInterval(qrRefreshInterval.current);
+      }
     };
-  }, [instanceName, connectSocket]);
+  }, [connectSocket]);
 
   return {
     isConnected,
