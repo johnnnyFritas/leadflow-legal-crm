@@ -90,15 +90,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
         console.log('⚠️ Instância pode já existir, continuando...', error);
       }
 
-      // 2. Conectar WebSocket imediatamente após criar instância
-      console.log('🌐 Conectando WebSocket...');
-      connectWebSocket(user.instance_name);
-
-      // 3. Aguardar um pouco para a instância estar pronta
-      console.log('⏳ Aguardando instância ficar pronta...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // 4. Verificar status da instância
+      // 2. Verificar status da instância
       console.log('🔍 Verificando status da instância...');
       const status = await EvolutionApi.fetchInstanceStatus(user.instance_name);
       console.log('📊 Status da instância:', status);
@@ -108,13 +100,18 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
         // WhatsApp já está conectado
         console.log('✅ WhatsApp já conectado:', status);
         handleStatusChange('connected');
+        connectWebSocket(user.instance_name);
         handleConnected(status);
       } else {
-        // WhatsApp não está conectado, aguardar QR Code
-        console.log('📱 WhatsApp não conectado, mudando para waiting_qr');
+        // WhatsApp não está conectado, forçar para waiting_qr
+        console.log('📱 WhatsApp não conectado, forçando para waiting_qr');
         handleStatusChange('waiting_qr');
         
-        // 5. Configurar webhook
+        // 3. Conectar WebSocket - IMPORTANTE: conectar mesmo se WhatsApp não estiver conectado
+        console.log('🌐 Conectando WebSocket para aguardar eventos...');
+        connectWebSocket(user.instance_name);
+        
+        // 4. Configurar webhook
         try {
           console.log('🔗 Configurando webhook...');
           await EvolutionApi.configureWebhook(user.instance_name);
@@ -123,7 +120,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
           console.error('⚠️ Erro ao configurar webhook:', error);
         }
         
-        // 6. Iniciar verificação contínua do status
+        // 5. Iniciar verificação contínua do status APENAS se não estiver conectado
         console.log('🔄 Iniciando verificação contínua de status...');
         startStatusCheck(user.instance_name, connectionStatus, handleStatusChange, handleConnected);
       }

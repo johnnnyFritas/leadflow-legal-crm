@@ -31,17 +31,17 @@ export class EvolutionWebSocket {
       const socketConfig = {
         path: EVOLUTION_CONFIG.WS_PATH,
         query: { 
-          instanceName,
-          // Incluir apikey se disponível
-          ...(process.env.VITE_EVO_API_KEY && { apikey: process.env.VITE_EVO_API_KEY })
+          instanceName
+          // Remover apikey da query por enquanto para testar
         },
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'], // Adicionar polling como fallback
         reconnection: true,
         reconnectionAttempts: EVOLUTION_CONFIG.RECONNECTION_ATTEMPTS,
         reconnectionDelay: EVOLUTION_CONFIG.RECONNECTION_DELAY,
         reconnectionDelayMax: EVOLUTION_CONFIG.RECONNECTION_DELAY_MAX,
-        timeout: 10000,
-        forceNew: true
+        timeout: 20000, // Aumentar timeout
+        forceNew: true,
+        autoConnect: true
       };
 
       console.log('⚙️ Configuração do socket:', socketConfig);
@@ -62,6 +62,12 @@ export class EvolutionWebSocket {
 
       this.socket.on(WS_EVENTS.CONNECT_ERROR, (error) => {
         console.error('❌ Erro de conexão WebSocket:', error);
+        console.error('❌ Detalhes do erro:', {
+          message: error.message,
+          description: error.description,
+          context: error.context,
+          type: error.type
+        });
         this.options.onError?.(error);
       });
 
@@ -101,10 +107,9 @@ export class EvolutionWebSocket {
         console.log('🎯 Evento WebSocket recebido:', eventName, args);
       });
 
-      // Log quando o socket estiver pronto
-      this.socket.on('connect', () => {
-        console.log('🎉 Socket conectado e pronto para:', instanceName);
-      });
+      // Tentar conectar explicitamente
+      this.socket.connect();
+      console.log('🔌 Tentando conectar socket explicitamente...');
 
     } catch (error) {
       console.error('❌ Erro ao conectar WebSocket:', error);
