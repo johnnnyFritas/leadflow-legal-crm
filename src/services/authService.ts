@@ -130,3 +130,6 @@ class AuthService {
 }
 
 export const authService = new AuthService();
+
+// Re-export AuthUser type for backward compatibility
+export type { AuthUser } from '@/types/auth';
