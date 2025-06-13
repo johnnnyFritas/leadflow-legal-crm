@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { authService } from '@/services/authService';
 import { toast } from '@/components/ui/sonner';
+import { io, Socket } from 'socket.io-client';
 
 export interface EvolutionEvent {
   event: string;
@@ -14,15 +15,14 @@ export interface EvolutionEvent {
 export interface EvolutionSocketOptions {
   onMessage?: (event: EvolutionEvent) => void;
   onStatusChange?: (status: 'connected' | 'disconnected') => void;
-  onError?: (error: Event) => void;
+  onError?: (error: any) => void;
 }
 
 export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
   const [lastError, setLastError] = useState<string | null>(null);
-  const socketRef = useRef<WebSocket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
@@ -82,40 +82,36 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
       // Aguardar um pouco para a ativação ser processada
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const wsUrl = `wss://evolution.haddx.com.br/${user.instance_name}?authorization=Bearer%20SUACHAVEAQUI`;
+      // Usar Socket.IO em modo tradicional (por instância)
+      const socketUrl = `https://evolution.haddx.com.br/${user.instance_name}`;
       
-      console.log('Conectando ao WebSocket Evolution:', wsUrl);
+      console.log('Conectando ao Socket.IO Evolution:', socketUrl);
       
-      const ws = new WebSocket(wsUrl);
+      const socket = io(socketUrl, {
+        transports: ['websocket'],
+        auth: {
+          authorization: 'Bearer SUACHAVEAQUI'
+        },
+        query: {
+          authorization: 'Bearer SUACHAVEAQUI'
+        }
+      });
 
-      ws.onopen = () => {
-        console.log('WebSocket Evolution conectado');
+      socket.on('connect', () => {
+        console.log('Socket.IO Evolution conectado');
         setConnectionStatus('connected');
         setLastError(null);
         reconnectAttempts.current = 0;
         options.onStatusChange?.('connected');
-        
-        // Configurar ping para manter conexão ativa
-        pingIntervalRef.current = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'ping' }));
-          }
-        }, 30000); // Ping a cada 30 segundos
-      };
+      });
 
-      ws.onclose = (event) => {
-        console.log('WebSocket Evolution desconectado:', event.code, event.reason);
+      socket.on('disconnect', (reason) => {
+        console.log('Socket.IO Evolution desconectado:', reason);
         setConnectionStatus('disconnected');
         options.onStatusChange?.('disconnected');
-        
-        // Limpar ping interval
-        if (pingIntervalRef.current) {
-          clearInterval(pingIntervalRef.current);
-          pingIntervalRef.current = null;
-        }
 
-        // Tentar reconectar se não foi fechamento intencional
-        if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
+        // Tentar reconectar se não foi desconexão intencional
+        if (reason !== 'io client disconnect' && reconnectAttempts.current < maxReconnectAttempts) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
           console.log(`Tentando reconectar em ${delay}ms (tentativa ${reconnectAttempts.current + 1})`);
           
@@ -126,28 +122,32 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
         } else if (reconnectAttempts.current >= maxReconnectAttempts) {
           toast.error('Não foi possível conectar ao WhatsApp. Verifique sua conexão.');
         }
-      };
+      });
 
-      ws.onerror = (error) => {
-        console.error('Erro no WebSocket Evolution:', error);
+      socket.on('connect_error', (error) => {
+        console.error('Erro na conexão Socket.IO Evolution:', error);
         setLastError('Erro de conexão com WhatsApp');
         options.onError?.(error);
-      };
+      });
 
-      ws.onmessage = (event) => {
-        try {
-          const data: EvolutionEvent = JSON.parse(event.data);
-          console.log('Evento Evolution recebido:', data);
-          options.onMessage?.(data);
-        } catch (error) {
-          console.error('Erro ao processar mensagem Evolution:', error);
-        }
-      };
+      // Escutar todos os eventos Evolution
+      socket.onAny((eventName: string, data: any) => {
+        console.log('Evento Evolution recebido:', { event: eventName, data });
+        
+        const evolutionEvent: EvolutionEvent = {
+          event: eventName,
+          instance: user.instance_name,
+          data: data,
+          date_time: new Date().toISOString()
+        };
+        
+        options.onMessage?.(evolutionEvent);
+      });
 
-      socketRef.current = ws;
+      socketRef.current = socket;
 
     } catch (error) {
-      console.error('Erro ao criar conexão WebSocket:', error);
+      console.error('Erro ao criar conexão Socket.IO:', error);
       setConnectionStatus('disconnected');
       setLastError('Erro ao conectar com WhatsApp');
     }
@@ -158,14 +158,9 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-    
-    if (pingIntervalRef.current) {
-      clearInterval(pingIntervalRef.current);
-      pingIntervalRef.current = null;
-    }
 
     if (socketRef.current) {
-      socketRef.current.close(1000, 'Desconexão intencional');
+      socketRef.current.disconnect();
       socketRef.current = null;
     }
     
@@ -173,8 +168,8 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   }, []);
 
   const sendMessage = useCallback((payload: any) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(payload));
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('message', payload);
       return true;
     }
     return false;
