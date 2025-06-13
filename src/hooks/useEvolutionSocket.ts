@@ -28,6 +28,8 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
 
   const activateWebSocket = useCallback(async (instanceName: string) => {
     try {
+      console.log('Ativando WebSocket para instância:', instanceName);
+      
       const response = await fetch(`https://evolution.haddx.com.br/websocket/${instanceName}`, {
         method: 'POST',
         headers: {
@@ -64,8 +66,15 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
 
   const connect = useCallback(async () => {
     const user = authService.getCurrentUser();
-    if (!user?.instance_name) {
-      console.error('Nome da instância não encontrado');
+    if (!user) {
+      console.error('Usuário não encontrado');
+      setLastError('Usuário não autenticado');
+      return;
+    }
+
+    if (!user.instance_name || user.instance_name.trim() === '') {
+      console.error('Nome da instância não encontrado ou vazio');
+      setLastError('Nome da instância não configurado. Faça logout e login novamente.');
       return;
     }
 

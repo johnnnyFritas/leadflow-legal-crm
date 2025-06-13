@@ -15,6 +15,15 @@ export interface AuthUser {
 }
 
 class AuthService {
+  private generateInstanceName(companyName: string): string {
+    return companyName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais e espaços
+      .replace(/\s+/g, ''); // Remove espaços extras (caso tenham sobrado)
+  }
+
   async login(email: string, password: string): Promise<AuthUser | null> {
     try {
       console.log('Tentando fazer login com:', email);
@@ -27,16 +36,31 @@ class AuthService {
         throw new Error('Email não encontrado');
       }
 
-      const instance = instances[0];
+      let instance = instances[0];
       console.log('Instância encontrada:', {
         id: instance.id,
-        email: instance.email
+        email: instance.email,
+        instance_name: instance.instance_name
       });
 
       // Verificar se a senha está correta
       if (instance.password !== password) {
         console.log('Senha incorreta');
         throw new Error('Senha incorreta');
+      }
+
+      // Gerar instance_name se estiver vazio
+      if (!instance.instance_name || instance.instance_name.trim() === '') {
+        const newInstanceName = this.generateInstanceName(instance.company_name);
+        console.log('Gerando instance_name:', newInstanceName);
+        
+        // Atualizar no banco
+        await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
+          instance_name: newInstanceName
+        });
+        
+        // Atualizar objeto local
+        instance.instance_name = newInstanceName;
       }
 
       // Criar objeto do usuário autenticado
@@ -74,11 +98,14 @@ class AuthService {
         throw new Error('Email já cadastrado');
       }
 
+      // Gerar instance_name baseado no nome da empresa
+      const instanceName = this.generateInstanceName(name);
+
       // Criar nova instância
       const instanceData = {
         email: email.toLowerCase().trim(),
         company_name: name,
-        instance_name: name.toLowerCase().replace(/\s+/g, '_'),
+        instance_name: instanceName,
         main_lawyer_name: name,
         password: password,
         created_at: new Date().toISOString()
