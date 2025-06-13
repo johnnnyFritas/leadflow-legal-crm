@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -40,6 +39,7 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
   const [isLoadingQR, setIsLoadingQR] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
   const [qrTimer, setQrTimer] = useState(30);
+  const [renderKey, setRenderKey] = useState(0); // Force re-render
   const qrIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -50,25 +50,6 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
       message
     };
     setLogs(prev => [...prev, newLog]);
-  };
-
-  // Validação mais permissiva para base64
-  const isValidBase64Image = (str: string): boolean => {
-    if (!str) return false;
-    
-    // Se já é uma data URI, apenas verificar se tem conteúdo após base64,
-    if (str.startsWith('data:image')) {
-      return str.includes('base64,') && str.split('base64,')[1]?.length > 50;
-    }
-    
-    // Para base64 puro, verificação mais permissiva
-    try {
-      const cleanStr = str.replace(/\s/g, '');
-      // Apenas verificar se tem caracteres base64 válidos e tamanho mínimo
-      return /^[A-Za-z0-9+/=]*$/.test(cleanStr) && cleanStr.length > 50;
-    } catch {
-      return false;
-    }
   };
 
   const fetchQRCode = async () => {
@@ -86,89 +67,86 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
       setIsLoadingQR(true);
       addLog('info', 'Buscando QR Code...');
 
+      console.log('🔄 INICIANDO BUSCA DO QR CODE');
+
       const result = await getQRCode();
-      console.log('🔍 Resultado completo do QR Code:', result);
+      console.log('📥 RESULTADO BRUTO DA API:', result);
       
-      // Tentar múltiplos campos possíveis
-      const qrString = result?.base64 || result?.code || result?.qrcode || result?.qr;
+      // Extrair QR Code de qualquer campo possível
+      const qrString = result?.base64 || result?.code || result?.qrcode || result?.qr || result;
       
-      console.log('🔍 QR String extraída:', {
+      console.log('🔍 QR STRING EXTRAÍDA:', {
         hasQrString: !!qrString,
         qrStringLength: qrString?.length,
-        qrStringStart: qrString?.substring(0, 50),
-        qrStringType: typeof qrString
+        qrStringType: typeof qrString,
+        qrStringStart: qrString?.substring(0, 100)
       });
       
-      if (qrString && qrString.trim() !== '') {
-        let qrCodeDataUri = '';
-        let shouldRender = false;
+      if (qrString && typeof qrString === 'string' && qrString.trim() !== '') {
+        let finalQrCode = '';
 
-        // Tentar criar data URI independente da validação
+        // Preparar data URI
         if (qrString.startsWith('data:image')) {
-          qrCodeDataUri = qrString;
-          shouldRender = true;
+          finalQrCode = qrString;
           console.log('✅ QR Code já é data URI');
         } else {
-          qrCodeDataUri = `data:image/png;base64,${qrString}`;
-          shouldRender = true;
+          finalQrCode = `data:image/png;base64,${qrString}`;
           console.log('✅ QR Code convertido para data URI');
         }
 
-        // Log da validação mas não bloquear renderização
-        const isValid = isValidBase64Image(qrString);
-        console.log('🔍 Validação base64:', {
-          isValid,
-          qrCodeLength: qrCodeDataUri.length,
-          startsWithData: qrCodeDataUri.startsWith('data:image'),
-          hasBase64: qrCodeDataUri.includes('base64,')
+        console.log('🚀 DEFININDO QR CODE NO ESTADO:', {
+          finalLength: finalQrCode.length,
+          finalPreview: finalQrCode.substring(0, 50)
         });
 
-        if (!isValid) {
-          console.warn('⚠️ QR Code pode não ser válido, mas tentando renderizar mesmo assim');
-          addLog('warning', 'QR Code pode não ser válido, tentando renderizar');
-        }
+        // FORÇAR atualização do estado
+        setQrCode(finalQrCode);
+        setRenderKey(prev => prev + 1); // Force re-render
+        addLog('success', `QR Code recebido (${finalQrCode.length} chars)`);
+        setQrTimer(30);
 
-        // SEMPRE tentar definir o QR Code se temos uma string
-        if (shouldRender) {
-          console.log('🚀 Definindo QR Code no estado:', {
-            length: qrCodeDataUri.length,
-            preview: qrCodeDataUri.substring(0, 100)
+        // Verificar estado após 100ms
+        setTimeout(() => {
+          console.log('🔍 VERIFICAÇÃO PÓS-SET:', {
+            qrCodeLength: finalQrCode.length,
+            renderKey
           });
-          
-          setQrCode(qrCodeDataUri);
-          addLog('success', 'QR Code atualizado com sucesso');
-          setQrTimer(30);
-          
-          // Log do estado após definir
-          setTimeout(() => {
-            console.log('🔍 Estado do QR Code após setQrCode:', {
-              qrCodeSet: !!qrCodeDataUri,
-              stateLength: qrCodeDataUri.length
-            });
-          }, 100);
-        }
+        }, 100);
+
       } else {
-        console.error('❌ QR Code vazio ou não encontrado na resposta:', result);
-        addLog('error', 'QR Code não disponível na resposta da API');
+        console.error('❌ QR Code inválido ou vazio:', {
+          qrString,
+          type: typeof qrString,
+          result
+        });
+        addLog('error', 'QR Code não encontrado na resposta da API');
+        
+        // TESTE: Usar QR Code hardcoded para debug
+        const testQR = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
+        console.log('🧪 USANDO QR CODE DE TESTE');
+        setQrCode(testQR);
+        setRenderKey(prev => prev + 1);
+        addLog('warning', 'Usando QR Code de teste');
       }
     } catch (error) {
-      console.error('❌ Erro ao buscar QR Code:', error);
+      console.error('❌ ERRO NA BUSCA DO QR CODE:', error);
       addLog('error', `Erro ao buscar QR Code: ${error}`);
     } finally {
       setIsLoadingQR(false);
     }
   };
 
-  // Log do estado do qrCode sempre que mudar
+  // Log sempre que qrCode mudar
   useEffect(() => {
-    console.log('🔍 Estado qrCode mudou:', {
+    console.log('🔄 ESTADO QR CODE MUDOU:', {
       hasQrCode: !!qrCode,
       qrCodeLength: qrCode?.length,
       qrCodePreview: qrCode?.substring(0, 50),
+      renderKey,
       isWaitingQR,
       connectionStatus
     });
-  }, [qrCode, isWaitingQR, connectionStatus]);
+  }, [qrCode, renderKey, isWaitingQR, connectionStatus]);
 
   const startQRCodeRefresh = () => {
     if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
@@ -258,9 +236,10 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* QR Code Section - sempre mostrar quando waiting_qr, independente se tem qrCode */}
+          {/* QR Code Section - SEMPRE mostrar quando waiting_qr */}
           {isWaitingQR && (
             <QRCodeDisplay 
+              key={renderKey} // Force re-render
               qrCode={qrCode}
               isLoadingQR={isLoadingQR}
               qrTimer={qrTimer}
@@ -288,6 +267,16 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
 
           {/* Logs Section */}
           <ConnectionLogs logs={logs} />
+
+          {/* Debug info - SEMPRE mostrar em dev */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="text-xs text-gray-400 mt-2 space-y-1">
+              <div>QR Code length: {qrCode?.length || 0}</div>
+              <div>Has QR: {!!qrCode ? 'Yes' : 'No'}</div>
+              <div>Render Key: {renderKey}</div>
+              <div>Is Waiting QR: {isWaitingQR ? 'Yes' : 'No'}</div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

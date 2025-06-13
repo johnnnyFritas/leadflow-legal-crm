@@ -16,44 +16,49 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
   onRefresh
 }) => {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.error('❌ Erro ao carregar QR Code:', e);
-    console.error('❌ QR Code src:', qrCode);
-    console.error('❌ QR Code length:', qrCode?.length);
-    console.error('❌ QR Code starts with data:', qrCode?.startsWith('data:'));
-    // Removed the problematic line: target.error
+    console.error('❌ ERRO AO CARREGAR IMAGEM QR:', {
+      qrCodeSrc: qrCode,
+      qrCodeLength: qrCode?.length,
+      startsWithData: qrCode?.startsWith('data:'),
+      event: e
+    });
   };
 
   const handleImageLoad = () => {
-    console.log('✅ QR Code carregado com sucesso!');
-    console.log('✅ QR Code src length:', qrCode?.length);
+    console.log('✅ QR CODE CARREGADO COM SUCESSO!', {
+      qrCodeLength: qrCode?.length,
+      qrCodePreview: qrCode?.substring(0, 50)
+    });
   };
 
-  // Log detalhado sobre o estado do QR Code a cada render
-  console.log('🔍 QRCodeDisplay render:', {
+  // Log detalhado a cada render
+  console.log('🖼️ QRCodeDisplay RENDER:', {
     hasQrCode: !!qrCode,
     qrCodeLength: qrCode?.length,
     qrCodeStart: qrCode?.substring(0, 50),
     isLoadingQR,
-    shouldShowImage: !!qrCode && qrCode.trim() !== ''
+    willShowImage: !!qrCode
   });
 
-  const shouldShowQRCode = qrCode && qrCode.trim() !== '';
+  // SIMPLIFICADO: Se tem qrCode, mostra. Ponto.
+  const hasQrCode = qrCode && qrCode.trim() !== '';
 
   return (
     <div className="text-center space-y-3">
-      {shouldShowQRCode ? (
+      {hasQrCode ? (
         <div className="space-y-2">
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white">
             <img 
               src={qrCode} 
-              alt="QR Code" 
-              className="mx-auto w-48 h-48 object-contain"
+              alt="QR Code WhatsApp" 
+              className="mx-auto w-48 h-48 object-contain border"
               onError={handleImageError}
               onLoad={handleImageLoad}
               style={{
                 display: 'block',
                 maxWidth: '100%',
-                height: 'auto'
+                height: 'auto',
+                backgroundColor: '#f9f9f9'
               }}
             />
           </div>
@@ -89,10 +94,12 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
         </div>
       )}
 
-      {/* Debug info - remover em produção */}
+      {/* Debug permanente em desenvolvimento */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="text-xs text-gray-400 mt-2">
-          Debug: QR Code length: {qrCode?.length || 0} | Has QR: {shouldShowQRCode ? 'Yes' : 'No'}
+        <div className="text-xs text-red-500 bg-red-50 p-2 rounded">
+          <div>DEBUG QR: {hasQrCode ? 'TEM QR' : 'SEM QR'}</div>
+          <div>Length: {qrCode?.length || 0}</div>
+          <div>Valid: {qrCode?.startsWith('data:') ? 'SIM' : 'NÃO'}</div>
         </div>
       )}
     </div>
