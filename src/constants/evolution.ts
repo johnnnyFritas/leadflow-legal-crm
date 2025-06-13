@@ -1,4 +1,3 @@
-
 export const WS_EVENTS = {
   MESSAGES_UPSERT: 'MESSAGES_UPSERT',
   SEND_MESSAGE: 'SEND_MESSAGE', 
@@ -8,7 +7,8 @@ export const WS_EVENTS = {
   DISCONNECT: 'disconnect',
   CONNECT_ERROR: 'connect_error',
   RECONNECT: 'reconnect',
-  RECONNECT_ATTEMPT: 'reconnect_attempt'
+  RECONNECT_ATTEMPT: 'reconnect_attempt',
+  RECONNECT_ERROR: 'reconnect_error'
 } as const;
 
 export const EVOLUTION_CONFIG = {
