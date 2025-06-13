@@ -1,9 +1,11 @@
 
 import { InstanceStatus } from '@/types/evolution';
+import { EVOLUTION_CONFIG } from '@/constants/evolution';
 
 export class EvolutionApi {
-  private static readonly BASE_URL = 'https://evo.haddx.com.br';
-  private static readonly API_KEY = 'SUACHAVEAQUI';
+  private static readonly BASE_URL = EVOLUTION_CONFIG.BASE_URL;
+  // Usar variável de ambiente ou fallback para desenvolvimento
+  private static readonly API_KEY = import.meta.env.VITE_EVO_API_KEY || 'SUACHAVEAQUI';
 
   static async createInstance(instanceName: string): Promise<any> {
     console.log('Criando instância:', instanceName);
@@ -113,5 +115,10 @@ export class EvolutionApi {
     const result = await response.json();
     console.log('QR Code obtido:', { hasBase64: !!result.base64 });
     return result;
+  }
+
+  // Getter para acessar a API key externamente se necessário
+  static get API_KEY() {
+    return this.API_KEY;
   }
 }

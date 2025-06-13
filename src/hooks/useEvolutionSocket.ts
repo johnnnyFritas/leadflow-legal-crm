@@ -5,12 +5,13 @@ import { ConnectionStatus, EvolutionSocketOptions } from '@/types/evolution';
 import { EvolutionApi } from '@/services/evolution/evolutionApi';
 import { EvolutionWebSocket } from '@/services/evolution/evolutionWebSocket';
 import { useEvolutionStatus } from './useEvolutionStatus';
+import { EVOLUTION_CONFIG } from '@/constants/evolution';
 
 export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
   const [lastError, setLastError] = useState<string | null>(null);
   const webSocketRef = useRef<EvolutionWebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     instanceStatus,
@@ -25,12 +26,25 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   }, [options]);
 
   const handleConnected = useCallback((status: any) => {
-    // Conectar WebSocket
+    // Conectar WebSocket com callbacks apropriados
     if (!webSocketRef.current) {
-      webSocketRef.current = new EvolutionWebSocket(options);
+      const socketOptions: EvolutionSocketOptions = {
+        onMessage: (event) => {
+          console.log('Mensagem recebida do WebSocket:', event);
+          options.onMessage?.(event);
+        },
+        onStatusChange: handleStatusChange,
+        onError: (error) => {
+          console.error('Erro no WebSocket:', error);
+          setLastError(String(error));
+          options.onError?.(error);
+        }
+      };
+      
+      webSocketRef.current = new EvolutionWebSocket(socketOptions);
     }
     webSocketRef.current.connect(status.instanceName);
-  }, [options]);
+  }, [options, handleStatusChange]);
 
   const connect = useCallback(async () => {
     const user = authService.getCurrentUser();
@@ -112,6 +126,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     if (webSocketRef.current?.isConnected) {
       return webSocketRef.current.sendMessage(payload);
     }
+    console.warn('WebSocket não conectado');
     return false;
   }, []);
 

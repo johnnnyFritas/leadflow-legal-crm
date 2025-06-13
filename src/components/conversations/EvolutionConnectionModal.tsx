@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { CheckCircle, AlertCircle, Loader2, RefreshCw, Wifi, WifiOff, QrCode } from 'lucide-react';
 import { useEvolution } from '@/contexts/EvolutionContext';
 import { toast } from '@/components/ui/sonner';
+import { EVOLUTION_CONFIG } from '@/constants/evolution';
 
 interface ConnectionLog {
   timestamp: string;
@@ -38,8 +39,8 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
   const [isLoadingQR, setIsLoadingQR] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
   const [qrTimer, setQrTimer] = useState(30);
-  const qrIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const qrIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const addLog = (type: ConnectionLog['type'], message: string) => {
     const newLog: ConnectionLog = {
@@ -97,7 +98,7 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
       if (isWaitingQR && !isConnected) {
         fetchQRCode();
       }
-    }, 30000);
+    }, EVOLUTION_CONFIG.QR_REFRESH_INTERVAL);
 
     timerRef.current = setInterval(() => {
       setQrTimer(prev => {

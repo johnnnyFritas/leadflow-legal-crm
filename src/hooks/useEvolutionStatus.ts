@@ -3,10 +3,11 @@ import { useState, useRef, useCallback } from 'react';
 import { ConnectionStatus, InstanceStatus } from '@/types/evolution';
 import { EvolutionApi } from '@/services/evolution/evolutionApi';
 import { authService } from '@/services/authService';
+import { EVOLUTION_CONFIG } from '@/constants/evolution';
 
 export const useEvolutionStatus = () => {
   const [instanceStatus, setInstanceStatus] = useState<InstanceStatus | null>(null);
-  const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const statusCheckIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const saveInstanceDataToSupabase = useCallback(async (status: InstanceStatus) => {
     try {
@@ -63,7 +64,7 @@ export const useEvolutionStatus = () => {
       } catch (error) {
         console.error('Erro na verificação de status:', error);
       }
-    }, 3000); // Verificar a cada 3 segundos
+    }, EVOLUTION_CONFIG.STATUS_CHECK_INTERVAL);
   }, [saveInstanceDataToSupabase]);
 
   const stopStatusCheck = useCallback(() => {
