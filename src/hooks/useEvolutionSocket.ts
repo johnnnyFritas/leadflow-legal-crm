@@ -26,41 +26,119 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
-  const activateWebSocket = useCallback(async (instanceName: string) => {
+  const createInstance = useCallback(async (instanceName: string) => {
     try {
-      console.log('Ativando WebSocket para instância:', instanceName);
+      console.log('Criando instância:', instanceName);
       
-      const response = await fetch(`https://evolution.haddx.com.br/websocket/${instanceName}`, {
+      const response = await fetch('https://evo.haddx.com.br/instance/create', {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer SUACHAVEAQUI',
+          'apikey': 'SUACHAVEAQUI',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          enabled: true,
-          events: [
-            'APPLICATION_STARTUP',
-            'QRCODE_UPDATED', 
-            'CONNECTION_UPDATE',
-            'MESSAGES_SET',
-            'MESSAGES_UPSERT',
-            'MESSAGES_UPDATE',
-            'SEND_MESSAGE'
-          ]
+          instanceName: instanceName,
+          qrcode: true,
+          integration: 'WHATSAPP-BAILEYS',
+          WEBHOOK_GLOBAL_ENABLED: 'true'
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Erro ao ativar WebSocket: ${response.status}`);
+        throw new Error(`Erro ao criar instância: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('WebSocket ativado na instância:', result);
-      return true;
+      console.log('Instância criada:', result);
+      return result;
     } catch (error) {
-      console.error('Erro ao ativar WebSocket:', error);
-      setLastError('Erro ao ativar WebSocket na instância');
-      return false;
+      console.error('Erro ao criar instância:', error);
+      throw error;
+    }
+  }, []);
+
+  const fetchInstanceStatus = useCallback(async (instanceName: string) => {
+    try {
+      console.log('Verificando status da instância:', instanceName);
+      
+      const response = await fetch(`https://evo.haddx.com.br/instance/fetchInstances?instanceName=${encodeURIComponent(instanceName)}`, {
+        method: 'GET',
+        headers: {
+          'apikey': 'SUACHAVEAQUI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar instância: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Status da instância:', result);
+      return result;
+    } catch (error) {
+      console.error('Erro ao buscar status da instância:', error);
+      throw error;
+    }
+  }, []);
+
+  const configureWebhook = useCallback(async (instanceName: string) => {
+    try {
+      console.log('Configurando webhook para:', instanceName);
+      
+      const response = await fetch(`https://evo.haddx.com.br/webhook/set/${instanceName}`, {
+        method: 'POST',
+        headers: {
+          'apikey': 'SUACHAVEAQUI',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          webhook: {
+            enabled: true,
+            url: 'https://autowebhook.haddx.com.br/webhook/message',
+            events: [
+              'MESSAGES_UPSERT',
+              'SEND_MESSAGE'
+            ],
+            webhook_by_events: true,
+            webhook_base64: true
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao configurar webhook: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Webhook configurado:', result);
+      return result;
+    } catch (error) {
+      console.error('Erro ao configurar webhook:', error);
+      throw error;
+    }
+  }, []);
+
+  const fetchQRCode = useCallback(async (instanceName: string) => {
+    try {
+      console.log('Buscando QR Code para:', instanceName);
+      
+      const response = await fetch(`https://evo.haddx.com.br/instance/connect/${instanceName}`, {
+        method: 'GET',
+        headers: {
+          'apikey': 'SUACHAVEAQUI'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao buscar QR Code: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('QR Code obtido:', { hasBase64: !!result.base64 });
+      return result;
+    } catch (error) {
+      console.error('Erro ao buscar QR Code:', error);
+      throw error;
     }
   }, []);
 
@@ -80,87 +158,38 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
 
     try {
       setConnectionStatus('connecting');
+      setLastError(null);
       
-      // Primeiro ativar o WebSocket na instância
-      const activated = await activateWebSocket(user.instance_name);
-      if (!activated) {
-        setConnectionStatus('disconnected');
-        return;
+      console.log('Iniciando processo de conexão para:', user.instance_name);
+
+      // 1. Criar/verificar instância
+      try {
+        await createInstance(user.instance_name);
+      } catch (error) {
+        console.log('Instância pode já existir, continuando...');
       }
 
-      // Aguardar um pouco para a ativação ser processada
+      // 2. Aguardar um pouco para a instância estar pronta
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Usar Socket.IO em modo tradicional (por instância)
-      const socketUrl = `https://evolution.haddx.com.br/${user.instance_name}`;
+      // 3. Verificar status da instância
+      const instanceStatus = await fetchInstanceStatus(user.instance_name);
       
-      console.log('Conectando ao Socket.IO Evolution:', socketUrl);
+      // 4. Configurar webhook se a instância não estiver conectada
+      if (!instanceStatus.ownerJid) {
+        await configureWebhook(user.instance_name);
+      }
+
+      setConnectionStatus('connected');
+      options.onStatusChange?.('connected');
       
-      const socket = io(socketUrl, {
-        transports: ['websocket'],
-        auth: {
-          authorization: 'Bearer SUACHAVEAQUI'
-        },
-        query: {
-          authorization: 'Bearer SUACHAVEAQUI'
-        }
-      });
-
-      socket.on('connect', () => {
-        console.log('Socket.IO Evolution conectado');
-        setConnectionStatus('connected');
-        setLastError(null);
-        reconnectAttempts.current = 0;
-        options.onStatusChange?.('connected');
-      });
-
-      socket.on('disconnect', (reason) => {
-        console.log('Socket.IO Evolution desconectado:', reason);
-        setConnectionStatus('disconnected');
-        options.onStatusChange?.('disconnected');
-
-        // Tentar reconectar se não foi desconexão intencional
-        if (reason !== 'io client disconnect' && reconnectAttempts.current < maxReconnectAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          console.log(`Tentando reconectar em ${delay}ms (tentativa ${reconnectAttempts.current + 1})`);
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            reconnectAttempts.current++;
-            connect();
-          }, delay);
-        } else if (reconnectAttempts.current >= maxReconnectAttempts) {
-          toast.error('Não foi possível conectar ao WhatsApp. Verifique sua conexão.');
-        }
-      });
-
-      socket.on('connect_error', (error) => {
-        console.error('Erro na conexão Socket.IO Evolution:', error);
-        setLastError('Erro de conexão com WhatsApp');
-        options.onError?.(error);
-      });
-
-      // Escutar todos os eventos Evolution
-      socket.onAny((eventName: string, data: any) => {
-        console.log('Evento Evolution recebido:', { event: eventName, data });
-        
-        const evolutionEvent: EvolutionEvent = {
-          event: eventName,
-          instance: user.instance_name,
-          data: data,
-          date_time: new Date().toISOString()
-        };
-        
-        options.onMessage?.(evolutionEvent);
-      });
-
-      socketRef.current = socket;
-
     } catch (error) {
-      console.error('Erro ao criar conexão Socket.IO:', error);
+      console.error('Erro no processo de conexão:', error);
       setConnectionStatus('disconnected');
-      setLastError('Erro ao conectar com WhatsApp');
+      setLastError(`Erro ao conectar: ${error}`);
+      options.onError?.(error);
     }
-  }, [options, activateWebSocket]);
+  }, [createInstance, fetchInstanceStatus, configureWebhook, options]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -174,7 +203,8 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     }
     
     setConnectionStatus('disconnected');
-  }, []);
+    options.onStatusChange?.('disconnected');
+  }, [options]);
 
   const sendMessage = useCallback((payload: any) => {
     if (socketRef.current?.connected) {
@@ -184,7 +214,16 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     return false;
   }, []);
 
-  // Remover a conexão automática - agora será manual
+  const getQRCode = useCallback(async () => {
+    const user = authService.getCurrentUser();
+    if (!user?.instance_name) {
+      throw new Error('Instância não configurada');
+    }
+    
+    return await fetchQRCode(user.instance_name);
+  }, [fetchQRCode]);
+
+  // Remover a conexão automática
   useEffect(() => {
     return () => {
       disconnect();
@@ -197,6 +236,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     connect,
     disconnect,
     sendMessage,
+    getQRCode,
     isConnected: connectionStatus === 'connected'
   };
 };

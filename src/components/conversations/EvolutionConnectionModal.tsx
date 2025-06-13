@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, AlertCircle, Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { useEvolution } from '@/contexts/EvolutionContext';
-import { authService } from '@/services/authService';
 import { toast } from '@/components/ui/sonner';
 
 interface ConnectionLog {
@@ -25,7 +23,7 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
   open,
   onOpenChange
 }) => {
-  const { connectionStatus, isConnected, connect, disconnect } = useEvolution();
+  const { connectionStatus, isConnected, connect, disconnect, getQRCode } = useEvolution();
   const [qrCode, setQrCode] = useState<string>('');
   const [isLoadingQR, setIsLoadingQR] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
@@ -42,63 +40,17 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
     setLogs(prev => [...prev, newLog]);
   };
 
-  const createInstance = async () => {
-    const user = authService.getCurrentUser();
-    if (!user?.instance_name) {
-      addLog('error', 'Nome da instância não encontrado');
-      return null;
-    }
-
-    try {
-      addLog('info', `Criando instância: ${user.instance_name}`);
-      
-      const response = await fetch('https://evolution.haddx.com.br/instance/create', {
-        method: 'POST',
-        headers: {
-          'apikey': 'SUACHAVEAQUI',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          instanceName: user.instance_name,
-          qrcode: true,
-          integration: 'WHATSAPP-BAILEYS',
-          WEBHOOK_GLOBAL_ENABLED: 'true'
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-
-      const result = await response.json();
-      addLog('success', 'Instância criada com sucesso');
-      return result;
-    } catch (error) {
-      addLog('error', `Erro ao criar instância: ${error}`);
-      return null;
-    }
-  };
-
   const fetchQRCode = async () => {
-    const user = authService.getCurrentUser();
-    if (!user?.instance_name) return;
+    if (!getQRCode) {
+      addLog('error', 'Função getQRCode não disponível');
+      return;
+    }
 
     try {
       setIsLoadingQR(true);
       addLog('info', 'Buscando QR Code...');
 
-      const response = await fetch(`https://evolution.haddx.com.br/instance/connect/${user.instance_name}`, {
-        method: 'GET',
-        headers: {
-          'apikey': 'SUACHAVEAQUI'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro HTTP: ${response.status}`);
-      }
-
-      const result = await response.json();
+      const result = await getQRCode();
       
       if (result.base64) {
         const qrCodeDataUri = result.base64.startsWith('data:image') 
@@ -155,11 +107,10 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
   const handleConnect = async () => {
     addLog('info', 'Iniciando processo de conexão...');
     
-    // First, create instance
-    const instanceCreated = await createInstance();
-    if (!instanceCreated) return;
+    // Connect first
+    await connect();
 
-    // Wait a bit for instance to be ready
+    // Wait a bit for connection to be ready
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Fetch initial QR code
@@ -167,10 +118,6 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
 
     // Start QR code refresh cycle
     startQRCodeRefresh();
-
-    // Connect WebSocket
-    addLog('info', 'Conectando WebSocket...');
-    connect();
   };
 
   const handleDisconnect = () => {
