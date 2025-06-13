@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Calendar } from '@/components/ui/calendar';
@@ -11,6 +12,7 @@ import { WeeklyGrid } from '@/components/agenda/WeeklyGrid';
 import { DayView } from '@/components/agenda/DayView';
 import { MonthView } from '@/components/agenda/MonthView';
 import { NewEventModal } from '@/components/agenda/NewEventModal';
+import { GoogleCalendarStatus } from '@/components/agenda/GoogleCalendarStatus';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useIsTablet } from '@/hooks/use-tablet';
 
@@ -119,11 +121,19 @@ const Agenda = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
           <h2 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold tracking-tight">Agenda</h2>
-          <div className="w-full sm:w-auto">
-            <NewEventModal 
-              selectedDate={selectedDate} 
-              onEventCreated={handleEventCreated}
-            />
+          
+          {/* Container dos botões de ação */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            {/* Status do Google Calendar */}
+            <GoogleCalendarStatus />
+            
+            {/* Botão de novo evento */}
+            <div className="w-full sm:w-auto">
+              <NewEventModal 
+                selectedDate={selectedDate} 
+                onEventCreated={handleEventCreated}
+              />
+            </div>
           </div>
         </div>
 
