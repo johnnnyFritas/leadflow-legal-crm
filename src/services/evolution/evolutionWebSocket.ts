@@ -64,9 +64,8 @@ export class EvolutionWebSocket {
         console.error('❌ Erro de conexão WebSocket:', error);
         console.error('❌ Detalhes do erro:', {
           message: error.message,
-          description: error.description,
-          context: error.context,
-          type: error.type
+          stack: error.stack,
+          name: error.name
         });
         this.options.onError?.(error);
       });
