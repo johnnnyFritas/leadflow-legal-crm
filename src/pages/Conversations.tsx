@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsService } from '@/services/conversationsService';
-import { Conversation } from '@/types/supabase';
+import { Conversation, Message } from '@/types/supabase';
 import { toast } from '@/components/ui/sonner';
 import LeadDetails from '@/components/lead/LeadDetails';
 import { Lead, AreaDireito } from '@/types/lead';
@@ -12,15 +11,19 @@ import MessagesList from '@/components/conversations/MessagesList';
 import MessageInput from '@/components/conversations/MessageInput';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { EvolutionProvider, useEvolution } from '@/contexts/EvolutionContext';
+import { EvolutionStatus } from '@/components/conversations/EvolutionStatus';
 
-const Conversations = () => {
+const ConversationsContent = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isLeadDetailsOpen, setIsLeadDetailsOpen] = useState(false);
+  const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([]);
   const queryClient = useQueryClient();
+  const { sendMessage: sendEvolutionMessage } = useEvolution();
 
   const { data: conversations = [], isLoading: loadingConversations } = useQuery({
     queryKey: ['conversations'],
@@ -69,13 +72,57 @@ const Conversations = () => {
     }
   });
 
-  const handleSendMessage = () => {
+  // Handler para novas mensagens em tempo real
+  const handleNewMessage = (message: Message) => {
+    // Atualizar mensagens em tempo real apenas para a conversa ativa
+    if (selectedConversation?.id === message.conversation_id) {
+      setRealtimeMessages(prev => {
+        // Evitar duplicatas
+        const exists = prev.some(msg => 
+          msg.content === message.content && 
+          Math.abs(new Date(msg.sent_at).getTime() - new Date(message.sent_at).getTime()) < 1000
+        );
+        if (!exists) {
+          return [...prev, message];
+        }
+        return prev;
+      });
+    }
+    
+    // Invalidar queries para atualizar a lista de conversas
+    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    if (selectedConversation?.id === message.conversation_id) {
+      queryClient.invalidateQueries({ queryKey: ['messages', selectedConversation.id] });
+    }
+  };
+
+  const handleSendMessage = async () => {
     if (!selectedConversation || !newMessage.trim()) return;
 
-    sendMessageMutation.mutate({
-      conversationId: selectedConversation.id,
-      content: newMessage.trim()
-    });
+    try {
+      // Tentar enviar via Evolution WebSocket primeiro
+      const sentViaEvolution = await sendEvolutionMessage(selectedConversation.id, newMessage.trim());
+      
+      if (!sentViaEvolution) {
+        // Fallback para REST se WebSocket falhou
+        sendMessageMutation.mutate({
+          conversationId: selectedConversation.id,
+          content: newMessage.trim()
+        });
+      } else {
+        // Limpar input e invalidar queries se enviado via WebSocket
+        setNewMessage('');
+        queryClient.invalidateQueries({ queryKey: ['messages', selectedConversation?.id] });
+        toast.success('Mensagem enviada via WhatsApp!');
+      }
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      // Fallback para REST em caso de erro
+      sendMessageMutation.mutate({
+        conversationId: selectedConversation.id,
+        content: newMessage.trim()
+      });
+    }
   };
 
   const handleSendFile = (file: File, fileUrl: string, messageType: string) => {
@@ -132,11 +179,16 @@ const Conversations = () => {
 
   const handleBackToList = () => {
     setSelectedConversation(null);
+    setRealtimeMessages([]); // Limpar mensagens em tempo real
   };
 
   const handleConversationSelect = (conversation: Conversation) => {
     setSelectedConversation(conversation);
+    setRealtimeMessages([]); // Limpar mensagens anteriores
   };
+
+  // Combinar mensagens do banco com mensagens em tempo real
+  const allMessages = [...messages, ...realtimeMessages];
 
   if (loadingConversations) {
     return (
@@ -150,15 +202,22 @@ const Conversations = () => {
     <div className="flex h-screen bg-background w-full">
       {/* Lista de conversas - só aparece quando nenhuma conversa está selecionada */}
       {!selectedConversation && (
-        <ConversationsList
-          conversations={conversations}
-          selectedConversation={selectedConversation}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          selectedChannel={selectedChannel}
-          onChannelChange={setSelectedChannel}
-          onConversationSelect={handleConversationSelect}
-        />
+        <div className="w-full h-full flex flex-col">
+          {/* Status do Evolution no topo */}
+          <div className="flex justify-center p-3 border-b border-border">
+            <EvolutionStatus />
+          </div>
+          
+          <ConversationsList
+            conversations={conversations}
+            selectedConversation={selectedConversation}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedChannel={selectedChannel}
+            onChannelChange={setSelectedChannel}
+            onConversationSelect={handleConversationSelect}
+          />
+        </div>
       )}
 
       {/* Conversa ativa - só aparece quando uma conversa está selecionada */}
@@ -180,12 +239,16 @@ const Conversations = () => {
                 onViewLead={handleViewLead}
               />
             </div>
+            {/* Status do Evolution no header da conversa */}
+            <div className="mr-3">
+              <EvolutionStatus />
+            </div>
           </div>
 
           {/* Área de mensagens - ocupa o espaço restante */}
           <div className="flex-1 overflow-hidden">
             <MessagesList
-              messages={messages}
+              messages={allMessages}
               isLoading={loadingMessages}
             />
           </div>
@@ -217,6 +280,14 @@ const Conversations = () => {
         }}
       />
     </div>
+  );
+};
+
+const Conversations = () => {
+  return (
+    <EvolutionProvider onNewMessage={(message) => console.log('Nova mensagem:', message)}>
+      <ConversationsContent />
+    </EvolutionProvider>
   );
 };
 

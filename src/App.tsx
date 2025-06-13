@@ -1,62 +1,62 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/sonner';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { EvolutionProvider } from '@/contexts/EvolutionContext';
+import AppLayout from '@/layouts/AppLayout';
+import Index from '@/pages/Index';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import Dashboard from '@/pages/Dashboard';
+import Conversations from '@/pages/Conversations';
+import Kanban from '@/pages/Kanban';
+import Agenda from '@/pages/Agenda';
+import Settings from '@/pages/Settings';
+import Preferences from '@/pages/Preferences';
+import Team from '@/pages/Team';
+import NotFound from '@/pages/NotFound';
+import './App.css';
 
-import AppLayout from "./layouts/AppLayout";
-import Index from "./pages/Index";
-import Kanban from "./pages/Kanban";
-import Conversations from "./pages/Conversations";
-import Agenda from "./pages/Agenda";
-import Settings from "./pages/Settings";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import NotFound from "./pages/NotFound";
-import { AuthProvider } from "./contexts/AuthContext";
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 10, // 10 minutes
+    },
+  },
+});
 
-const queryClient = new QueryClient();
-
-const App = () => {
-  // Initialize theme from localStorage or system preference
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark';
-    if (savedTheme) {
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-    } else {
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      document.documentElement.classList.toggle('dark', isDark);
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    }
-  }, []);
-
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
+      <AuthProvider>
+        <EvolutionProvider>
+          <Router>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              
               <Route path="/app" element={<AppLayout />}>
-                <Route index element={<Navigate to="/app/kanban" replace />} />
-                <Route path="kanban" element={<Kanban />} />
+                <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
                 <Route path="conversas" element={<Conversations />} />
+                <Route path="kanban" element={<Kanban />} />
                 <Route path="agenda" element={<Agenda />} />
-                <Route path="settings" element={<Settings />} />
+                <Route path="configuracoes" element={<Settings />} />
+                <Route path="preferencias" element={<Preferences />} />
+                <Route path="equipe" element={<Team />} />
               </Route>
+              
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </TooltipProvider>
-        </AuthProvider>
-      </BrowserRouter>
+            <Toaster />
+          </Router>
+        </EvolutionProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;
