@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { ClientInstance } from '@/types/supabase';
 
@@ -9,9 +8,9 @@ export interface AuthUser {
   instance_name: string;
   phone?: string;
   main_lawyer_name?: string;
-  name?: string; // Derived from main_lawyer_name or company_name
-  role?: string; // Default role
-  avatarUrl?: string; // Optional avatar
+  name?: string;
+  role?: string;
+  avatarUrl?: string;
 }
 
 class AuthService {
@@ -19,9 +18,34 @@ class AuthService {
     return companyName
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais e espaços
-      .replace(/\s+/g, ''); // Remove espaços extras (caso tenham sobrado)
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '')
+      .replace(/\s+/g, '');
+  }
+
+  async updateInstanceData(instanceId: string, phone: string): Promise<void> {
+    try {
+      const user = this.getCurrentUser();
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      console.log('Atualizando dados da instância no Supabase:', { instanceId, phone });
+
+      await supabase.patch(`/clients_instances?id=eq.${user.id}`, {
+        instance_id: instanceId,
+        phone: phone
+      });
+
+      // Atualizar dados locais do usuário
+      const updatedUser = { ...user, phone };
+      localStorage.setItem('authUser', JSON.stringify(updatedUser));
+
+      console.log('Dados da instância atualizados com sucesso');
+    } catch (error) {
+      console.error('Erro ao atualizar dados da instância:', error);
+      throw error;
+    }
   }
 
   async login(email: string, password: string): Promise<AuthUser | null> {
@@ -29,7 +53,6 @@ class AuthService {
       console.log('Tentando fazer login com:', email);
       console.log('Senha fornecida:', password);
       
-      // Buscar instância pelo email
       const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
 
       if (!instances || instances.length === 0) {
@@ -43,27 +66,22 @@ class AuthService {
         instance_name: instance.instance_name
       });
 
-      // Verificar se a senha está correta
       if (instance.password !== password) {
         console.log('Senha incorreta');
         throw new Error('Senha incorreta');
       }
 
-      // Gerar instance_name se estiver vazio
       if (!instance.instance_name || instance.instance_name.trim() === '') {
         const newInstanceName = this.generateInstanceName(instance.company_name);
         console.log('Gerando instance_name:', newInstanceName);
         
-        // Atualizar no banco
         await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
           instance_name: newInstanceName
         });
         
-        // Atualizar objeto local
         instance.instance_name = newInstanceName;
       }
 
-      // Criar objeto do usuário autenticado
       const authUser: AuthUser = {
         id: instance.id,
         email: instance.email,
@@ -76,7 +94,6 @@ class AuthService {
         avatarUrl: undefined
       };
 
-      // Salvar no localStorage
       localStorage.setItem('authUser', JSON.stringify(authUser));
       localStorage.setItem('instanceId', instance.id);
 
@@ -91,17 +108,14 @@ class AuthService {
     try {
       console.log('Tentando registrar com:', email);
       
-      // Verificar se email já existe
       const existingInstances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
 
       if (existingInstances && existingInstances.length > 0) {
         throw new Error('Email já cadastrado');
       }
 
-      // Gerar instance_name baseado no nome da empresa
       const instanceName = this.generateInstanceName(name);
 
-      // Criar nova instância
       const instanceData = {
         email: email.toLowerCase().trim(),
         company_name: name,
@@ -119,7 +133,6 @@ class AuthService {
 
       const newInstance = newInstances[0];
 
-      // Criar objeto do usuário autenticado
       const authUser: AuthUser = {
         id: newInstance.id,
         email: newInstance.email,
@@ -132,7 +145,6 @@ class AuthService {
         avatarUrl: undefined
       };
 
-      // Salvar no localStorage
       localStorage.setItem('authUser', JSON.stringify(authUser));
       localStorage.setItem('instanceId', newInstance.id);
 
@@ -150,7 +162,6 @@ class AuthService {
         throw new Error('Usuário não autenticado');
       }
 
-      // Verificar senha atual
       const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(user.email)}&limit=1`);
       
       if (!instances || instances.length === 0) {
@@ -163,7 +174,6 @@ class AuthService {
         throw new Error('Senha atual incorreta');
       }
 
-      // Atualizar senha
       await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
         password: newPassword
       });

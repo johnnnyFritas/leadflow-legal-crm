@@ -1,10 +1,11 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, AlertCircle, Loader2, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, RefreshCw, Wifi, WifiOff, QrCode } from 'lucide-react';
 import { useEvolution } from '@/contexts/EvolutionContext';
 import { toast } from '@/components/ui/sonner';
 
@@ -23,7 +24,16 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
   open,
   onOpenChange
 }) => {
-  const { connectionStatus, isConnected, connect, disconnect, getQRCode } = useEvolution();
+  const { 
+    connectionStatus, 
+    isConnected, 
+    isWaitingQR,
+    instanceStatus,
+    connect, 
+    disconnect, 
+    getQRCode 
+  } = useEvolution();
+  
   const [qrCode, setQrCode] = useState<string>('');
   const [isLoadingQR, setIsLoadingQR] = useState(false);
   const [logs, setLogs] = useState<ConnectionLog[]>([]);
@@ -46,6 +56,12 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
       return;
     }
 
+    // Não buscar QR Code se já estiver conectado
+    if (isConnected) {
+      addLog('info', 'WhatsApp já está conectado');
+      return;
+    }
+
     try {
       setIsLoadingQR(true);
       addLog('info', 'Buscando QR Code...');
@@ -59,7 +75,7 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
         
         setQrCode(qrCodeDataUri);
         addLog('success', 'QR Code atualizado');
-        setQrTimer(30); // Reset timer
+        setQrTimer(30);
       } else {
         addLog('warning', 'QR Code não disponível na resposta');
       }
@@ -71,22 +87,22 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
   };
 
   const startQRCodeRefresh = () => {
-    // Clear existing intervals
     if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
     if (timerRef.current) clearInterval(timerRef.current);
 
-    // Start QR code refresh every 30 seconds
+    // Só iniciar refresh se estiver aguardando QR
+    if (!isWaitingQR) return;
+
     qrIntervalRef.current = setInterval(() => {
-      if (!isConnected) {
+      if (isWaitingQR && !isConnected) {
         fetchQRCode();
       }
     }, 30000);
 
-    // Start countdown timer
     timerRef.current = setInterval(() => {
       setQrTimer(prev => {
         if (prev <= 1) {
-          return 30; // Reset to 30
+          return 30;
         }
         return prev - 1;
       });
@@ -106,18 +122,7 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
 
   const handleConnect = async () => {
     addLog('info', 'Iniciando processo de conexão...');
-    
-    // Connect first
     await connect();
-
-    // Wait a bit for connection to be ready
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Fetch initial QR code
-    await fetchQRCode();
-
-    // Start QR code refresh cycle
-    startQRCodeRefresh();
   };
 
   const handleDisconnect = () => {
@@ -147,7 +152,7 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
         return (
           <Badge className="bg-green-100 text-green-800 border-green-200">
             <Wifi size={12} className="mr-1" />
-            Conectado
+            Conectado ao WhatsApp
           </Badge>
         );
       case 'connecting':
@@ -155,6 +160,13 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
           <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
             <Loader2 size={12} className="mr-1 animate-spin" />
             Conectando
+          </Badge>
+        );
+      case 'waiting_qr':
+        return (
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+            <QrCode size={12} className="mr-1" />
+            Aguardando QR Code
           </Badge>
         );
       default:
@@ -167,22 +179,31 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
     }
   };
 
+  // Effects for status changes
+  useEffect(() => {
+    if (connectionStatus === 'waiting_qr') {
+      addLog('info', 'Aguardando scan do QR Code...');
+      fetchQRCode();
+      startQRCodeRefresh();
+    } else if (connectionStatus === 'connected') {
+      stopQRCodeRefresh();
+      setQrCode('');
+      addLog('success', 'WhatsApp conectado com sucesso!');
+      if (instanceStatus?.phone) {
+        addLog('info', `Número conectado: ${instanceStatus.phone}`);
+      }
+      toast.success('WhatsApp conectado!');
+    } else if (connectionStatus === 'connecting') {
+      addLog('info', 'Configurando instância...');
+    }
+  }, [connectionStatus, instanceStatus]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopQRCodeRefresh();
     };
   }, []);
-
-  // Stop QR refresh when connected
-  useEffect(() => {
-    if (isConnected) {
-      stopQRCodeRefresh();
-      setQrCode('');
-      addLog('success', 'WhatsApp conectado com sucesso!');
-      toast.success('WhatsApp conectado!');
-    }
-  }, [isConnected]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -195,8 +216,8 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* QR Code Section */}
-          {!isConnected && (
+          {/* QR Code Section - only show when waiting for QR */}
+          {isWaitingQR && (
             <div className="text-center space-y-3">
               {qrCode ? (
                 <div className="space-y-2">
@@ -210,20 +231,21 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
                   <p className="text-sm text-gray-600">
                     Atualizando em {qrTimer}s
                   </p>
+                  <p className="text-xs text-gray-500">
+                    Escaneie o QR Code com seu WhatsApp
+                  </p>
                 </div>
               ) : (
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 bg-gray-50">
                   {isLoadingQR ? (
                     <div className="flex flex-col items-center space-y-2">
                       <Loader2 className="animate-spin" size={32} />
-                      <p className="text-sm text-gray-600">Carregando QR Code...</p>
+                      <p className="text-sm text-gray-600">Gerando QR Code...</p>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center space-y-2">
-                      <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
-                        <RefreshCw size={24} className="text-gray-400" />
-                      </div>
-                      <p className="text-sm text-gray-600">Clique em "Conectar" para gerar QR Code</p>
+                      <QrCode size={32} className="text-gray-400" />
+                      <p className="text-sm text-gray-600">QR Code será gerado</p>
                     </div>
                   )}
                 </div>
@@ -236,28 +258,30 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
             <div className="text-center p-8 bg-green-50 rounded-lg">
               <CheckCircle size={48} className="mx-auto text-green-600 mb-2" />
               <p className="font-medium text-green-800">WhatsApp Conectado!</p>
-              <p className="text-sm text-green-600">Você pode fechar esta janela</p>
+              {instanceStatus?.phone && (
+                <p className="text-sm text-green-600">
+                  Número: {instanceStatus.phone}
+                </p>
+              )}
+              <p className="text-xs text-green-600 mt-1">Você pode fechar esta janela</p>
             </div>
           )}
 
           {/* Action Buttons */}
           <div className="flex gap-2">
-            {!isConnected ? (
+            {connectionStatus === 'disconnected' ? (
               <Button 
                 onClick={handleConnect} 
-                disabled={connectionStatus === 'connecting'}
                 className="flex-1"
               >
-                {connectionStatus === 'connecting' ? (
-                  <>
-                    <Loader2 className="mr-2 animate-spin" size={16} />
-                    Conectando...
-                  </>
-                ) : (
-                  'Conectar'
-                )}
+                Conectar
               </Button>
-            ) : (
+            ) : connectionStatus === 'connecting' ? (
+              <Button disabled className="flex-1">
+                <Loader2 className="mr-2 animate-spin" size={16} />
+                Conectando...
+              </Button>
+            ) : isConnected ? (
               <Button 
                 onClick={handleDisconnect} 
                 variant="destructive"
@@ -265,9 +289,17 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
               >
                 Desconectar
               </Button>
+            ) : (
+              <Button 
+                onClick={handleDisconnect} 
+                variant="outline"
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
             )}
             
-            {qrCode && !isConnected && (
+            {qrCode && isWaitingQR && (
               <Button 
                 onClick={fetchQRCode} 
                 variant="outline"

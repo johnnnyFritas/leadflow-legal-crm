@@ -14,17 +14,26 @@ export interface EvolutionEvent {
 
 export interface EvolutionSocketOptions {
   onMessage?: (event: EvolutionEvent) => void;
-  onStatusChange?: (status: 'connected' | 'disconnected') => void;
+  onStatusChange?: (status: 'disconnected' | 'connecting' | 'waiting_qr' | 'connected') => void;
   onError?: (error: any) => void;
 }
 
+export interface InstanceStatus {
+  instanceName: string;
+  ownerJid?: string;
+  profilePictureUrl?: string;
+  profileName?: string;
+  phone?: string;
+  instanceId?: string;
+}
+
 export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
-  const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('disconnected');
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'waiting_qr' | 'connected'>('disconnected');
   const [lastError, setLastError] = useState<string | null>(null);
+  const [instanceStatus, setInstanceStatus] = useState<InstanceStatus | null>(null);
   const socketRef = useRef<Socket | null>(null);
+  const statusCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
 
   const createInstance = useCallback(async (instanceName: string) => {
     try {
@@ -57,7 +66,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     }
   }, []);
 
-  const fetchInstanceStatus = useCallback(async (instanceName: string) => {
+  const fetchInstanceStatus = useCallback(async (instanceName: string): Promise<InstanceStatus | null> => {
     try {
       console.log('Verificando status da instância:', instanceName);
       
@@ -74,7 +83,20 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
 
       const result = await response.json();
       console.log('Status da instância:', result);
-      return result;
+      
+      if (result && result.length > 0) {
+        const instance = result[0];
+        return {
+          instanceName: instance.instanceName || instanceName,
+          ownerJid: instance.ownerJid,
+          profilePictureUrl: instance.profilePictureUrl,
+          profileName: instance.profileName,
+          phone: instance.ownerJid ? instance.ownerJid.replace('@s.whatsapp.net', '') : undefined,
+          instanceId: instance.instanceId
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Erro ao buscar status da instância:', error);
       throw error;
@@ -97,7 +119,8 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
             url: 'https://autowebhook.haddx.com.br/webhook/message',
             events: [
               'MESSAGES_UPSERT',
-              'SEND_MESSAGE'
+              'SEND_MESSAGE',
+              'CONNECTION_UPDATE'
             ],
             webhook_by_events: true,
             webhook_base64: true
@@ -142,6 +165,100 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     }
   }, []);
 
+  const saveInstanceDataToSupabase = useCallback(async (status: InstanceStatus) => {
+    try {
+      console.log('Salvando dados da instância no Supabase:', status);
+      
+      if (status.instanceId && status.phone) {
+        await authService.updateInstanceData(status.instanceId, status.phone);
+        console.log('Dados salvos no Supabase com sucesso');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar dados no Supabase:', error);
+    }
+  }, []);
+
+  const connectWebSocket = useCallback((instanceName: string) => {
+    try {
+      console.log('Conectando WebSocket para:', instanceName);
+      
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+
+      socketRef.current = io(`wss://evo.haddx.com.br`, {
+        query: { instanceName },
+        transports: ['websocket']
+      });
+
+      socketRef.current.on('connect', () => {
+        console.log('WebSocket conectado');
+      });
+
+      socketRef.current.on('disconnect', () => {
+        console.log('WebSocket desconectado');
+      });
+
+      socketRef.current.on('message', (data: EvolutionEvent) => {
+        console.log('Mensagem recebida via WebSocket:', data);
+        options.onMessage?.(data);
+      });
+
+      socketRef.current.on('connection.update', (data: any) => {
+        console.log('Status de conexão atualizado:', data);
+        if (data.connection === 'close') {
+          setConnectionStatus('waiting_qr');
+          options.onStatusChange?.('waiting_qr');
+        }
+      });
+
+    } catch (error) {
+      console.error('Erro ao conectar WebSocket:', error);
+    }
+  }, [options]);
+
+  const startStatusCheck = useCallback((instanceName: string) => {
+    if (statusCheckIntervalRef.current) {
+      clearInterval(statusCheckIntervalRef.current);
+    }
+
+    statusCheckIntervalRef.current = setInterval(async () => {
+      try {
+        const status = await fetchInstanceStatus(instanceName);
+        setInstanceStatus(status);
+        
+        if (status?.ownerJid) {
+          // WhatsApp está conectado
+          if (connectionStatus !== 'connected') {
+            console.log('WhatsApp conectado detectado:', status);
+            setConnectionStatus('connected');
+            options.onStatusChange?.('connected');
+            
+            // Salvar dados no Supabase
+            await saveInstanceDataToSupabase(status);
+            
+            // Conectar WebSocket
+            connectWebSocket(instanceName);
+            
+            // Parar verificação contínua
+            if (statusCheckIntervalRef.current) {
+              clearInterval(statusCheckIntervalRef.current);
+              statusCheckIntervalRef.current = null;
+            }
+          }
+        } else {
+          // WhatsApp não está conectado
+          if (connectionStatus === 'connected') {
+            setConnectionStatus('waiting_qr');
+            options.onStatusChange?.('waiting_qr');
+          }
+        }
+      } catch (error) {
+        console.error('Erro na verificação de status:', error);
+      }
+    }, 3000); // Verificar a cada 3 segundos
+  }, [connectionStatus, fetchInstanceStatus, saveInstanceDataToSupabase, connectWebSocket, options]);
+
   const connect = useCallback(async () => {
     const user = authService.getCurrentUser();
     if (!user) {
@@ -159,6 +276,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     try {
       setConnectionStatus('connecting');
       setLastError(null);
+      options.onStatusChange?.('connecting');
       
       console.log('Iniciando processo de conexão para:', user.instance_name);
 
@@ -173,25 +291,48 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
       await new Promise(resolve => setTimeout(resolve, 2000));
 
       // 3. Verificar status da instância
-      const instanceStatus = await fetchInstanceStatus(user.instance_name);
+      const status = await fetchInstanceStatus(user.instance_name);
+      setInstanceStatus(status);
       
-      // 4. Configurar webhook se a instância não estiver conectada
-      if (!instanceStatus.ownerJid) {
+      if (status?.ownerJid) {
+        // WhatsApp já está conectado
+        console.log('WhatsApp já conectado:', status);
+        setConnectionStatus('connected');
+        options.onStatusChange?.('connected');
+        
+        // Salvar dados no Supabase
+        await saveInstanceDataToSupabase(status);
+        
+        // Conectar WebSocket
+        connectWebSocket(user.instance_name);
+      } else {
+        // WhatsApp não está conectado, aguardar QR Code
+        console.log('WhatsApp não conectado, aguardando QR Code');
+        setConnectionStatus('waiting_qr');
+        options.onStatusChange?.('waiting_qr');
+        
+        // 4. Configurar webhook
         await configureWebhook(user.instance_name);
+        
+        // 5. Iniciar verificação contínua do status
+        startStatusCheck(user.instance_name);
       }
-
-      setConnectionStatus('connected');
-      options.onStatusChange?.('connected');
       
     } catch (error) {
       console.error('Erro no processo de conexão:', error);
       setConnectionStatus('disconnected');
       setLastError(`Erro ao conectar: ${error}`);
       options.onError?.(error);
+      options.onStatusChange?.('disconnected');
     }
-  }, [createInstance, fetchInstanceStatus, configureWebhook, options]);
+  }, [createInstance, fetchInstanceStatus, configureWebhook, saveInstanceDataToSupabase, connectWebSocket, startStatusCheck, options]);
 
   const disconnect = useCallback(() => {
+    if (statusCheckIntervalRef.current) {
+      clearInterval(statusCheckIntervalRef.current);
+      statusCheckIntervalRef.current = null;
+    }
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
@@ -203,6 +344,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     }
     
     setConnectionStatus('disconnected');
+    setInstanceStatus(null);
     options.onStatusChange?.('disconnected');
   }, [options]);
 
@@ -220,10 +362,15 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
       throw new Error('Instância não configurada');
     }
     
+    // Só buscar QR Code se não estiver conectado
+    if (instanceStatus?.ownerJid) {
+      throw new Error('WhatsApp já está conectado');
+    }
+    
     return await fetchQRCode(user.instance_name);
-  }, [fetchQRCode]);
+  }, [fetchQRCode, instanceStatus]);
 
-  // Remover a conexão automática
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       disconnect();
@@ -233,10 +380,12 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   return {
     connectionStatus,
     lastError,
+    instanceStatus,
     connect,
     disconnect,
     sendMessage,
     getQRCode,
-    isConnected: connectionStatus === 'connected'
+    isConnected: connectionStatus === 'connected',
+    isWaitingQR: connectionStatus === 'waiting_qr'
   };
 };

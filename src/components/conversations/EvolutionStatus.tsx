@@ -1,14 +1,14 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, AlertCircle, Loader2, MessageSquare, Settings } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, MessageSquare, Settings, QrCode } from 'lucide-react';
 import { useEvolution } from '@/contexts/EvolutionContext';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { EvolutionConnectionModal } from './EvolutionConnectionModal';
 
 export const EvolutionStatus = () => {
-  const { connectionStatus, isConnected, lastError } = useEvolution();
+  const { connectionStatus, isConnected, isWaitingQR, lastError, instanceStatus } = useEvolution();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getStatusConfig = () => {
@@ -26,6 +26,13 @@ export const EvolutionStatus = () => {
           text: 'Conectando...',
           className: 'bg-yellow-50 text-yellow-700 border-yellow-200',
           iconColor: 'text-yellow-600 animate-spin'
+        };
+      case 'waiting_qr':
+        return {
+          icon: QrCode,
+          text: 'Aguardando QR Code',
+          className: 'bg-blue-50 text-blue-700 border-blue-200',
+          iconColor: 'text-blue-600'
         };
       case 'disconnected':
       default:
@@ -51,6 +58,11 @@ export const EvolutionStatus = () => {
                 <MessageSquare size={14} className="flex-shrink-0" />
                 <IconComponent size={14} className={`flex-shrink-0 ${config.iconColor}`} />
                 <span className="text-xs font-medium">{config.text}</span>
+                {isConnected && instanceStatus?.phone && (
+                  <span className="text-xs opacity-75">
+                    ({instanceStatus.phone})
+                  </span>
+                )}
               </div>
             </Badge>
             <Button
