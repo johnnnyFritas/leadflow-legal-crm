@@ -75,7 +75,27 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     }
   }, [instanceName]);
 
-  // Função para conectar ao WebSocket
+  // Função para tentativa de reconexão (declarada antes de ser usada)
+  const attemptReconnect = useCallback(() => {
+    if (reconnectAttempts.current >= maxReconnectAttempts) {
+      console.log('Máximo de tentativas de reconexão atingido');
+      toast.error('Falha na conexão. Verifique sua internet e tente novamente.');
+      return;
+    }
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+
+    reconnectAttempts.current += 1;
+    console.log(`Tentativa de reconexão ${reconnectAttempts.current}/${maxReconnectAttempts} em 5 segundos...`);
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      connectSocket();
+    }, 5000);
+  }, []);
+
+  // Função para conectar ao WebSocket (agora pode usar attemptReconnect)
   const connectSocket = useCallback(() => {
     if (socketRef.current?.connected) {
       socketRef.current.disconnect();
@@ -225,26 +245,6 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
 
     socketRef.current = socket;
   }, [instanceName, apiKey, saveMessage, updateInstanceStatus, attemptReconnect]);
-
-  // Função para tentativa de reconexão
-  const attemptReconnect = useCallback(() => {
-    if (reconnectAttempts.current >= maxReconnectAttempts) {
-      console.log('Máximo de tentativas de reconexão atingido');
-      toast.error('Falha na conexão. Verifique sua internet e tente novamente.');
-      return;
-    }
-
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-
-    reconnectAttempts.current += 1;
-    console.log(`Tentativa de reconexão ${reconnectAttempts.current}/${maxReconnectAttempts} em 5 segundos...`);
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      connectSocket();
-    }, 5000);
-  }, [connectSocket]);
 
   // Função para refresh automático do QR
   const startQRRefresh = useCallback(() => {
