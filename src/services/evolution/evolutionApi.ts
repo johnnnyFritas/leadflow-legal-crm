@@ -112,8 +112,17 @@ export class EvolutionApi {
     }
 
     const result = await response.json();
-    console.log('QR Code obtido:', { hasBase64: !!result.base64 });
-    return result;
+    console.log('QR Code resposta original:', result);
+    
+    // Normalizar a resposta da API - mapear 'code' para 'base64'
+    const normalizedResult = {
+      base64: result.base64 || result.code || result.qrcode || '',
+      pairingCode: result.pairingCode,
+      count: result.count
+    };
+    
+    console.log('QR Code normalizado:', { hasBase64: !!normalizedResult.base64 });
+    return normalizedResult;
   }
 
   // Getter para acessar a API key externamente se necessário

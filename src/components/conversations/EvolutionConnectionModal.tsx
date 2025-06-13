@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -70,26 +69,21 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
       const result = await getQRCode();
       console.log('Resultado do QR Code:', result);
       
-      if (result?.base64) {
-        // Verificar se já é uma data URI completa
-        const qrCodeDataUri = result.base64.startsWith('data:image') 
-          ? result.base64 
-          : `data:image/png;base64,${result.base64}`;
+      // Extrair o QR code com múltiplos fallbacks
+      const qrString = result?.base64 || result?.code || result?.qrcode;
+      
+      if (qrString && qrString.trim() !== '') {
+        // Verificar se já é uma data URI completa ou se precisa do prefixo
+        const qrCodeDataUri = qrString.startsWith('data:image') 
+          ? qrString 
+          : `data:image/png;base64,${qrString}`;
         
         setQrCode(qrCodeDataUri);
-        addLog('success', 'QR Code atualizado');
+        addLog('success', 'QR Code atualizado com sucesso');
         setQrTimer(30);
-      } else if (result?.qrcode) {
-        // Tentar usar campo qrcode se base64 não estiver disponível
-        const qrCodeDataUri = result.qrcode.startsWith('data:image') 
-          ? result.qrcode 
-          : `data:image/png;base64,${result.qrcode}`;
-        
-        setQrCode(qrCodeDataUri);
-        addLog('success', 'QR Code atualizado');
-        setQrTimer(30);
+        console.log('QR Code definido com sucesso');
       } else {
-        console.error('QR Code não encontrado na resposta:', result);
+        console.error('QR Code vazio ou não encontrado na resposta:', result);
         addLog('error', 'QR Code não disponível na resposta da API');
       }
     } catch (error) {
