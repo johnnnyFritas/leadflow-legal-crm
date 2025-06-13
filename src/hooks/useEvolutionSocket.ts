@@ -35,27 +35,23 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
 
     try {
       setConnectionStatus('connecting');
-      const wsUrl = `wss://evolution.haddx.com.br/${user.instance_name}`;
+      const wsUrl = `wss://evolution.haddx.com.br/${user.instance_name}?authorization=Bearer%20SUACHAVEAQUI`;
       
       console.log('Conectando ao WebSocket Evolution:', wsUrl);
       
-      const ws = new WebSocket(wsUrl, [], {
-        headers: {
-          'Authorization': 'Bearer SUACHAVEAQUI'
-        }
-      } as any);
+      const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         console.log('WebSocket Evolution conectado');
         setConnectionStatus('connected');
         setLastError(null);
         reconnectAttempts.current = 0;
-        options.onStatusChange?.(connectionStatus);
+        options.onStatusChange?.('connected');
         
         // Configurar ping para manter conexão ativa
         pingIntervalRef.current = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
-            ws.ping?.() || ws.send(JSON.stringify({ type: 'ping' }));
+            ws.send(JSON.stringify({ type: 'ping' }));
           }
         }, 30000); // Ping a cada 30 segundos
       };
