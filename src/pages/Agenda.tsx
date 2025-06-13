@@ -1,228 +1,60 @@
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Calendar } from '@/components/ui/calendar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { CalendarDays } from 'lucide-react';
-import { calendarService } from '@/services/calendarService';
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { WeeklyGrid } from '@/components/agenda/WeeklyGrid';
-import { DayView } from '@/components/agenda/DayView';
-import { MonthView } from '@/components/agenda/MonthView';
-import { NewEventModal } from '@/components/agenda/NewEventModal';
-import { GoogleCalendarStatus } from '@/components/agenda/GoogleCalendarStatus';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { useIsTablet } from '@/hooks/use-tablet';
+import { AgendaHeader } from '@/components/agenda/AgendaHeader';
+import { AgendaCalendar } from '@/components/agenda/AgendaCalendar';
+import { AgendaViewRenderer } from '@/components/agenda/AgendaViewRenderer';
+import { useAgendaQueries } from '@/hooks/useAgendaQueries';
 
 const Agenda = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week');
-  const isMobile = useIsMobile();
-  const isTablet = useIsTablet();
 
-  // Query para eventos do dia selecionado
-  const { data: dayEvents = [], isLoading: isDayLoading, refetch: refetchDay } = useQuery({
-    queryKey: ['calendar-events-day', format(selectedDate, 'yyyy-MM-dd')],
-    queryFn: () => {
-      console.log('=== QUERY: Buscando eventos do dia ===', format(selectedDate, 'yyyy-MM-dd'));
-      return calendarService.getCalendarEvents(
-        startOfDay(selectedDate).toISOString(),
-        endOfDay(selectedDate).toISOString()
-      );
-    },
-  });
-
-  // Query para eventos da semana
-  const { data: weekEvents = [], isLoading: isWeekLoading, refetch: refetchWeek } = useQuery({
-    queryKey: ['calendar-events-week', format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')],
-    queryFn: () => {
-      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
-      console.log('=== QUERY: Buscando eventos da semana ===', format(weekStart, 'yyyy-MM-dd'), 'até', format(weekEnd, 'yyyy-MM-dd'));
-      return calendarService.getCalendarEvents(
-        weekStart.toISOString(),
-        weekEnd.toISOString()
-      );
-    },
-  });
-
-  // Query para eventos do mês
-  const { data: monthEvents = [], isLoading: isMonthLoading, refetch: refetchMonth } = useQuery({
-    queryKey: ['calendar-events-month', format(startOfMonth(selectedDate), 'yyyy-MM-dd')],
-    queryFn: () => {
-      const monthStart = startOfMonth(selectedDate);
-      const monthEnd = endOfMonth(selectedDate);
-      console.log('=== QUERY: Buscando eventos do mês ===', format(monthStart, 'yyyy-MM-dd'), 'até', format(monthEnd, 'yyyy-MM-dd'));
-      return calendarService.getCalendarEvents(
-        monthStart.toISOString(),
-        monthEnd.toISOString()
-      );
-    },
-  });
-
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      console.log('Data selecionada no calendário lateral:', format(date, 'yyyy-MM-dd'));
-      setSelectedDate(date);
-    }
-  };
-
-  const handleEventCreated = () => {
-    console.log('Evento criado, atualizando todas as queries...');
-    refetchDay();
-    refetchWeek();
-    refetchMonth();
-  };
-
-  const renderViewContent = () => {
-    console.log(`Renderizando visualização: ${viewMode}`);
-    console.log(`Eventos disponíveis:`, {
-      day: dayEvents.length,
-      week: weekEvents.length,
-      month: monthEvents.length
-    });
-
-    switch (viewMode) {
-      case 'day':
-        return (
-          <DayView 
-            selectedDate={selectedDate} 
-            events={dayEvents} 
-            isLoading={isDayLoading}
-          />
-        );
-      case 'week':
-        return (
-          <WeeklyGrid
-            selectedDate={selectedDate}
-            events={weekEvents}
-            onDateChange={setSelectedDate}
-          />
-        );
-      case 'month':
-        return (
-          <MonthView
-            selectedDate={selectedDate}
-            events={monthEvents}
-            onDateChange={setSelectedDate}
-            isLoading={isMonthLoading}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  const {
+    dayEvents,
+    weekEvents,
+    monthEvents,
+    isDayLoading,
+    isWeekLoading,
+    isMonthLoading,
+    handleEventCreated
+  } = useAgendaQueries(selectedDate);
 
   return (
     <div className="w-full min-h-screen overflow-hidden">
       <div className="space-y-3 sm:space-y-4 p-2 sm:p-4 lg:p-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
-          <h2 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold tracking-tight">Agenda</h2>
-          
-          {/* Container dos botões de ação */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            {/* Status do Google Calendar */}
-            <GoogleCalendarStatus />
-            
-            {/* Botão de novo evento */}
-            <div className="w-full sm:w-auto">
-              <NewEventModal 
-                selectedDate={selectedDate} 
-                onEventCreated={handleEventCreated}
-              />
-            </div>
-          </div>
-        </div>
+        <AgendaHeader 
+          selectedDate={selectedDate}
+          onEventCreated={handleEventCreated}
+        />
 
         {/* Layout vertical empilhado */}
         <div className="w-full space-y-3 sm:space-y-4">
           {/* Calendário Lateral */}
           <div className="w-full">
-            <Card className="w-full">
-              <CardHeader className="pb-2 lg:pb-3 px-3 lg:px-6 pt-3 lg:pt-6">
-                <CardTitle className="flex items-center gap-2 text-sm lg:text-base xl:text-lg">
-                  <CalendarDays size={isMobile ? 14 : 16} />
-                  <span>Calendário</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 px-3 lg:px-6 pb-3 lg:pb-6">
-                {/* Container do calendário com overflow controlado */}
-                <div className="w-full overflow-hidden">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={handleDateSelect}
-                    className="w-full rounded-md border"
-                    locale={ptBR}
-                  />
-                </div>
-                
-                {/* Botões de Visualização */}
-                <div className="space-y-2">
-                  <div className="text-xs lg:text-sm font-medium text-muted-foreground">
-                    Visualização
-                  </div>
-                  <div className="flex flex-row gap-1">
-                    <Button 
-                      variant={viewMode === 'day' ? 'default' : 'outline'} 
-                      size="sm" 
-                      onClick={() => setViewMode('day')}
-                      className="flex-1 justify-center text-xs lg:text-sm h-7 lg:h-8"
-                    >
-                      Dia
-                    </Button>
-                    <Button 
-                      variant={viewMode === 'week' ? 'default' : 'outline'} 
-                      size="sm" 
-                      onClick={() => setViewMode('week')}
-                      className="flex-1 justify-center text-xs lg:text-sm h-7 lg:h-8"
-                    >
-                      Semana
-                    </Button>
-                    <Button 
-                      variant={viewMode === 'month' ? 'default' : 'outline'} 
-                      size="sm" 
-                      onClick={() => setViewMode('month')}
-                      className="flex-1 justify-center text-xs lg:text-sm h-7 lg:h-8"
-                    >
-                      Mês
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Debug Info */}
-                <div className="text-xs text-muted-foreground bg-muted/30 p-2 rounded-md">
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span>Modo:</span>
-                      <span className="font-medium">{viewMode}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Data:</span>
-                      <span className="font-medium">
-                        {format(selectedDate, isMobile ? 'dd/MM' : 'dd/MM/yyyy')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Eventos:</span>
-                      <span className="font-medium">
-                        {viewMode === 'day' ? dayEvents.length :
-                         viewMode === 'week' ? weekEvents.length :
-                         monthEvents.length}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AgendaCalendar
+              selectedDate={selectedDate}
+              viewMode={viewMode}
+              onDateSelect={setSelectedDate}
+              onViewModeChange={setViewMode}
+              dayEventsCount={dayEvents.length}
+              weekEventsCount={weekEvents.length}
+              monthEventsCount={monthEvents.length}
+            />
           </div>
 
           {/* Área Principal */}
           <div className="w-full overflow-hidden">
-            {renderViewContent()}
+            <AgendaViewRenderer
+              viewMode={viewMode}
+              selectedDate={selectedDate}
+              dayEvents={dayEvents}
+              weekEvents={weekEvents}
+              monthEvents={monthEvents}
+              isDayLoading={isDayLoading}
+              isMonthLoading={isMonthLoading}
+              onDateChange={setSelectedDate}
+            />
           </div>
         </div>
       </div>
