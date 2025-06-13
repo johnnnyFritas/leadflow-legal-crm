@@ -7,21 +7,28 @@ export class EvolutionWebSocket {
   private socket: Socket | null = null;
   private options: EvolutionSocketOptions;
   private reconnectAttempts = 0;
+  private instanceName: string = '';
 
   constructor(options: EvolutionSocketOptions = {}) {
     this.options = options;
   }
 
   connect(instanceName: string): void {
+    this.instanceName = instanceName;
+    
     try {
-      console.log('Conectando WebSocket para:', instanceName);
+      console.log('🌐 Iniciando conexão WebSocket para:', instanceName);
       
       if (this.socket) {
+        console.log('🔄 Fechando socket anterior...');
         this.socket.disconnect();
       }
 
-      // Usar HTTPS para handshake correto
-      this.socket = io(EVOLUTION_CONFIG.BASE_URL, {
+      // Construir URL do WebSocket
+      const socketUrl = EVOLUTION_CONFIG.BASE_URL;
+      console.log('🔗 URL WebSocket:', socketUrl);
+
+      const socketConfig = {
         path: EVOLUTION_CONFIG.WS_PATH,
         query: { 
           instanceName,
@@ -32,76 +39,103 @@ export class EvolutionWebSocket {
         reconnection: true,
         reconnectionAttempts: EVOLUTION_CONFIG.RECONNECTION_ATTEMPTS,
         reconnectionDelay: EVOLUTION_CONFIG.RECONNECTION_DELAY,
-        reconnectionDelayMax: EVOLUTION_CONFIG.RECONNECTION_DELAY_MAX
-      });
+        reconnectionDelayMax: EVOLUTION_CONFIG.RECONNECTION_DELAY_MAX,
+        timeout: 10000,
+        forceNew: true
+      };
 
-      // Eventos de conexão
+      console.log('⚙️ Configuração do socket:', socketConfig);
+
+      this.socket = io(socketUrl, socketConfig);
+
+      // Eventos de conexão do Socket.IO
       this.socket.on(WS_EVENTS.CONNECT, () => {
-        console.log('WebSocket conectado');
+        console.log('✅ WebSocket conectado com sucesso!');
         this.reconnectAttempts = 0;
         this.options.onStatusChange?.('connected');
       });
 
       this.socket.on(WS_EVENTS.DISCONNECT, (reason) => {
-        console.log('WebSocket desconectado:', reason);
+        console.log('🔌 WebSocket desconectado:', reason);
         this.options.onStatusChange?.('disconnected');
       });
 
       this.socket.on(WS_EVENTS.CONNECT_ERROR, (error) => {
-        console.error('Erro de conexão WebSocket:', error);
+        console.error('❌ Erro de conexão WebSocket:', error);
         this.options.onError?.(error);
       });
 
       this.socket.on(WS_EVENTS.RECONNECT, (attemptNumber) => {
-        console.log('WebSocket reconectado após', attemptNumber, 'tentativas');
+        console.log('🔄 WebSocket reconectado após', attemptNumber, 'tentativas');
+        this.reconnectAttempts = 0;
       });
 
       this.socket.on(WS_EVENTS.RECONNECT_ATTEMPT, (attemptNumber) => {
-        console.log('Tentativa de reconexão WebSocket:', attemptNumber);
+        console.log('🔄 Tentativa de reconexão WebSocket:', attemptNumber);
         this.reconnectAttempts = attemptNumber;
       });
 
-      // Eventos Evolution API - usar nomes corretos
+      this.socket.on(WS_EVENTS.RECONNECT_ERROR, (error) => {
+        console.error('❌ Erro na reconexão WebSocket:', error);
+      });
+
+      // Eventos específicos da Evolution API
       this.socket.on(WS_EVENTS.MESSAGES_UPSERT, (data: EvolutionEvent) => {
-        console.log('Mensagem recebida via WebSocket:', data);
+        console.log('📨 Mensagem recebida via WebSocket:', data);
         this.options.onMessage?.(data);
       });
 
       this.socket.on(WS_EVENTS.CONNECTION_UPDATE, (data: any) => {
-        console.log('Status de conexão atualizado:', data);
+        console.log('🔄 Status de conexão WhatsApp atualizado:', data);
         if (data.connection === 'close') {
+          console.log('📱 WhatsApp desconectado, mudando para waiting_qr');
           this.options.onStatusChange?.('waiting_qr');
         } else if (data.connection === 'open') {
+          console.log('📱 WhatsApp conectado!');
           this.options.onStatusChange?.('connected');
         }
       });
 
+      // Evento genérico para capturar todos os eventos
+      this.socket.onAny((eventName, ...args) => {
+        console.log('🎯 Evento WebSocket recebido:', eventName, args);
+      });
+
+      // Log quando o socket estiver pronto
+      this.socket.on('connect', () => {
+        console.log('🎉 Socket conectado e pronto para:', instanceName);
+      });
+
     } catch (error) {
-      console.error('Erro ao conectar WebSocket:', error);
+      console.error('❌ Erro ao conectar WebSocket:', error);
       this.options.onError?.(error);
     }
   }
 
   disconnect(): void {
+    console.log('🔌 Desconectando WebSocket...');
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
     }
     this.reconnectAttempts = 0;
+    console.log('✅ WebSocket desconectado');
   }
 
   sendMessage(payload: any): boolean {
     if (this.socket?.connected) {
-      // Usar nome correto do evento
+      console.log('📤 Enviando mensagem via WebSocket:', payload);
       this.socket.emit(WS_EVENTS.SEND_MESSAGE, payload);
       return true;
     }
-    console.warn('WebSocket não conectado, não é possível enviar mensagem');
+    console.warn('⚠️ WebSocket não conectado, não é possível enviar mensagem');
     return false;
   }
 
   get isConnected(): boolean {
-    return this.socket?.connected || false;
+    const connected = this.socket?.connected || false;
+    console.log('🔍 Status WebSocket:', connected ? 'conectado' : 'desconectado');
+    return connected;
   }
 
   get connectionAttempts(): number {
