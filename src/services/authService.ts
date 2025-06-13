@@ -1,102 +1,117 @@
 
-import { AuthUser } from '@/types/auth';
-import { AuthStorage } from '@/services/auth/authStorage';
-import { AuthApi } from '@/services/auth/authApi';
-import { generateInstanceName } from '@/utils/instanceUtils';
+import { supabase } from '@/lib/supabase';
+import { ClientInstance } from '@/types/supabase';
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  company_name: string;
+  instance_name: string;
+  phone?: string;
+  main_lawyer_name?: string;
+  name?: string; // Derived from main_lawyer_name or company_name
+  role?: string; // Default role
+  avatarUrl?: string; // Optional avatar
+}
 
 class AuthService {
-  async updateInstanceData(instanceId: string, phone: string): Promise<void> {
-    try {
-      const user = this.getCurrentUser();
-      if (!user) {
-        throw new Error('Usuário não autenticado');
-      }
-
-      await AuthApi.updateInstanceData(instanceId, phone);
-
-      // Atualizar dados locais do usuário
-      const updatedUser = { ...user, phone };
-      AuthStorage.setAuthUser(updatedUser);
-    } catch (error) {
-      console.error('Erro ao atualizar dados da instância:', error);
-      throw error;
-    }
-  }
-
   async login(email: string, password: string): Promise<AuthUser | null> {
     try {
-      console.log('🔐 AUTH: Tentando fazer login com:', email);
+      console.log('Tentando fazer login com:', email);
+      console.log('Senha fornecida:', password);
       
-      let instance = await AuthApi.findUserByEmail(email);
-      
-      if (!instance) {
+      // Buscar instância pelo email
+      const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
+
+      if (!instances || instances.length === 0) {
         throw new Error('Email não encontrado');
       }
 
-      console.log('🔐 AUTH: Instância encontrada:', {
+      const instance = instances[0];
+      console.log('Instância encontrada:', {
         id: instance.id,
-        email: instance.email,
-        instance_name: instance.instance_name
+        email: instance.email
       });
 
+      // Verificar se a senha está correta
       if (instance.password !== password) {
-        console.log('🔐 AUTH: Senha incorreta');
+        console.log('Senha incorreta');
         throw new Error('Senha incorreta');
       }
 
-      // Verificar e gerar instance_name se necessário
-      if (!instance.instance_name || instance.instance_name.trim() === '') {
-        const newInstanceName = generateInstanceName(instance.company_name);
-        console.log('🔐 AUTH: Gerando novo instance_name:', newInstanceName);
-        
-        await AuthApi.updateInstanceName(instance.id, newInstanceName);
-        instance.instance_name = newInstanceName;
-        console.log('🔐 AUTH: Instance_name atualizado na base de dados');
-      }
-
-      const authUser = AuthApi.createAuthUserFromInstance(instance);
-      
-      console.log('🔐 AUTH: AuthUser criado:', {
-        id: authUser.id,
-        email: authUser.email,
-        instance_name: authUser.instance_name
-      });
+      // Criar objeto do usuário autenticado
+      const authUser: AuthUser = {
+        id: instance.id,
+        email: instance.email,
+        company_name: instance.company_name,
+        instance_name: instance.instance_name,
+        phone: instance.phone,
+        main_lawyer_name: instance.main_lawyer_name,
+        name: instance.main_lawyer_name || instance.company_name,
+        role: 'Advogado',
+        avatarUrl: undefined
+      };
 
       // Salvar no localStorage
-      AuthStorage.setAuthUser(authUser);
-      AuthStorage.setInstanceId(instance.id);
+      localStorage.setItem('authUser', JSON.stringify(authUser));
+      localStorage.setItem('instanceId', instance.id);
 
       return authUser;
     } catch (error) {
-      console.error('🔐 AUTH: Erro no login:', error);
+      console.error('Erro no login:', error);
       throw error;
     }
   }
 
   async register(email: string, password: string, name: string): Promise<AuthUser | null> {
     try {
-      console.log('🔐 AUTH: Tentando registrar com:', email);
+      console.log('Tentando registrar com:', email);
       
-      const existingInstance = await AuthApi.findUserByEmail(email);
+      // Verificar se email já existe
+      const existingInstances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(email.toLowerCase().trim())}&limit=1`);
 
-      if (existingInstance) {
+      if (existingInstances && existingInstances.length > 0) {
         throw new Error('Email já cadastrado');
       }
 
-      const newInstance = await AuthApi.createNewInstance(email, password, name);
-      console.log('🔐 AUTH: Nova instância criada:', {
+      // Criar nova instância
+      const instanceData = {
+        email: email.toLowerCase().trim(),
+        company_name: name,
+        instance_name: name.toLowerCase().replace(/\s+/g, '_'),
+        main_lawyer_name: name,
+        password: password,
+        created_at: new Date().toISOString()
+      };
+
+      const newInstances = await supabase.post<ClientInstance[]>('/clients_instances', instanceData);
+
+      if (!newInstances || newInstances.length === 0) {
+        throw new Error('Erro ao criar conta');
+      }
+
+      const newInstance = newInstances[0];
+
+      // Criar objeto do usuário autenticado
+      const authUser: AuthUser = {
         id: newInstance.id,
-        instance_name: newInstance.instance_name
-      });
+        email: newInstance.email,
+        company_name: newInstance.company_name,
+        instance_name: newInstance.instance_name,
+        phone: newInstance.phone,
+        main_lawyer_name: newInstance.main_lawyer_name,
+        name: newInstance.main_lawyer_name || newInstance.company_name,
+        role: 'Advogado',
+        avatarUrl: undefined
+      };
 
-      const authUser = AuthApi.createAuthUserFromInstance(newInstance);
-
-      AuthStorage.setAuthUser(authUser);
-      AuthStorage.setInstanceId(newInstance.id);
+      // Salvar no localStorage
+      localStorage.setItem('authUser', JSON.stringify(authUser));
+      localStorage.setItem('instanceId', newInstance.id);
 
       return authUser;
     } catch (error) {
-      console.error('🔐 AUTH: Erro no registro:', error);
+      console.error('Erro no registro:', error);
       throw error;
     }
   }
@@ -108,17 +123,24 @@ class AuthService {
         throw new Error('Usuário não autenticado');
       }
 
-      const instance = await AuthApi.findUserByEmail(user.email);
+      // Verificar senha atual
+      const instances = await supabase.get<ClientInstance[]>(`/clients_instances?email=eq.${encodeURIComponent(user.email)}&limit=1`);
       
-      if (!instance) {
+      if (!instances || instances.length === 0) {
         throw new Error('Usuário não encontrado');
       }
+
+      const instance = instances[0];
       
       if (instance.password !== currentPassword) {
         throw new Error('Senha atual incorreta');
       }
 
-      await AuthApi.updatePassword(instance.id, newPassword);
+      // Atualizar senha
+      await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
+        password: newPassword
+      });
+
     } catch (error) {
       console.error('Erro ao alterar senha:', error);
       throw error;
@@ -126,44 +148,27 @@ class AuthService {
   }
 
   logout(): void {
-    console.log('🔐 AUTH: Fazendo logout...');
-    AuthStorage.clearAuth();
-    console.log('🔐 AUTH: Logout realizado');
+    localStorage.removeItem('authUser');
+    localStorage.removeItem('instanceId');
   }
 
   getCurrentUser(): AuthUser | null {
-    const user = AuthStorage.getAuthUser();
-    console.log('🔐 AUTH: getCurrentUser chamado:', {
-      hasUser: !!user,
-      userId: user?.id,
-      email: user?.email,
-      instance_name: user?.instance_name
-    });
-    return user;
+    try {
+      const userStr = localStorage.getItem('authUser');
+      if (!userStr) return null;
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
   }
 
   getInstanceId(): string | null {
-    const instanceId = AuthStorage.getInstanceId();
-    console.log('🔐 AUTH: getInstanceId chamado:', instanceId);
-    return instanceId;
+    return localStorage.getItem('instanceId');
   }
 
   isAuthenticated(): boolean {
-    const user = this.getCurrentUser();
-    const instanceId = this.getInstanceId();
-    const isAuth = user !== null && instanceId !== null;
-    
-    console.log('🔐 AUTH: isAuthenticated:', {
-      hasUser: !!user,
-      hasInstanceId: !!instanceId,
-      result: isAuth
-    });
-    
-    return isAuth;
+    return this.getCurrentUser() !== null && this.getInstanceId() !== null;
   }
 }
 
 export const authService = new AuthService();
-
-// Export AuthUser type for backward compatibility
-export type { AuthUser } from '@/types/auth';
