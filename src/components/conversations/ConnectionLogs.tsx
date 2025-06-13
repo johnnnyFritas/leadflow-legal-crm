@@ -1,12 +1,7 @@
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle, AlertCircle } from 'lucide-react';
-
-interface ConnectionLog {
-  timestamp: string;
-  type: 'info' | 'success' | 'error' | 'warning';
-  message: string;
-}
+import { ConnectionLog } from '@/hooks/useConnectionLogs';
 
 interface ConnectionLogsProps {
   logs: ConnectionLog[];
