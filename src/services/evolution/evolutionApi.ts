@@ -118,7 +118,7 @@ export class EvolutionApi {
   }
 
   // Getter para acessar a API key externamente se necessário
-  static get API_KEY() {
+  static get apiKey() {
     return this.API_KEY;
   }
 }
