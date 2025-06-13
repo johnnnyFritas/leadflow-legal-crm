@@ -10,6 +10,8 @@ interface EvolutionContextType {
   isConnected: boolean;
   lastError: string | null;
   sendMessage: (conversationId: string, content: string) => Promise<boolean>;
+  connect: () => void;
+  disconnect: () => void;
   onNewMessage?: (message: Message) => void;
 }
 
@@ -129,9 +131,6 @@ export const EvolutionProvider: React.FC<EvolutionProviderProps> = ({
   const handleStatusChange = useCallback((status: 'connected' | 'disconnected') => {
     if (status === 'connected') {
       setLastError(null);
-      toast.success('Conectado ao WhatsApp');
-    } else {
-      toast.error('Desconectado do WhatsApp');
     }
   }, []);
 
@@ -140,7 +139,13 @@ export const EvolutionProvider: React.FC<EvolutionProviderProps> = ({
     setLastError('Erro de conexão com WhatsApp');
   }, []);
 
-  const { connectionStatus, sendMessage: sendWebSocketMessage, isConnected } = useEvolutionSocket({
+  const { 
+    connectionStatus, 
+    sendMessage: sendWebSocketMessage, 
+    isConnected,
+    connect: socketConnect,
+    disconnect: socketDisconnect
+  } = useEvolutionSocket({
     onMessage: handleEvolutionMessage,
     onStatusChange: handleStatusChange,
     onError: handleError
@@ -179,6 +184,8 @@ export const EvolutionProvider: React.FC<EvolutionProviderProps> = ({
     isConnected,
     lastError,
     sendMessage,
+    connect: socketConnect,
+    disconnect: socketDisconnect,
     onNewMessage
   };
 

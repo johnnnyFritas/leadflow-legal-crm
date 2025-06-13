@@ -175,13 +175,12 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     return false;
   }, []);
 
+  // Remover a conexão automática - agora será manual
   useEffect(() => {
-    connect();
-    
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [disconnect]);
 
   return {
     connectionStatus,
