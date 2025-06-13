@@ -26,7 +26,43 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
 
-  const connect = useCallback(() => {
+  const activateWebSocket = useCallback(async (instanceName: string) => {
+    try {
+      const response = await fetch(`https://evolution.haddx.com.br/websocket/${instanceName}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer SUACHAVEAQUI',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          enabled: true,
+          events: [
+            'APPLICATION_STARTUP',
+            'QRCODE_UPDATED', 
+            'CONNECTION_UPDATE',
+            'MESSAGES_SET',
+            'MESSAGES_UPSERT',
+            'MESSAGES_UPDATE',
+            'SEND_MESSAGE'
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro ao ativar WebSocket: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('WebSocket ativado na instância:', result);
+      return true;
+    } catch (error) {
+      console.error('Erro ao ativar WebSocket:', error);
+      setLastError('Erro ao ativar WebSocket na instância');
+      return false;
+    }
+  }, []);
+
+  const connect = useCallback(async () => {
     const user = authService.getCurrentUser();
     if (!user?.instance_name) {
       console.error('Nome da instância não encontrado');
@@ -35,6 +71,17 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
 
     try {
       setConnectionStatus('connecting');
+      
+      // Primeiro ativar o WebSocket na instância
+      const activated = await activateWebSocket(user.instance_name);
+      if (!activated) {
+        setConnectionStatus('disconnected');
+        return;
+      }
+
+      // Aguardar um pouco para a ativação ser processada
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       const wsUrl = `wss://evolution.haddx.com.br/${user.instance_name}?authorization=Bearer%20SUACHAVEAQUI`;
       
       console.log('Conectando ao WebSocket Evolution:', wsUrl);
@@ -104,7 +151,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
       setConnectionStatus('disconnected');
       setLastError('Erro ao conectar com WhatsApp');
     }
-  }, [options]);
+  }, [options, activateWebSocket]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
