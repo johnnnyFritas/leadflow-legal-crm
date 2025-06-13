@@ -20,8 +20,7 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
     console.error('❌ QR Code src:', qrCode);
     console.error('❌ QR Code length:', qrCode?.length);
     console.error('❌ QR Code starts with data:', qrCode?.startsWith('data:'));
-    const target = e.target as HTMLImageElement;
-    console.error('❌ Erro detalhado:', target.error);
+    // Removed the problematic line: target.error
   };
 
   const handleImageLoad = () => {
