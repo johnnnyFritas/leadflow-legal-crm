@@ -17,7 +17,23 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
 }) => {
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     console.error('Erro ao carregar QR Code:', e);
+    console.error('QR Code src:', qrCode);
+    console.error('QR Code length:', qrCode?.length);
+    console.error('QR Code starts with data:', qrCode?.startsWith('data:'));
   };
+
+  const handleImageLoad = () => {
+    console.log('QR Code carregado com sucesso!');
+    console.log('QR Code src length:', qrCode?.length);
+  };
+
+  // Log detalhado sobre o estado do QR Code
+  console.log('QRCodeDisplay render:', {
+    hasQrCode: !!qrCode,
+    qrCodeLength: qrCode?.length,
+    qrCodeStart: qrCode?.substring(0, 50),
+    isLoadingQR
+  });
 
   return (
     <div className="text-center space-y-3">
@@ -29,6 +45,7 @@ export const QRCodeDisplay: React.FC<QRCodeDisplayProps> = ({
               alt="QR Code" 
               className="mx-auto w-48 h-48 object-contain"
               onError={handleImageError}
+              onLoad={handleImageLoad}
             />
           </div>
           <p className="text-sm text-gray-600">

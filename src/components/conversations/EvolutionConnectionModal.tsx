@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
@@ -52,6 +51,25 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
     setLogs(prev => [...prev, newLog]);
   };
 
+  const isValidBase64Image = (str: string): boolean => {
+    if (!str) return false;
+    
+    // Se já é uma data URI, validar formato
+    if (str.startsWith('data:image')) {
+      return str.includes('base64,') && str.split('base64,')[1]?.length > 0;
+    }
+    
+    // Se é apenas base64, validar formato
+    try {
+      // Remover espaços e quebras de linha
+      const cleanStr = str.replace(/\s/g, '');
+      // Verificar se é base64 válido (múltiplo de 4, caracteres válidos)
+      return /^[A-Za-z0-9+/]*={0,2}$/.test(cleanStr) && cleanStr.length % 4 === 0 && cleanStr.length > 100;
+    } catch {
+      return false;
+    }
+  };
+
   const fetchQRCode = async () => {
     if (!getQRCode) {
       addLog('error', 'Função getQRCode não disponível');
@@ -68,19 +86,40 @@ export const EvolutionConnectionModal: React.FC<EvolutionConnectionModalProps> =
       addLog('info', 'Buscando QR Code...');
 
       const result = await getQRCode();
-      console.log('Resultado do QR Code:', result);
+      console.log('Resultado completo do QR Code:', result);
       
-      const qrString = result?.base64 || result?.code || result?.qrcode;
+      // Tentar múltiplos campos possíveis
+      const qrString = result?.base64 || result?.code || result?.qrcode || result?.qr;
+      
+      console.log('QR String extraída:', {
+        hasQrString: !!qrString,
+        qrStringLength: qrString?.length,
+        qrStringStart: qrString?.substring(0, 50),
+        isValidBase64: qrString ? isValidBase64Image(qrString) : false
+      });
       
       if (qrString && qrString.trim() !== '') {
+        // Validar se é uma string base64 válida
+        if (!isValidBase64Image(qrString)) {
+          console.error('QR Code não é uma string base64 válida:', qrString.substring(0, 100));
+          addLog('error', 'QR Code recebido não é válido');
+          return;
+        }
+
         const qrCodeDataUri = qrString.startsWith('data:image') 
           ? qrString 
           : `data:image/png;base64,${qrString}`;
         
+        console.log('QR Code data URI criada:', {
+          length: qrCodeDataUri.length,
+          startsWithData: qrCodeDataUri.startsWith('data:image'),
+          hasBase64: qrCodeDataUri.includes('base64,')
+        });
+        
         setQrCode(qrCodeDataUri);
         addLog('success', 'QR Code atualizado com sucesso');
         setQrTimer(30);
-        console.log('QR Code definido com sucesso');
+        console.log('QR Code definido no estado com sucesso');
       } else {
         console.error('QR Code vazio ou não encontrado na resposta:', result);
         addLog('error', 'QR Code não disponível na resposta da API');
