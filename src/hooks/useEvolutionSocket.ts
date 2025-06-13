@@ -61,49 +61,21 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
     connectWebSocket(status.instanceName);
   }, [connectWebSocket]);
 
-  const validateUser = useCallback(() => {
-    console.log('🔐 SOCKET: Validando usuário...');
-    
+  const connect = useCallback(async () => {
+    console.log('🚀 SOCKET: INICIANDO PROCESSO DE CONEXÃO...');
+
+    // Verificar autenticação
     const user = authService.getCurrentUser();
     if (!user) {
       console.error('❌ SOCKET: Usuário não encontrado');
       setLastError('Usuário não autenticado');
-      return null;
-    }
-
-    if (!authService.isUserDataComplete()) {
-      console.error('❌ SOCKET: Dados do usuário incompletos:', {
-        hasId: !!user.id,
-        hasEmail: !!user.email,
-        hasInstanceName: !!user.instance_name,
-        instanceName: user.instance_name
-      });
-      setLastError('Dados do usuário incompletos. Faça logout e login novamente.');
-      return null;
+      handleStatusChange('disconnected');
+      return;
     }
 
     if (!user.instance_name || user.instance_name.trim() === '') {
       console.error('❌ SOCKET: Nome da instância não encontrado ou vazio');
       setLastError('Nome da instância não configurado. Faça logout e login novamente.');
-      return null;
-    }
-
-    console.log('✅ SOCKET: Usuário validado com sucesso:', {
-      id: user.id,
-      email: user.email,
-      instance_name: user.instance_name
-    });
-
-    return user;
-  }, []);
-
-  const connect = useCallback(async () => {
-    console.log('🚀 SOCKET: INICIANDO PROCESSO DE CONEXÃO...');
-
-    // Primeira validação: verificar autenticação
-    const user = validateUser();
-    if (!user) {
-      console.error('❌ SOCKET: Validação falhou, abortando conexão');
       handleStatusChange('disconnected');
       return;
     }
@@ -140,7 +112,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
         console.log('📱 SOCKET: WhatsApp não conectado, forçando para waiting_qr');
         handleStatusChange('waiting_qr');
         
-        // 3. Conectar WebSocket - IMPORTANTE: conectar mesmo se WhatsApp não estiver conectado
+        // 3. Conectar WebSocket
         console.log('🌐 SOCKET: Conectando WebSocket para aguardar eventos...');
         connectWebSocket(user.instance_name);
         
@@ -153,7 +125,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
           console.error('⚠️ SOCKET: Erro ao configurar webhook:', error);
         }
         
-        // 5. Iniciar verificação contínua do status APENAS se não estiver conectado
+        // 5. Iniciar verificação contínua do status
         console.log('🔄 SOCKET: Iniciando verificação contínua de status...');
         startStatusCheck(user.instance_name, connectionStatus, handleStatusChange, handleConnected);
       }
@@ -164,7 +136,7 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
       setLastError(`Erro ao conectar: ${error}`);
       options.onError?.(error);
     }
-  }, [connectionStatus, handleStatusChange, handleConnected, options, setInstanceStatus, startStatusCheck, connectWebSocket, validateUser]);
+  }, [connectionStatus, handleStatusChange, handleConnected, options, setInstanceStatus, startStatusCheck, connectWebSocket]);
 
   const disconnect = useCallback(() => {
     console.log('🔌 SOCKET: DESCONECTANDO...');
@@ -196,16 +168,20 @@ export const useEvolutionSocket = (options: EvolutionSocketOptions = {}) => {
   }, []);
 
   const getQRCode = useCallback(async () => {
-    const user = validateUser();
+    const user = authService.getCurrentUser();
     if (!user) {
-      throw new Error('Usuário não autenticado ou dados incompletos');
+      throw new Error('Usuário não autenticado');
+    }
+    
+    if (!user.instance_name || user.instance_name.trim() === '') {
+      throw new Error('Nome da instância não configurado');
     }
     
     console.log('📱 SOCKET: Buscando QR Code para:', user.instance_name);
     const result = await EvolutionApi.fetchQRCode(user.instance_name);
     console.log('📱 SOCKET: QR Code recebido:', { hasBase64: !!result?.base64 });
     return result;
-  }, [validateUser]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {

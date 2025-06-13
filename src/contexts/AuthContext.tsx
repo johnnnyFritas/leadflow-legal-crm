@@ -31,23 +31,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       hasUser: !!currentUser,
       hasInstanceId: !!currentInstanceId,
       userEmail: currentUser?.email,
-      instanceName: currentUser?.instance_name,
-      isDataComplete: authService.isUserDataComplete()
+      instanceName: currentUser?.instance_name
     });
     
-    // Só definir o usuário se os dados estiverem completos
-    if (currentUser && currentInstanceId && authService.isUserDataComplete()) {
-      console.log('✅ CONTEXT: Usuário válido encontrado, definindo estado');
+    if (currentUser && currentInstanceId) {
+      console.log('✅ CONTEXT: Usuário encontrado, definindo estado');
       setUser(currentUser);
       setInstanceId(currentInstanceId);
-    } else {
-      console.log('⚠️ CONTEXT: Dados incompletos ou ausentes, limpando estado');
-      // Limpar dados inválidos
-      if (currentUser || currentInstanceId) {
-        authService.logout();
-      }
-      setUser(null);
-      setInstanceId(null);
     }
     
     setIsLoading(false);
@@ -57,13 +47,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🔐 CONTEXT: Tentando login...');
       const authUser = await authService.login(email, password);
-      if (authUser && authService.isUserDataComplete()) {
+      if (authUser) {
         console.log('✅ CONTEXT: Login bem-sucedido, definindo estado');
         setUser(authUser);
         setInstanceId(authUser.id);
       } else {
-        console.error('❌ CONTEXT: Login falhou - dados incompletos');
-        throw new Error('Dados de login incompletos');
+        console.error('❌ CONTEXT: Login falhou - nenhum usuário retornado');
+        throw new Error('Erro no login');
       }
     } catch (error) {
       console.error('❌ CONTEXT: Erro no login:', error);
@@ -75,13 +65,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('🔐 CONTEXT: Tentando registro...');
       const authUser = await authService.register(email, password, name);
-      if (authUser && authService.isUserDataComplete()) {
+      if (authUser) {
         console.log('✅ CONTEXT: Registro bem-sucedido, definindo estado');
         setUser(authUser);
         setInstanceId(authUser.id);
       } else {
-        console.error('❌ CONTEXT: Registro falhou - dados incompletos');
-        throw new Error('Dados de registro incompletos');
+        console.error('❌ CONTEXT: Registro falhou - nenhum usuário retornado');
+        throw new Error('Erro no registro');
       }
     } catch (error) {
       console.error('❌ CONTEXT: Erro no registro:', error);
