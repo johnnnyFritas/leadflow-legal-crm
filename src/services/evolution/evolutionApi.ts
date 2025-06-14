@@ -38,37 +38,45 @@ class EvolutionApiService {
     }
   }
 
-  // Conectar instância (necessário antes de gerar QR)
-  async connectInstance(instanceName: string): Promise<ConnectionResponse> {
-    return this.request<ConnectionResponse>(`/instance/${instanceName}/connect`, 'POST');
-  }
-
-  // Gerar QR Code
-  async generateQRCode(instanceName: string): Promise<QRCodeResponse> {
-    return this.request<QRCodeResponse>(`/instance/${instanceName}/qr`, 'POST');
-  }
-
-  // Desconectar instância
-  async disconnectInstance(instanceName: string): Promise<ConnectionResponse> {
-    return this.request<ConnectionResponse>(`/instance/${instanceName}/disconnect`, 'POST');
-  }
-
-  // Obter status da instância
-  async getInstanceStatus(instanceName: string): Promise<any> {
-    return this.request(`/instance/${instanceName}/status`, 'GET');
-  }
-
-  // Deletar instância
-  async deleteInstance(instanceName: string): Promise<ConnectionResponse> {
-    return this.request<ConnectionResponse>(`/instance/${instanceName}/delete`, 'DELETE');
-  }
-
   // Criar instância
   async createInstance(instanceName: string): Promise<ConnectionResponse> {
     return this.request<ConnectionResponse>(`/instance/create`, 'POST', {
       instanceName,
       qrcode: true,
       integration: 'WHATSAPP-BAILEYS'
+    });
+  }
+
+  // Conectar instância (necessário antes de gerar QR)
+  async connectInstance(instanceName: string): Promise<ConnectionResponse> {
+    return this.request<ConnectionResponse>(`/instance/connect/${instanceName}`, 'POST');
+  }
+
+  // Gerar QR Code
+  async generateQRCode(instanceName: string): Promise<QRCodeResponse> {
+    return this.request<QRCodeResponse>(`/instance/qrcode/${instanceName}`, 'GET');
+  }
+
+  // Desconectar instância
+  async disconnectInstance(instanceName: string): Promise<ConnectionResponse> {
+    return this.request<ConnectionResponse>(`/instance/logout/${instanceName}`, 'DELETE');
+  }
+
+  // Obter status da instância
+  async getInstanceStatus(instanceName: string): Promise<any> {
+    return this.request(`/instance/connectionState/${instanceName}`, 'GET');
+  }
+
+  // Deletar instância
+  async deleteInstance(instanceName: string): Promise<ConnectionResponse> {
+    return this.request<ConnectionResponse>(`/instance/delete/${instanceName}`, 'DELETE');
+  }
+
+  // Enviar mensagem via API REST (alternativa ao WebSocket)
+  async sendMessage(instanceName: string, phone: string, message: string): Promise<any> {
+    return this.request(`/message/sendText/${instanceName}`, 'POST', {
+      number: phone,
+      text: message
     });
   }
 }

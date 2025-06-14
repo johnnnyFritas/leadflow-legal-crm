@@ -6,26 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertTriangle, XCircle, QrCode, RefreshCw, Phone, Loader2, Wifi, WifiOff } from 'lucide-react';
 import { useEvolutionSocket } from '@/hooks/useEvolutionSocket';
-import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export const WhatsAppStatus = () => {
-  const { user } = useAuth();
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   
-  // Gerar instanceName limpo baseado no nome da empresa
-  const cleanInstanceName = (name: string): string => {
-    return name
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .replace(/[^a-z0-9]/g, '') // Remove caracteres especiais
-      .replace(/\s+/g, ''); // Remove espaços
-  };
-
-  const instanceName = user?.instance_name || 
-    (user?.company_name ? cleanInstanceName(user.company_name) : 'default');
-
   const {
     isConnected,
     instanceStatus,
@@ -33,11 +18,11 @@ export const WhatsAppStatus = () => {
     qrCode,
     isGeneratingQR,
     isConnecting,
+    instanceName,
     generateQRCode,
     changeNumber,
-    sendMessage,
     reconnectAttempts
-  } = useEvolutionSocket(instanceName);
+  } = useEvolutionSocket();
 
   const handleGenerateQR = async () => {
     await generateQRCode();

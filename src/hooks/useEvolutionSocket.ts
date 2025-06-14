@@ -1,18 +1,21 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { EvolutionSocketConfig, InstanceStatus, WebSocketMessage, MessageSenderRole } from '@/types/evolution';
+import { InstanceStatus, WebSocketMessage, MessageSenderRole } from '@/types/evolution';
 import { evolutionApi } from '@/services/evolution/evolutionApi';
 import { supabase } from '@/lib/supabase';
 import { toast } from '@/components/ui/sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
-export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACHAVEAQUI') => {
+export const useEvolutionSocket = () => {
+  const { user } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [instanceStatus, setInstanceStatus] = useState<InstanceStatus['status']>('disconnected');
   const [connectedPhone, setConnectedPhone] = useState<string>('');
   const [qrCode, setQrCode] = useState<string>('');
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [instanceData, setInstanceData] = useState<any>(null);
   
   const socketRef = useRef<Socket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -30,6 +33,46 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
       .replace(/\s+/g, ''); // Remove espaços
   }, []);
 
+  // Buscar dados da instância do banco
+  const fetchInstanceData = useCallback(async () => {
+    if (!user?.id) return null;
+
+    try {
+      const response = await supabase.get<any[]>(`/clients_instances?user_id=eq.${user.id}`);
+      let instance = response[0];
+
+      if (!instance) {
+        // Criar nova instância se não existir
+        const instanceName = user.instance_name || 
+          (user.company_name ? cleanInstanceName(user.company_name) : 'default');
+        
+        const newInstance = {
+          user_id: user.id,
+          instance_name: instanceName,
+          is_connected: false,
+          phone: null,
+          instance_id: null
+        };
+
+        const created = await supabase.post<any>('/clients_instances', newInstance);
+        instance = Array.isArray(created) ? created[0] : created;
+      } else if (!instance.instance_name && user.company_name) {
+        // Atualizar instance_name se estiver vazio
+        const instanceName = cleanInstanceName(user.company_name);
+        await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
+          instance_name: instanceName
+        });
+        instance.instance_name = instanceName;
+      }
+
+      setInstanceData(instance);
+      return instance;
+    } catch (error) {
+      console.error('Erro ao buscar dados da instância:', error);
+      return null;
+    }
+  }, [user, cleanInstanceName]);
+
   // Função para salvar mensagem no banco
   const saveMessage = useCallback(async (messageData: WebSocketMessage) => {
     try {
@@ -40,16 +83,18 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
         sent_at: messageData.timestamp || new Date().toISOString(),
         conversation_id: messageData.conversation_id,
         message_type: 'text',
-        instance_id: instanceName
+        instance_id: instanceData?.instance_name
       });
       console.log('Mensagem salva no banco:', messageData);
     } catch (error) {
       console.error('Erro ao salvar mensagem no banco:', error);
     }
-  }, [instanceName]);
+  }, [instanceData]);
 
   // Função para atualizar status da instância no banco
   const updateInstanceStatus = useCallback(async (status: InstanceStatus) => {
+    if (!instanceData?.id) return;
+
     try {
       const updateData: any = {
         is_connected: status.status === 'connected'
@@ -57,6 +102,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
 
       if (status.phone) {
         updateData.phone = status.phone;
+        setConnectedPhone(status.phone);
       }
       if (status.instanceId) {
         updateData.instance_id = status.instanceId;
@@ -66,16 +112,21 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
       if (status.status === 'disconnected') {
         updateData.phone = null;
         updateData.instance_id = null;
+        setConnectedPhone('');
       }
 
-      await supabase.patch(`/clients_instances?instance_name=eq.${instanceName}`, updateData);
+      await supabase.patch(`/clients_instances?id=eq.${instanceData.id}`, updateData);
+      
+      // Atualizar estado local
+      setInstanceData(prev => ({ ...prev, ...updateData }));
+      
       console.log('Status da instância atualizado no banco:', updateData);
     } catch (error) {
       console.error('Erro ao atualizar status da instância:', error);
     }
-  }, [instanceName]);
+  }, [instanceData]);
 
-  // Função para tentativa de reconexão (declarada antes de ser usada)
+  // Função para tentativa de reconexão
   const attemptReconnect = useCallback(() => {
     if (reconnectAttempts.current >= maxReconnectAttempts) {
       console.log('Máximo de tentativas de reconexão atingido');
@@ -95,26 +146,28 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     }, 5000);
   }, []);
 
-  // Função para conectar ao WebSocket (agora pode usar attemptReconnect)
+  // Função para conectar ao WebSocket
   const connectSocket = useCallback(() => {
+    if (!instanceData?.instance_name) return;
+
     if (socketRef.current?.connected) {
       socketRef.current.disconnect();
     }
 
     const socketUrl = `wss://evo.haddx.com.br`;
-    console.log('Conectando ao WebSocket:', `${socketUrl}/${instanceName}`);
+    console.log('Conectando ao WebSocket:', `${socketUrl}/${instanceData.instance_name}`);
 
     const socket = io(socketUrl, {
       transports: ['websocket'],
-      path: `/${instanceName}`,
+      path: `/${instanceData.instance_name}`,
       auth: {
-        token: apiKey
+        apikey: 'SUACHAVEAQUI'
       },
       reconnection: false // Vamos gerenciar reconexão manualmente
     });
 
     socket.on('connect', () => {
-      console.log('WebSocket conectado para instância:', instanceName);
+      console.log('WebSocket conectado para instância:', instanceData.instance_name);
       setIsConnected(true);
       reconnectAttempts.current = 0;
       
@@ -125,27 +178,23 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     });
 
     socket.on('disconnect', () => {
-      console.log('WebSocket desconectado para instância:', instanceName);
+      console.log('WebSocket desconectado para instância:', instanceData.instance_name);
       setIsConnected(false);
       attemptReconnect();
     });
 
     // Escutar status da instância
-    socket.on('instance.status', (data: any) => {
+    socket.on('connection.update', (data: any) => {
       console.log('Status da instância recebido:', data);
       
       const status: InstanceStatus = {
-        instance: data.instance || instanceName,
-        status: data.status,
+        instance: data.instance || instanceData.instance_name,
+        status: data.state === 'open' ? 'connected' : 'disconnected',
         phone: data.phone,
         instanceId: data.instanceId
       };
 
       setInstanceStatus(status.status);
-      if (status.phone) {
-        setConnectedPhone(status.phone);
-      }
-
       updateInstanceStatus(status);
 
       if (status.status === 'connected') {
@@ -161,80 +210,39 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
         
         toast.success(`WhatsApp conectado ao número: ${status.phone}`);
       } else if (status.status === 'disconnected') {
-        setConnectedPhone('');
         setIsConnecting(false);
         toast.warning('WhatsApp desconectado');
       }
     });
 
     // Escutar mensagens enviadas por agentes
-    socket.on('MESSAGES_UPSERT', (data: any) => {
+    socket.on('messages.upsert', (data: any) => {
       console.log('Mensagem do agente recebida:', data);
       
-      if (data.message && data.message.body) {
-        const messageData: WebSocketMessage = {
-          body: data.message.body,
-          sender_role: 'agent',
-          timestamp: new Date().toISOString(),
-          instance_id: instanceName,
-          phone: data.message.from || data.phone,
-          conversation_id: data.conversation_id
-        };
-        
-        saveMessage(messageData);
+      if (data.messages) {
+        data.messages.forEach((msg: any) => {
+          if (msg.message?.conversation && !msg.key.fromMe) {
+            const messageData: WebSocketMessage = {
+              body: msg.message.conversation,
+              sender_role: 'client',
+              timestamp: new Date().toISOString(),
+              instance_id: instanceData.instance_name,
+              phone: msg.key.remoteJid.replace('@s.whatsapp.net', ''),
+              conversation_id: msg.key.remoteJid
+            };
+            
+            saveMessage(messageData);
+          }
+        });
       }
     });
 
-    // Escutar mensagens enviadas pelo sistema/IA
-    socket.on('SEND_MESSAGE', (data: any) => {
-      console.log('Mensagem do sistema recebida:', data);
-      
-      if (data.body) {
-        const messageData: WebSocketMessage = {
-          body: data.body,
-          sender_role: 'system',
-          timestamp: new Date().toISOString(),
-          instance_id: instanceName,
-          phone: data.phone,
-          conversation_id: data.conversation_id
-        };
-        
-        saveMessage(messageData);
-      }
-    });
-
-    // Escutar mensagens de clientes
-    socket.on('message', (data: any) => {
-      console.log('Mensagem do cliente recebida:', data);
-      
-      if (data.body) {
-        const messageData: WebSocketMessage = {
-          body: data.body,
-          sender_role: 'client',
-          timestamp: new Date().toISOString(),
-          instance_id: instanceName,
-          phone: data.from || data.phone,
-          conversation_id: data.conversation_id
-        };
-        
-        saveMessage(messageData);
-      }
-    });
-
-    socket.on('message_received', (data: any) => {
-      console.log('Mensagem recebida do cliente:', data);
-      
-      if (data.body) {
-        const messageData: WebSocketMessage = {
-          body: data.body,
-          sender_role: 'client',
-          timestamp: new Date().toISOString(),
-          instance_id: instanceName,
-          phone: data.from || data.phone,
-          conversation_id: data.conversation_id
-        };
-        
-        saveMessage(messageData);
+    // Escutar QR Code
+    socket.on('qrcode.updated', (data: any) => {
+      console.log('QR Code recebido:', data);
+      if (data.qrcode) {
+        setQrCode(`data:image/png;base64,${data.qrcode}`);
+        setIsGeneratingQR(false);
       }
     });
 
@@ -244,7 +252,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     });
 
     socketRef.current = socket;
-  }, [instanceName, apiKey, saveMessage, updateInstanceStatus, attemptReconnect]);
+  }, [instanceData, saveMessage, updateInstanceStatus, attemptReconnect]);
 
   // Função para refresh automático do QR
   const startQRRefresh = useCallback(() => {
@@ -253,44 +261,57 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     }
 
     qrRefreshInterval.current = setInterval(() => {
-      if (instanceStatus !== 'connected' && !isGeneratingQR) {
+      if (instanceStatus !== 'connected' && !isGeneratingQR && instanceData?.instance_name) {
         console.log('Refreshing QR Code automaticamente...');
         generateQRCode();
       }
     }, 30000); // 30 segundos
-  }, [instanceStatus, isGeneratingQR]);
+  }, [instanceStatus, isGeneratingQR, instanceData]);
 
   // Função para gerar QR Code
   const generateQRCode = useCallback(async () => {
+    if (!instanceData?.instance_name) {
+      toast.error('Dados da instância não encontrados');
+      return;
+    }
+
     try {
       setIsGeneratingQR(true);
       setQrCode('');
       setInstanceStatus('connecting');
 
-      console.log('Criando/conectando instância:', instanceName);
+      console.log('Criando/conectando instância:', instanceData.instance_name);
       
       // Primeiro tentar criar a instância (caso não exista)
       try {
-        await evolutionApi.createInstance(instanceName);
+        await evolutionApi.createInstance(instanceData.instance_name);
       } catch (error) {
         // Se já existir, apenas conectar
         console.log('Instância já existe, apenas conectando...');
       }
 
       // Conectar a instância
-      await evolutionApi.connectInstance(instanceName);
+      await evolutionApi.connectInstance(instanceData.instance_name);
 
-      // Gerar QR
-      console.log('Gerando QR Code para:', instanceName);
-      const qrResponse = await evolutionApi.generateQRCode(instanceName);
-      
-      if (qrResponse.qr) {
-        setQrCode(`data:image/png;base64,${qrResponse.qr}`);
-        toast.info('QR Code gerado! Escaneie com seu WhatsApp.');
-        
-        // Iniciar refresh automático
-        startQRRefresh();
+      // Conectar WebSocket para receber QR
+      if (!socketRef.current?.connected) {
+        connectSocket();
       }
+
+      // Gerar QR via API
+      try {
+        const qrResponse = await evolutionApi.generateQRCode(instanceData.instance_name);
+        if (qrResponse.qr) {
+          setQrCode(`data:image/png;base64,${qrResponse.qr}`);
+        }
+      } catch (error) {
+        console.log('QR será recebido via WebSocket...');
+      }
+
+      toast.info('QR Code sendo gerado! Escaneie com seu WhatsApp.');
+      
+      // Iniciar refresh automático
+      startQRRefresh();
     } catch (error) {
       console.error('Erro ao gerar QR Code:', error);
       toast.error('Erro ao gerar QR Code. Tente novamente.');
@@ -298,10 +319,12 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     } finally {
       setIsGeneratingQR(false);
     }
-  }, [instanceName, startQRRefresh]);
+  }, [instanceData, connectSocket, startQRRefresh]);
 
   // Função para trocar número (desconectar)
   const changeNumber = useCallback(async () => {
+    if (!instanceData?.instance_name) return;
+
     try {
       setIsConnecting(true);
       
@@ -317,7 +340,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
       }
 
       // Desconectar instância na API
-      await evolutionApi.disconnectInstance(instanceName);
+      await evolutionApi.disconnectInstance(instanceData.instance_name);
       
       // Limpar estados
       setInstanceStatus('disconnected');
@@ -327,7 +350,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
       
       // Atualizar banco
       await updateInstanceStatus({
-        instance: instanceName,
+        instance: instanceData.instance_name,
         status: 'disconnected'
       });
 
@@ -338,30 +361,27 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     } finally {
       setIsConnecting(false);
     }
-  }, [instanceName, updateInstanceStatus]);
+  }, [instanceData, updateInstanceStatus]);
 
   // Função para enviar mensagem
   const sendMessage = useCallback(async (phone: string, message: string, conversationId?: string) => {
-    if (!socketRef.current?.connected || instanceStatus !== 'connected') {
+    if (!instanceData?.instance_name || instanceStatus !== 'connected') {
       toast.error('WhatsApp não conectado. Conecte primeiro.');
       return false;
     }
 
     try {
-      console.log('Enviando mensagem via WebSocket:', { phone, message });
+      console.log('Enviando mensagem via API:', { phone, message });
       
-      socketRef.current.emit('SEND_MESSAGE', {
-        instanceId: instanceName,
-        phone,
-        body: message
-      });
+      // Enviar via API REST
+      await evolutionApi.sendMessage(instanceData.instance_name, phone, message);
 
       // Salvar mensagem como enviada pelo sistema
       const messageData: WebSocketMessage = {
         body: message,
         sender_role: 'system',
         timestamp: new Date().toISOString(),
-        instance_id: instanceName,
+        instance_id: instanceData.instance_name,
         phone,
         conversation_id: conversationId
       };
@@ -373,11 +393,18 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
       toast.error('Erro ao enviar mensagem');
       return false;
     }
-  }, [instanceStatus, instanceName, saveMessage]);
+  }, [instanceData, instanceStatus, saveMessage]);
 
-  // Conectar ao montar o componente
+  // Inicializar dados da instância
   useEffect(() => {
-    if (instanceName) {
+    if (user?.id) {
+      fetchInstanceData();
+    }
+  }, [user?.id, fetchInstanceData]);
+
+  // Conectar WebSocket quando instanceData estiver disponível
+  useEffect(() => {
+    if (instanceData?.instance_name) {
       connectSocket();
     }
 
@@ -392,7 +419,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
         clearInterval(qrRefreshInterval.current);
       }
     };
-  }, [connectSocket]);
+  }, [instanceData?.instance_name, connectSocket]);
 
   return {
     isConnected,
@@ -401,6 +428,7 @@ export const useEvolutionSocket = (instanceName: string, apiKey: string = 'SUACH
     qrCode,
     isGeneratingQR,
     isConnecting,
+    instanceName: instanceData?.instance_name || '',
     generateQRCode,
     changeNumber,
     sendMessage,
