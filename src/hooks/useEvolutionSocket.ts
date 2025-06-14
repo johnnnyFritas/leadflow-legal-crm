@@ -94,7 +94,7 @@ export const useEvolutionSocket = () => {
       if (status && status.instance) {
         const mappedStatus: InstanceStatus = {
           instance: status.instance.instanceName,
-          status: status.instance.state === 'open' ? 'open' : 'disconnected',
+          status: status.instance.state === 'open' ? 'connected' : 'disconnected', // CORRIGIDO: mapear open para connected
           phone: status.instance.profilePictureUrl ? status.instance.profileName : undefined,
           instanceId: status.instance.instanceId
         };
@@ -138,7 +138,7 @@ export const useEvolutionSocket = () => {
 
     try {
       const updateData: any = {
-        is_connected: status.status === 'connected' || status.status === 'open'
+        is_connected: status.status === 'connected' // CORRIGIDO: verificar connected ao invés de open
       };
 
       if (status.phone) {
@@ -228,7 +228,7 @@ export const useEvolutionSocket = () => {
       attemptReconnect();
     });
 
-    // Escutar status da instância - FILTRADO por instância
+    // Escutar status da instância - FILTRADO por instância e CORRIGIDO mapeamento
     socket.on('connection.update', (data: any) => {
       console.log('Status da instância recebido:', data);
       
@@ -242,7 +242,7 @@ export const useEvolutionSocket = () => {
       
       const status: InstanceStatus = {
         instance: eventData.instance || data.instance,
-        status: eventData.state === 'open' ? 'open' : 'disconnected',
+        status: eventData.state === 'open' ? 'connected' : 'disconnected', // CORRIGIDO: mapear open para connected
         phone: eventData.phone,
         instanceId: eventData.instanceId
       };
@@ -251,7 +251,7 @@ export const useEvolutionSocket = () => {
       setInstanceStatus(status.status);
       updateInstanceStatus(status);
 
-      if (status.status === 'open') {
+      if (status.status === 'connected') { // CORRIGIDO: verificar connected
         setQrCode('');
         setIsGeneratingQR(false);
         setIsConnecting(false);
@@ -345,14 +345,14 @@ export const useEvolutionSocket = () => {
     socketRef.current = socket;
   }, [instanceData, saveMessage, updateInstanceStatus, attemptReconnect, checkInstanceStatus]);
 
-  // Função para refresh automático do QR
+  // Função para refresh automático do QR - CORRIGIDA
   const startQRRefresh = useCallback(() => {
     if (qrRefreshInterval.current) {
       clearInterval(qrRefreshInterval.current);
     }
 
     qrRefreshInterval.current = setInterval(() => {
-      if (instanceStatus !== 'open' && !isGeneratingQR && instanceData?.instance_name) {
+      if (instanceStatus !== 'connected' && !isGeneratingQR && instanceData?.instance_name) { // CORRIGIDO: verificar connected
         console.log('Refreshing QR Code automaticamente...');
         generateQRCode();
       }
@@ -453,9 +453,9 @@ export const useEvolutionSocket = () => {
     }
   }, [instanceData, updateInstanceStatus]);
 
-  // Função para enviar mensagem
+  // Função para enviar mensagem - CORRIGIDA
   const sendMessage = useCallback(async (phone: string, message: string, conversationId?: string) => {
-    if (!instanceData?.instance_name || instanceStatus !== 'open') {
+    if (!instanceData?.instance_name || instanceStatus !== 'connected') { // CORRIGIDO: verificar connected
       toast.error('WhatsApp não conectado. Conecte primeiro.');
       return false;
     }
