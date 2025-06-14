@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { InstanceStatus, WebSocketMessage, MessageSenderRole } from '@/types/evolution';
@@ -193,11 +192,14 @@ export const useEvolutionSocket = () => {
     socket.on('connection.update', (data: any) => {
       console.log('Status da instância recebido:', data);
       
+      // Processar dados que podem vir em diferentes formatos
+      const eventData = data.data || data;
+      
       const status: InstanceStatus = {
-        instance: data.instance || instanceData.instance_name,
-        status: data.state === 'open' ? 'open' : 'disconnected',
-        phone: data.phone,
-        instanceId: data.instanceId
+        instance: eventData.instance || instanceData.instance_name,
+        status: eventData.state === 'open' ? 'open' : 'disconnected',
+        phone: eventData.phone,
+        instanceId: eventData.instanceId
       };
 
       setInstanceStatus(status.status);
@@ -225,8 +227,10 @@ export const useEvolutionSocket = () => {
     socket.on('messages.upsert', (data: any) => {
       console.log('Mensagem do agente recebida:', data);
       
-      if (data.messages) {
-        data.messages.forEach((msg: any) => {
+      const eventData = data.data || data;
+      
+      if (eventData.messages) {
+        eventData.messages.forEach((msg: any) => {
           if (msg.message?.conversation && !msg.key.fromMe) {
             const messageData: WebSocketMessage = {
               body: msg.message.conversation,
@@ -243,12 +247,30 @@ export const useEvolutionSocket = () => {
       }
     });
 
-    // Escutar QR Code
+    // Escutar QR Code - CORRIGIDO para processar formato correto
     socket.on('qrcode.updated', (data: any) => {
       console.log('QR Code recebido:', data);
-      if (data.qrcode) {
-        setQrCode(`data:image/png;base64,${data.qrcode}`);
+      
+      // Processar dados que podem vir em diferentes formatos
+      const eventData = data.data || data;
+      
+      // Verificar se há QR code nos dados
+      if (eventData.qrcode) {
+        // Se vier como objeto com base64
+        if (eventData.qrcode.base64) {
+          setQrCode(eventData.qrcode.base64);
+        }
+        // Se vier como string diretamente
+        else if (typeof eventData.qrcode === 'string') {
+          setQrCode(`data:image/png;base64,${eventData.qrcode}`);
+        }
+        // Se vier como objeto com code
+        else if (eventData.qrcode.code) {
+          setQrCode(`data:image/png;base64,${eventData.qrcode.code}`);
+        }
+        
         setIsGeneratingQR(false);
+        console.log('QR Code processado e definido');
       }
     });
 
@@ -303,7 +325,7 @@ export const useEvolutionSocket = () => {
         connectSocket();
       }
 
-      // Tentar obter QR via API
+      // Tentar obter QR via API (opcional, pois virá via WebSocket)
       try {
         const qrResponse = await evolutionApi.generateQRCode(instanceData.instance_name);
         if (qrResponse.qr) {
