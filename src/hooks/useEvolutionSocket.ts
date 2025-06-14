@@ -151,7 +151,7 @@ export const useEvolutionSocket = () => {
     }, 5000);
   }, []);
 
-  // Função para conectar ao WebSocket - CORRIGIDA
+  // Função para conectar ao WebSocket - CORRIGIDA para instância específica
   const connectSocket = useCallback(() => {
     if (!instanceData?.instance_name) return;
 
@@ -159,16 +159,17 @@ export const useEvolutionSocket = () => {
       socketRef.current.disconnect();
     }
 
-    // URL correta do WebSocket da Evolution API
+    // URL específica da instância
     const socketUrl = `https://evo.haddx.com.br`;
     console.log('Conectando ao WebSocket:', `${socketUrl} para instância ${instanceData.instance_name}`);
 
     const socket = io(socketUrl, {
       transports: ['websocket'],
       query: {
-        apikey: 'SUACHAVEAQUI'
+        apikey: 'SUACHAVEAQUI',
+        instance: instanceData.instance_name // Adicionar instância na query
       },
-      reconnection: false // Vamos gerenciar reconexão manualmente
+      reconnection: false
     });
 
     socket.on('connect', () => {
@@ -188,29 +189,34 @@ export const useEvolutionSocket = () => {
       attemptReconnect();
     });
 
-    // Escutar status da instância
+    // Escutar status da instância - FILTRADO por instância
     socket.on('connection.update', (data: any) => {
       console.log('Status da instância recebido:', data);
       
-      // Processar dados que podem vir em diferentes formatos
+      // Verificar se o evento é da nossa instância
+      if (data.instance !== instanceData.instance_name) {
+        console.log('Evento ignorado - instância diferente:', data.instance, 'vs', instanceData.instance_name);
+        return;
+      }
+      
       const eventData = data.data || data;
       
       const status: InstanceStatus = {
-        instance: eventData.instance || instanceData.instance_name,
+        instance: eventData.instance || data.instance,
         status: eventData.state === 'open' ? 'open' : 'disconnected',
         phone: eventData.phone,
         instanceId: eventData.instanceId
       };
 
+      console.log('Atualizando status para instância:', status.instance, 'status:', status.status);
       setInstanceStatus(status.status);
       updateInstanceStatus(status);
 
       if (status.status === 'open') {
-        setQrCode(''); // Limpar QR quando conectar
+        setQrCode('');
         setIsGeneratingQR(false);
         setIsConnecting(false);
         
-        // Parar refresh automático do QR
         if (qrRefreshInterval.current) {
           clearInterval(qrRefreshInterval.current);
           qrRefreshInterval.current = null;
@@ -223,9 +229,15 @@ export const useEvolutionSocket = () => {
       }
     });
 
-    // Escutar mensagens enviadas por agentes
+    // Escutar mensagens - FILTRADO por instância
     socket.on('messages.upsert', (data: any) => {
-      console.log('Mensagem do agente recebida:', data);
+      console.log('Mensagem recebida:', data);
+      
+      // Verificar se a mensagem é da nossa instância
+      if (data.instance !== instanceData.instance_name) {
+        console.log('Mensagem ignorada - instância diferente:', data.instance, 'vs', instanceData.instance_name);
+        return;
+      }
       
       const eventData = data.data || data;
       
@@ -241,36 +253,38 @@ export const useEvolutionSocket = () => {
               conversation_id: msg.key.remoteJid
             };
             
+            console.log('Salvando mensagem da instância:', instanceData.instance_name);
             saveMessage(messageData);
           }
         });
       }
     });
 
-    // Escutar QR Code - CORRIGIDO para processar formato correto
+    // Escutar QR Code - FILTRADO por instância
     socket.on('qrcode.updated', (data: any) => {
       console.log('QR Code recebido:', data);
       
-      // Processar dados que podem vir em diferentes formatos
+      // Verificar se o QR é da nossa instância
+      if (data.instance !== instanceData.instance_name) {
+        console.log('QR Code ignorado - instância diferente:', data.instance, 'vs', instanceData.instance_name);
+        return;
+      }
+      
       const eventData = data.data || data;
       
-      // Verificar se há QR code nos dados
       if (eventData.qrcode) {
-        // Se vier como objeto com base64
         if (eventData.qrcode.base64) {
           setQrCode(eventData.qrcode.base64);
         }
-        // Se vier como string diretamente
         else if (typeof eventData.qrcode === 'string') {
           setQrCode(`data:image/png;base64,${eventData.qrcode}`);
         }
-        // Se vier como objeto com code
         else if (eventData.qrcode.code) {
           setQrCode(`data:image/png;base64,${eventData.qrcode.code}`);
         }
         
         setIsGeneratingQR(false);
-        console.log('QR Code processado e definido');
+        console.log('QR Code processado para instância:', instanceData.instance_name);
       }
     });
 
