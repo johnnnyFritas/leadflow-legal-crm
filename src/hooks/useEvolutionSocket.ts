@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { InstanceStatus, WebSocketMessage, MessageSenderRole } from '@/types/evolution';
@@ -33,45 +32,51 @@ export const useEvolutionSocket = () => {
       .replace(/\s+/g, ''); // Remove espaços
   }, []);
 
-  // Buscar dados da instância do banco
+  // Buscar dados da instância do banco - CORRIGIDO
   const fetchInstanceData = useCallback(async () => {
     if (!user?.id) return null;
 
     try {
-      const response = await supabase.get<any[]>(`/clients_instances?user_id=eq.${user.id}`);
+      console.log('Buscando instância com ID:', user.id);
+      
+      // Buscar instância pelo ID correto (não user_id)
+      const response = await supabase.get<any[]>(`/clients_instances?id=eq.${user.id}`);
+      
+      if (!response || response.length === 0) {
+        console.error('Instância não encontrada para o ID:', user.id);
+        toast.error('Dados da instância não encontrados');
+        return null;
+      }
+
       let instance = response[0];
+      console.log('Instância encontrada:', instance);
 
-      if (!instance) {
-        // Criar nova instância se não existir
-        const instanceName = user.instance_name || 
-          (user.company_name ? cleanInstanceName(user.company_name) : 'default');
+      // Gerar instance_name se não existir
+      if (!instance.instance_name && instance.company_name) {
+        const instanceName = cleanInstanceName(instance.company_name);
+        console.log('Gerando instance_name:', instanceName);
         
-        const newInstance = {
-          user_id: user.id,
-          instance_name: instanceName,
-          is_connected: false,
-          phone: null,
-          instance_id: null
-        };
-
-        const created = await supabase.post<any>('/clients_instances', newInstance);
-        instance = Array.isArray(created) ? created[0] : created;
-      } else if (!instance.instance_name && user.company_name) {
-        // Atualizar instance_name se estiver vazio
-        const instanceName = cleanInstanceName(user.company_name);
-        await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
-          instance_name: instanceName
-        });
-        instance.instance_name = instanceName;
+        try {
+          await supabase.patch(`/clients_instances?id=eq.${instance.id}`, {
+            instance_name: instanceName
+          });
+          instance.instance_name = instanceName;
+          console.log('Instance_name atualizado com sucesso');
+        } catch (error) {
+          console.error('Erro ao atualizar instance_name:', error);
+          // Usar o nome gerado localmente mesmo se falhar ao salvar
+          instance.instance_name = instanceName;
+        }
       }
 
       setInstanceData(instance);
       return instance;
     } catch (error) {
       console.error('Erro ao buscar dados da instância:', error);
+      toast.error('Erro ao carregar dados da instância');
       return null;
     }
-  }, [user, cleanInstanceName]);
+  }, [user?.id, cleanInstanceName]);
 
   // Função para salvar mensagem no banco
   const saveMessage = useCallback(async (messageData: WebSocketMessage) => {
@@ -97,7 +102,7 @@ export const useEvolutionSocket = () => {
 
     try {
       const updateData: any = {
-        is_connected: status.status === 'connected'
+        is_connected: status.status === 'connected' || status.status === 'open'
       };
 
       if (status.phone) {
@@ -189,7 +194,7 @@ export const useEvolutionSocket = () => {
       
       const status: InstanceStatus = {
         instance: data.instance || instanceData.instance_name,
-        status: data.state === 'open' ? 'connected' : 'disconnected',
+        status: data.state === 'open' ? 'open' : 'disconnected',
         phone: data.phone,
         instanceId: data.instanceId
       };
@@ -197,7 +202,7 @@ export const useEvolutionSocket = () => {
       setInstanceStatus(status.status);
       updateInstanceStatus(status);
 
-      if (status.status === 'connected') {
+      if (status.status === 'open') {
         setQrCode(''); // Limpar QR quando conectar
         setIsGeneratingQR(false);
         setIsConnecting(false);
@@ -261,7 +266,7 @@ export const useEvolutionSocket = () => {
     }
 
     qrRefreshInterval.current = setInterval(() => {
-      if (instanceStatus !== 'connected' && !isGeneratingQR && instanceData?.instance_name) {
+      if (instanceStatus !== 'open' && !isGeneratingQR && instanceData?.instance_name) {
         console.log('Refreshing QR Code automaticamente...');
         generateQRCode();
       }
@@ -365,7 +370,7 @@ export const useEvolutionSocket = () => {
 
   // Função para enviar mensagem
   const sendMessage = useCallback(async (phone: string, message: string, conversationId?: string) => {
-    if (!instanceData?.instance_name || instanceStatus !== 'connected') {
+    if (!instanceData?.instance_name || instanceStatus !== 'open') {
       toast.error('WhatsApp não conectado. Conecte primeiro.');
       return false;
     }
