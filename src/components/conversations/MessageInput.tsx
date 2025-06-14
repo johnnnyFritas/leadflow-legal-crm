@@ -36,7 +36,7 @@ const MessageInput = ({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (instanceStatus !== 'open') {
+      if (instanceStatus !== 'connected') { // CORRIGIDO: verificar connected ao invés de open
         toast.error('WhatsApp não conectado. Conecte primeiro para enviar mensagens.');
         return;
       }
@@ -45,7 +45,7 @@ const MessageInput = ({
   };
 
   const handleSendClick = () => {
-    if (instanceStatus !== 'open') {
+    if (instanceStatus !== 'connected') { // CORRIGIDO: verificar connected ao invés de open
       toast.error('WhatsApp não conectado. Conecte primeiro para enviar mensagens.');
       return;
     }
@@ -56,7 +56,7 @@ const MessageInput = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (instanceStatus !== 'open') {
+    if (instanceStatus !== 'connected') { // CORRIGIDO: verificar connected ao invés de open
       toast.error('WhatsApp não conectado. Conecte primeiro para enviar arquivos.');
       return;
     }
@@ -85,7 +85,7 @@ const MessageInput = ({
   };
 
   const handleStartRecording = async () => {
-    if (instanceStatus !== 'open') {
+    if (instanceStatus !== 'connected') { // CORRIGIDO: verificar connected ao invés de open
       toast.error('WhatsApp não conectado. Conecte primeiro para enviar áudios.');
       return;
     }
@@ -117,7 +117,7 @@ const MessageInput = ({
     }
   };
 
-  const isDisabled = isLoading || instanceStatus !== 'open';
+  const isDisabled = isLoading || instanceStatus !== 'connected'; // CORRIGIDO: verificar connected ao invés de open
 
   return (
     <div className="border-t p-4 bg-card">
@@ -162,7 +162,7 @@ const MessageInput = ({
             value={newMessage}
             onChange={(e) => onMessageChange(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={instanceStatus === 'open' ? "Digite sua mensagem..." : "WhatsApp não conectado"}
+            placeholder={instanceStatus === 'connected' ? "Digite sua mensagem..." : "WhatsApp não conectado"} // CORRIGIDO: verificar connected
             disabled={isDisabled}
             className="min-h-[40px] max-h-32 resize-none"
             rows={1}
@@ -179,7 +179,7 @@ const MessageInput = ({
         </Button>
       </div>
 
-      {instanceStatus !== 'open' && (
+      {instanceStatus !== 'connected' && ( // CORRIGIDO: verificar connected ao invés de open
         <p className="text-xs text-red-500 mt-2">
           WhatsApp não está conectado. Conecte primeiro para enviar mensagens.
         </p>
