@@ -19,7 +19,7 @@ export interface EvolutionMessage {
 
 export interface InstanceStatus {
   instance: string;
-  status: 'connected' | 'disconnected' | 'connecting';
+  status: 'connected' | 'disconnected' | 'connecting' | 'open';
   phone?: string;
   instanceId?: string;
 }
