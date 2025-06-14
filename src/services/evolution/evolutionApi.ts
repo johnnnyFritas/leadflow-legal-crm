@@ -47,9 +47,9 @@ class EvolutionApiService {
     });
   }
 
-  // Conectar instância (necessário antes de gerar QR)
-  async connectInstance(instanceName: string): Promise<ConnectionResponse> {
-    return this.request<ConnectionResponse>(`/instance/connect/${instanceName}`, 'POST');
+  // Reiniciar instância (ao invés de conectar)
+  async restartInstance(instanceName: string): Promise<ConnectionResponse> {
+    return this.request<ConnectionResponse>(`/instance/restart/${instanceName}`, 'POST');
   }
 
   // Gerar QR Code

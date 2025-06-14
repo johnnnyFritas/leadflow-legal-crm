@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { InstanceStatus, WebSocketMessage, MessageSenderRole } from '@/types/evolution';
@@ -151,7 +152,7 @@ export const useEvolutionSocket = () => {
     }, 5000);
   }, []);
 
-  // Função para conectar ao WebSocket
+  // Função para conectar ao WebSocket - CORRIGIDA
   const connectSocket = useCallback(() => {
     if (!instanceData?.instance_name) return;
 
@@ -159,13 +160,13 @@ export const useEvolutionSocket = () => {
       socketRef.current.disconnect();
     }
 
-    const socketUrl = `wss://evo.haddx.com.br`;
-    console.log('Conectando ao WebSocket:', `${socketUrl}/${instanceData.instance_name}`);
+    // URL correta do WebSocket da Evolution API
+    const socketUrl = `https://evo.haddx.com.br`;
+    console.log('Conectando ao WebSocket:', `${socketUrl} para instância ${instanceData.instance_name}`);
 
     const socket = io(socketUrl, {
       transports: ['websocket'],
-      path: `/${instanceData.instance_name}`,
-      auth: {
+      query: {
         apikey: 'SUACHAVEAQUI'
       },
       reconnection: false // Vamos gerenciar reconexão manualmente
@@ -273,7 +274,7 @@ export const useEvolutionSocket = () => {
     }, 30000); // 30 segundos
   }, [instanceStatus, isGeneratingQR, instanceData]);
 
-  // Função para gerar QR Code
+  // Função para gerar QR Code - SIMPLIFICADA
   const generateQRCode = useCallback(async () => {
     if (!instanceData?.instance_name) {
       toast.error('Dados da instância não encontrados');
@@ -285,25 +286,24 @@ export const useEvolutionSocket = () => {
       setQrCode('');
       setInstanceStatus('connecting');
 
-      console.log('Criando/conectando instância:', instanceData.instance_name);
+      console.log('Reiniciando instância:', instanceData.instance_name);
       
-      // Primeiro tentar criar a instância (caso não exista)
+      // Como a instância já existe, apenas reiniciar
       try {
-        await evolutionApi.createInstance(instanceData.instance_name);
+        await evolutionApi.restartInstance(instanceData.instance_name);
+        console.log('Instância reiniciada com sucesso');
       } catch (error) {
-        // Se já existir, apenas conectar
-        console.log('Instância já existe, apenas conectando...');
+        console.log('Erro ao reiniciar instância, tentando criar nova:', error);
+        // Se falhar ao reiniciar, tentar criar (pode ser que não exista)
+        await evolutionApi.createInstance(instanceData.instance_name);
       }
-
-      // Conectar a instância
-      await evolutionApi.connectInstance(instanceData.instance_name);
 
       // Conectar WebSocket para receber QR
       if (!socketRef.current?.connected) {
         connectSocket();
       }
 
-      // Gerar QR via API
+      // Tentar obter QR via API
       try {
         const qrResponse = await evolutionApi.generateQRCode(instanceData.instance_name);
         if (qrResponse.qr) {
