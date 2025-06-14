@@ -70,6 +70,12 @@ export const useEvolutionSocket = () => {
       }
 
       setInstanceData(instance);
+      
+      // Verificar status atual da instância na API
+      if (instance.instance_name) {
+        checkInstanceStatus(instance.instance_name);
+      }
+      
       return instance;
     } catch (error) {
       console.error('Erro ao buscar dados da instância:', error);
@@ -77,6 +83,36 @@ export const useEvolutionSocket = () => {
       return null;
     }
   }, [user?.id, cleanInstanceName]);
+
+  // Verificar status atual da instância
+  const checkInstanceStatus = useCallback(async (instanceName: string) => {
+    try {
+      console.log('Verificando status da instância:', instanceName);
+      const status = await evolutionApi.getInstanceStatus(instanceName);
+      console.log('Status atual da instância:', status);
+      
+      if (status && status.instance) {
+        const mappedStatus: InstanceStatus = {
+          instance: status.instance.instanceName,
+          status: status.instance.state === 'open' ? 'open' : 'disconnected',
+          phone: status.instance.profilePictureUrl ? status.instance.profileName : undefined,
+          instanceId: status.instance.instanceId
+        };
+        
+        console.log('Status mapeado:', mappedStatus);
+        setInstanceStatus(mappedStatus.status);
+        
+        if (mappedStatus.phone) {
+          setConnectedPhone(mappedStatus.phone);
+        }
+        
+        // Atualizar no banco
+        updateInstanceStatus(mappedStatus);
+      }
+    } catch (error) {
+      console.log('Erro ao verificar status da instância, continuando...', error);
+    }
+  }, []);
 
   // Função para salvar mensagem no banco
   const saveMessage = useCallback(async (messageData: WebSocketMessage) => {
@@ -181,6 +217,9 @@ export const useEvolutionSocket = () => {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
       }
+      
+      // Verificar status atual após conectar
+      checkInstanceStatus(instanceData.instance_name);
     });
 
     socket.on('disconnect', () => {
@@ -229,7 +268,7 @@ export const useEvolutionSocket = () => {
       }
     });
 
-    // Escutar mensagens - FILTRADO por instância
+    // Escutar mensagens - FILTRADO por instância e CORRIGIDO processamento
     socket.on('messages.upsert', (data: any) => {
       console.log('Mensagem recebida:', data);
       
@@ -240,23 +279,33 @@ export const useEvolutionSocket = () => {
       }
       
       const eventData = data.data || data;
+      console.log('Dados da mensagem:', eventData);
       
-      if (eventData.messages) {
-        eventData.messages.forEach((msg: any) => {
-          if (msg.message?.conversation && !msg.key.fromMe) {
-            const messageData: WebSocketMessage = {
-              body: msg.message.conversation,
-              sender_role: 'client',
-              timestamp: new Date().toISOString(),
-              instance_id: instanceData.instance_name,
-              phone: msg.key.remoteJid.replace('@s.whatsapp.net', ''),
-              conversation_id: msg.key.remoteJid
-            };
-            
-            console.log('Salvando mensagem da instância:', instanceData.instance_name);
-            saveMessage(messageData);
-          }
-        });
+      // Processar mensagem recebida (não enviada pelo bot)
+      if (eventData.key && !eventData.key.fromMe && eventData.message) {
+        let messageText = '';
+        
+        // Extrair texto da mensagem baseado no tipo
+        if (eventData.message.conversation) {
+          messageText = eventData.message.conversation;
+        } else if (eventData.message.extendedTextMessage?.text) {
+          messageText = eventData.message.extendedTextMessage.text;
+        } else {
+          console.log('Tipo de mensagem não suportado:', eventData.message);
+          return;
+        }
+        
+        const messageData: WebSocketMessage = {
+          body: messageText,
+          sender_role: 'client',
+          timestamp: new Date().toISOString(),
+          instance_id: instanceData.instance_name,
+          phone: eventData.key.remoteJid.replace('@s.whatsapp.net', ''),
+          conversation_id: eventData.key.remoteJid
+        };
+        
+        console.log('Salvando mensagem da instância:', instanceData.instance_name, messageData);
+        saveMessage(messageData);
       }
     });
 
@@ -294,7 +343,7 @@ export const useEvolutionSocket = () => {
     });
 
     socketRef.current = socket;
-  }, [instanceData, saveMessage, updateInstanceStatus, attemptReconnect]);
+  }, [instanceData, saveMessage, updateInstanceStatus, attemptReconnect, checkInstanceStatus]);
 
   // Função para refresh automático do QR
   const startQRRefresh = useCallback(() => {
