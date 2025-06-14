@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Paperclip, Image, FileText, Mic, MicOff } from 'lucide-react';
@@ -29,14 +29,14 @@ const MessageInput = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   
-  const { uploadFile } = useFileUpload();
-  const { startRecording, stopRecording, audioBlob } = useAudioRecorder();
+  const { uploadToN8N } = useFileUpload();
+  const { startRecording, stopRecording } = useAudioRecorder();
   const { instanceStatus } = useEvolutionSocket();
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (instanceStatus !== 'connected') {
+      if (instanceStatus !== 'open') {
         toast.error('WhatsApp não conectado. Conecte primeiro para enviar mensagens.');
         return;
       }
@@ -45,7 +45,7 @@ const MessageInput = ({
   };
 
   const handleSendClick = () => {
-    if (instanceStatus !== 'connected') {
+    if (instanceStatus !== 'open') {
       toast.error('WhatsApp não conectado. Conecte primeiro para enviar mensagens.');
       return;
     }
@@ -56,13 +56,14 @@ const MessageInput = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (instanceStatus !== 'connected') {
+    if (instanceStatus !== 'open') {
       toast.error('WhatsApp não conectado. Conecte primeiro para enviar arquivos.');
       return;
     }
 
     try {
-      const fileUrl = await uploadFile(file, conversationId);
+      const result = await uploadToN8N(file, conversationId, 'agent');
+      if (!result) return;
       
       let messageType = 'file';
       if (type === 'image' || file.type.startsWith('image/')) {
@@ -73,7 +74,7 @@ const MessageInput = ({
         messageType = 'audio';
       }
       
-      onSendFile(file, fileUrl, messageType);
+      onSendFile(file, result.url, messageType);
     } catch (error) {
       console.error('Erro ao fazer upload do arquivo:', error);
       toast.error('Erro ao enviar arquivo');
@@ -84,7 +85,7 @@ const MessageInput = ({
   };
 
   const handleStartRecording = async () => {
-    if (instanceStatus !== 'connected') {
+    if (instanceStatus !== 'open') {
       toast.error('WhatsApp não conectado. Conecte primeiro para enviar áudios.');
       return;
     }
@@ -100,23 +101,23 @@ const MessageInput = ({
 
   const handleStopRecording = async () => {
     try {
-      await stopRecording();
+      const audioFile = await stopRecording();
       setIsRecording(false);
-      toast.success('Gravação finalizada');
+      
+      if (audioFile) {
+        toast.success('Gravação finalizada');
+        // Enviar arquivo de áudio automaticamente
+        const result = await uploadToN8N(audioFile, conversationId, 'agent');
+        if (result) {
+          onSendFile(audioFile, result.url, 'audio');
+        }
+      }
     } catch (error) {
       toast.error('Erro ao parar gravação');
     }
   };
 
-  // Quando um novo áudio for gravado, enviar automaticamente
-  React.useEffect(() => {
-    if (audioBlob) {
-      const audioFile = new File([audioBlob], 'audio.wav', { type: 'audio/wav' });
-      handleFileSelect({ target: { files: [audioFile] } } as any, 'file');
-    }
-  }, [audioBlob]);
-
-  const isDisabled = isLoading || instanceStatus !== 'connected';
+  const isDisabled = isLoading || instanceStatus !== 'open';
 
   return (
     <div className="border-t p-4 bg-card">
@@ -161,7 +162,7 @@ const MessageInput = ({
             value={newMessage}
             onChange={(e) => onMessageChange(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder={instanceStatus === 'connected' ? "Digite sua mensagem..." : "WhatsApp não conectado"}
+            placeholder={instanceStatus === 'open' ? "Digite sua mensagem..." : "WhatsApp não conectado"}
             disabled={isDisabled}
             className="min-h-[40px] max-h-32 resize-none"
             rows={1}
@@ -178,7 +179,7 @@ const MessageInput = ({
         </Button>
       </div>
 
-      {instanceStatus !== 'connected' && (
+      {instanceStatus !== 'open' && (
         <p className="text-xs text-red-500 mt-2">
           WhatsApp não está conectado. Conecte primeiro para enviar mensagens.
         </p>
